@@ -4,7 +4,7 @@ WIP Wallpaper Multi-Monitor Utility written in Rust
 
 Code quality is probably pretty poor as I'm new to Rust
 
-## Preparation/Installation
+## Building
 
 ```bash
 git clone https://github.com/0xk1f0/rwpspread.git
