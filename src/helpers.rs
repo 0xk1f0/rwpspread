@@ -38,15 +38,15 @@ pub fn split_image(input: &str, primary: &(u32, u32), secondary: &(u32, u32), of
     let asp_secondary = simplify_ratio(secondary.0, secondary.1);
 
     // ratio relations
-    let ratio_part_width = main_width / ( asp_primary.0 + asp_secondary.1 );
-    let ratio_part_height = main_height / asp_secondary.0;
+    let ratio_part_width = main_width / ( asp_primary.0 + asp_secondary.0 );
+    let ratio_part_height = main_height / asp_secondary.1;
 
     // correctly size offset
-    let offset_ratiod: u32 = (*offset as f64 * determine_ratio(main_height, secondary.1)).ceil() as u32;
+    let offset_ratiod: u32 = (*offset as f64 * determine_ratio(ratio_part_height, *offset)).ceil() as u32;
 
     // Crop image for horizontal screen
     let primary_img = img.crop(
-        ratio_part_width * asp_secondary.1,
+        ratio_part_width * asp_secondary.0,
         offset_ratiod,
         ratio_part_width * asp_primary.0,
         ratio_part_height * asp_primary.1
@@ -56,8 +56,8 @@ pub fn split_image(input: &str, primary: &(u32, u32), secondary: &(u32, u32), of
     let secondary_img = img.crop(
         0,
         0,
-        ratio_part_width * asp_secondary.1,
-        ratio_part_height * asp_secondary.0
+        ratio_part_width * asp_secondary.0,
+        ratio_part_height * asp_secondary.1
     );
 
     // Push images to result vector
