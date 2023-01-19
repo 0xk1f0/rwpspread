@@ -16,8 +16,6 @@ fn determine_ratio(pixel1: u32, pixel2: u32) -> f64 {
 // parse cli input resolution
 pub fn parse_resolution(resolution: String) -> Result<(u32, u32), &'static str> {
     let parts: Vec<&str> = resolution.split("x").collect();
-    println!("{}", parts[0]);
-    println!("{}", parts[1]);
     let width = parts[0].parse::<u32>().map_err(|_| "")?;
     let height = parts[1].parse::<u32>().map_err(|_| "")?;
 
@@ -29,7 +27,6 @@ pub fn split_image(input: &str, primary: &(u32, u32), secondary: &(u32, u32), of
     // new vector for result imgs
     let mut result_papers: Vec<DynamicImage> = Vec::new();
 
-    println!("{}", input);
     // open original input image
     let mut img = image::open(input).map_err(|_| "")?;
 
