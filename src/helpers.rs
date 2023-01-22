@@ -9,11 +9,15 @@ fn simplify_ratio(pixel1: u32, pixel2: u32) -> (u32, u32) {
 
 // parse cli input resolution
 pub fn parse_resolution(resolution: String) -> Result<(u32, u32), &'static str> {
-    let parts: Vec<&str> = resolution.split("x").collect();
-    let width = parts[0].parse::<u32>().map_err(|_| "")?;
-    let height = parts[1].parse::<u32>().map_err(|_| "")?;
+    if resolution.contains("x") {
+        let parts: Vec<&str> = resolution.split("x").collect();
+        let width = parts[0].parse::<u32>().map_err(|_| "")?;
+        let height = parts[1].parse::<u32>().map_err(|_| "")?;
 
-    Ok((width, height))
+        Ok((width, height))
+    } else {
+        Err("Parsing Error")
+    }
 }
 
 // split main image into two seperate
