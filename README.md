@@ -18,13 +18,13 @@ cargo build --release
 # it takes an input image,
 # resolution of the primary and secondary monitor 
 # and an offset (in pixels)
-rwpspread <image> < <width>x<height> > < <width>x<height> > <offset>
+rwpspread <image> <primary> <secondary> <offset>
 # for example
 rwpspread wallpaper.png 2560x1440 1920x1080 100
 ```
 
 ## TODO
 
-- orientation is hardcoded, add orientation change support
+- orientation is partly hardcoded for now
 - wallpaper rearranging
 - GUI?
