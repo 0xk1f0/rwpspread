@@ -53,7 +53,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         &config.image_file,
         &config.m_primary,
         &config.m_secondary,
-        &config.offset
+        config.offset
     ).map_err(
        |_| "Split Error"
     )?;
@@ -66,7 +66,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
             image.height(),
             &config.offset
         );
-        image.save(image_name).unwrap();
+        image.save(
+            image_name
+        ).map_err(
+            |_| "Split Error"
+        )?;
     }
 
     // return none if success

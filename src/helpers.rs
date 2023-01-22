@@ -7,12 +7,6 @@ fn simplify_ratio(pixel1: u32, pixel2: u32) -> (u32, u32) {
     (*ratio.numer(), *ratio.denom())
 }
 
-// determine image ratio for offset
-fn determine_ratio(pixel1: u32, pixel2: u32) -> f64 {
-    let ratio = pixel1 as f64 / pixel2 as f64;
-    ratio
-}
-
 // parse cli input resolution
 pub fn parse_resolution(resolution: String) -> Result<(u32, u32), &'static str> {
     let parts: Vec<&str> = resolution.split("x").collect();
@@ -23,7 +17,7 @@ pub fn parse_resolution(resolution: String) -> Result<(u32, u32), &'static str> 
 }
 
 // split main image into two seperate
-pub fn split_image(input: &str, primary: &(u32, u32), secondary: &(u32, u32), offset: &u32) -> Result<Vec<DynamicImage>, &'static str> {
+pub fn split_image(input: &str, primary: &(u32, u32), secondary: &(u32, u32), offset: u32) -> Result<Vec<DynamicImage>, &'static str> {
     // new vector for result imgs
     let mut result_papers: Vec<DynamicImage> = Vec::new();
 
@@ -42,12 +36,12 @@ pub fn split_image(input: &str, primary: &(u32, u32), secondary: &(u32, u32), of
     let ratio_part_height = main_height / asp_secondary.1;
 
     // correctly size offset
-    let offset_ratiod: u32 = (*offset as f64 * determine_ratio(ratio_part_height, *offset)).ceil() as u32;
+    let ratio_offset: f64 = f64::from(ratio_part_height) as f64 / f64::from(offset);
 
     // Crop image for horizontal screen
     let primary_img = img.crop(
         ratio_part_width * asp_secondary.0,
-        offset_ratiod,
+        (f64::from(ratio_part_height) * ratio_offset).ceil() as u32,
         ratio_part_width * asp_primary.0,
         ratio_part_height * asp_primary.1
     );
