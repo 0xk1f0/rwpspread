@@ -25,6 +25,5 @@ rwpspread wallpaper.png 2560x1440 1920x1080 100
 
 ## TODO
 
-- orientation is partly hardcoded for now
 - wallpaper rearranging
 - GUI?
