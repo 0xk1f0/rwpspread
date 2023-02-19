@@ -55,7 +55,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         &config.m_secondary,
         config.offset
     ).map_err(
-       |_| "Split Error"
+       |_| "error while splitting"
     )?;
 
     // export images
@@ -69,7 +69,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         image.save(
             image_name
         ).map_err(
-            |_| "Split Error"
+            |_| "error while saving"
         )?;
     }
 
