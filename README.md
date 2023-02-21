@@ -25,5 +25,6 @@ rwpspread wallpaper.png 2560x1440 1920x1080 100
 
 ## TODO
 
-- wallpaper rearranging
+- Hyprland Integration
+- integrate Wayland wallpaper setting
 - GUI?
