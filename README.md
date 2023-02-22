@@ -1,8 +1,12 @@
 # rwpspread
 
-WIP Wallpaper Multi-Monitor Utility written in Rust
+WIP Wallpaper Utility written in Rust
 
-Code quality is probably pretty poor as I'm new to Rust
+## Features
+
+- Spans an input wallpaper across all monitors
+- Intended to work alongside [Hyprland](https://hyprland.org/)
+- Code quality is probably pretty poor as I'm new to Rust
 
 ## Building
 
@@ -15,16 +19,17 @@ cargo build --release
 ## Usage
 
 ```bash
-# it takes an input image,
-# resolution of the primary and secondary monitor 
-# and an offset (in pixels)
-rwpspread <image> <primary> <secondary> <offset>
+# it takes an input image
+# screens are automatically read
+# if running a Hyprland session
+rwpspread <image>
 # for example
-rwpspread wallpaper.png 2560x1440 1920x1080 100
+rwpspread /some/path/wallpaper.png
 ```
 
-## TODO
+## Checklist
 
-- Hyprland Integration
-- integrate Wayland wallpaper setting
-- GUI?
+- [x] splitting for dual screen layout
+- [ ] splitting for any screen layout (two or more screens)
+- [x] Hyprland Integration
+- [ ] wpaperd Integration
