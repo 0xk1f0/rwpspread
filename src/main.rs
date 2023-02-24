@@ -1,10 +1,11 @@
 mod splitter;
-use std::env;
+mod parser;
+mod hyprland;
 use std::process;
-use rwpspread::Config;
-use colored::Colorize;
 use std::error::Error;
-use crate::splitter::split_image;
+use colored::Colorize;
+use parser::Config;
+use splitter::split_image;
 
 fn run(config: Config) -> Result<(), Box<dyn Error>> {
     // perform split operation
@@ -32,11 +33,8 @@ fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 fn main() {
-    // get args from environment
-    let args: Vec<String> = env::args().collect();
-
     // create new config
-    let config = Config::new(&args)
+    let config = Config::new()
         .unwrap_or_else(|err| {
             eprintln!("{}: {}", "rwpspread".red().bold(), err);
             process::exit(1);

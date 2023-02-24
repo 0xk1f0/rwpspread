@@ -1,7 +1,6 @@
 use hyprland::data::{Monitors, Transforms};
 use hyprland::prelude::*;
 
-// generic monitor struct
 pub struct HyprMonitor {
     pub name: String,
     pub width: u32,
@@ -10,32 +9,15 @@ pub struct HyprMonitor {
     pub y: i32,
 }
 
-pub struct Config {
-    pub image_file: String,
-    pub mon_list: Vec<HyprMonitor>
-}
-
-impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &str> {
-        // handle args
-        if args.len() < 2 {
-            return Err("not enough arguments");
-        } else if args.len() > 2 {
-            return Err("too many arguments");
-        }
-
-        /*
-            @TODO: Make sure we actually are dealing
-            with a valid path and image file
-        */
-        // clone args to vars
-        let image_file: String = args[1].clone();
-
+impl HyprMonitor {
+    pub fn new() -> Result<Vec<HyprMonitor>, String> {
         // new vector for result imgs
-        let mut mon_list: Vec<HyprMonitor> = Vec::new();
+        let mut result: Vec<HyprMonitor> = Vec::new();
 
         // fetch all
-        let all = Monitors::get().unwrap();
+        let all = Monitors::get().map_err(
+            |_| ""
+        )?;
 
         // get monitor dimensions
         for monitor in all {
@@ -62,13 +44,8 @@ impl Config {
                 y: monitor.y
             };
             // push to vector
-            mon_list.push(new_mon);
+            result.push(new_mon);
         }
-
-        // pass config
-        Ok(Config {
-            image_file,
-            mon_list
-        })
+        Ok(result)
     }
 }

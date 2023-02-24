@@ -3,11 +3,8 @@ name = "rwpspread"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+clap = { version = "4.1.6", features = ["derive"] }
 colored = "2.0.0"
 hyprland = "0.3.0"
 image = "0.24.5"
-libvips = "1.5.0"
-num = "0.4.0"

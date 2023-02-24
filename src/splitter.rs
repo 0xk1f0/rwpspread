@@ -1,7 +1,7 @@
 use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use std::cmp;
 use colored::Colorize;
-use rwpspread::Config;
+use crate::Config;
 
 // result paper struct
 pub struct ResultPaper {

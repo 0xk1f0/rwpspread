@@ -22,15 +22,15 @@ cargo build --release
 # it takes an input image
 # screens are automatically read
 # if running a Hyprland session
-rwpspread <image>
+rwpspread -i <image>
 # for example
-rwpspread /some/path/wallpaper.png
+rwpspread -i /some/path/wallpaper.png
 ```
 
 ## Checklist
 
 - [x] splitting for dual screen layout
-- [ ] splitting for any screen layout (two or more screens)
+- [x] splitting for any screen layout (two or more screens)
 - [x] Hyprland Integration
-- [ ] wpaperd Integration
 - [ ] restore standalone support
+- [ ] wpaperd Integration
