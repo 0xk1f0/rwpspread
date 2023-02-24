@@ -35,17 +35,18 @@ pub fn split_image(config: Config) -> Result<Vec<ResultPaper>, &'static str> {
         |              |
         +--------------+
         
-        @TODO:
-            -> max height is defined by primary or secondary
-            -> max width is defined as sum of all
-            ^ This will most likely fail if monitors are
-            stacked or negatively aligned to root
+        Assuming a monitor can never be negatively offset
+        from root, we can say that max width will be the biggest monitor
+        with the greatest x-offset, max height will be defined in the same
+        way except using y-offset
+
+        Should we ever get a negative offset, this will definitely panic ¯\_(ツ)_/¯
     */
     let mut overall_width = 0;
     let mut overall_height = 0;
     for monitor in &config.mon_list {
-        overall_height = cmp::max(monitor.height, overall_height);
-        overall_width += monitor.width;
+        overall_width = cmp::max(monitor.width + monitor.x as u32, overall_width);
+        overall_height = cmp::max(monitor.height + monitor.y as u32, overall_height);
     }
 
     // check if we need to upscale

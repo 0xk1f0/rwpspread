@@ -33,3 +33,4 @@ rwpspread /some/path/wallpaper.png
 - [ ] splitting for any screen layout (two or more screens)
 - [x] Hyprland Integration
 - [ ] wpaperd Integration
+- [ ] restore standalone support
