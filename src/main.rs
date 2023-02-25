@@ -4,12 +4,11 @@ mod layout;
 mod wpaperd;
 
 use std::process;
-use std::error::Error;
 use colored::Colorize;
 use parser::Config;
 use splitter::Splitter;
 
-fn run(config: Config) -> Result<(), Box<dyn Error>> {
+fn run(config: Config) -> Result<(), String> {
     // create new splitter
     let worker = Splitter::new(config);
 
@@ -23,8 +22,14 @@ fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 fn main() {
+    // create new config
+    if let Err(err) = Config::new() {
+        eprintln!("{}: {}", "rwpspread".red().bold(), err);
+        process::exit(1);
+    }
+
     // run with config
-    if let Err(err) = run(Config::new()) {
+    if let Err(err) = run(Config::new().unwrap()) {
         eprintln!("{}: {}", "rwpspread".red().bold(), err);
         process::exit(1);
     }

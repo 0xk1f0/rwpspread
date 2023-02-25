@@ -23,19 +23,24 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, String> {
         // handle args
         let args = Args::parse();
+
+        // check if path is valid
+        if ! fs::metadata(Path::new(&args.image)).is_ok() {
+            Err("Invalid Path")?
+        }
 
         // create new path for image
         let in_path = check_path(Path::new(&args.image));
 
         // construct
-        Self {
+        Ok(Self {
             image_path: in_path,
             mon_list: Monitor::new_from_hyprland().unwrap(),
             with_wpaperd: args.wpaperd
-        }
+        })
     }
 }
 
