@@ -1,16 +1,18 @@
 use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use std::cmp;
+use std::env::var;
 use colored::Colorize;
 use crate::Config;
 
 // result paper struct
 pub struct ResultPaper {
-    pub name: String,
+    pub monitor_name: String,
+    pub image_full_path: String,
     pub image: DynamicImage,
 }
 
 // split main image into two seperate, utilizes scaling
-pub fn split_image(config: Config) -> Result<Vec<ResultPaper>, &'static str> {
+pub fn split_image(config: &Config) -> Result<Vec<ResultPaper>, &'static str> {
     // new vector for result imgs
     let mut result_papers: Vec<ResultPaper> = Vec::new();
 
@@ -68,7 +70,7 @@ pub fn split_image(config: Config) -> Result<Vec<ResultPaper>, &'static str> {
     }
 
     // Crop image for screens
-    for monitor in config.mon_list {
+    for monitor in &config.mon_list {
         let cropped_image = img.crop(
             monitor.x as u32,
             monitor.y as u32,
@@ -77,7 +79,14 @@ pub fn split_image(config: Config) -> Result<Vec<ResultPaper>, &'static str> {
         );
         result_papers.push(
             ResultPaper { 
-                name: monitor.name,
+                monitor_name: format!("{}", &monitor.name),
+                image_full_path: format!(
+                    "{}/.cache/rwpspread_{}_{}x{}.png",
+                    var("HOME").unwrap(),
+                    format!("{}", &monitor.name),
+                    cropped_image.width(),
+                    cropped_image.height(),
+                ),
                 image: cropped_image
             }
         )

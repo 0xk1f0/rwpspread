@@ -1,7 +1,8 @@
 use hyprland::data::{Monitors, Transforms};
 use hyprland::prelude::*;
 
-pub struct HyprMonitor {
+// generic monitor struct
+pub struct Monitor {
     pub name: String,
     pub width: u32,
     pub height: u32,
@@ -9,10 +10,10 @@ pub struct HyprMonitor {
     pub y: i32,
 }
 
-impl HyprMonitor {
-    pub fn new() -> Result<Vec<HyprMonitor>, String> {
+impl Monitor {
+    pub fn new_from_hyprland() -> Result<Vec<Monitor>, String> {
         // new vector for result imgs
-        let mut result: Vec<HyprMonitor> = Vec::new();
+        let mut result: Vec<Monitor> = Vec::new();
 
         // fetch all
         let all = Monitors::get().map_err(
@@ -36,7 +37,7 @@ impl HyprMonitor {
                 _ => {}
             }
             // create new from struct
-            let new_mon = HyprMonitor {
+            let new_mon = Monitor {
                 name: monitor.name,
                 width: adj_width as u32,
                 height: adj_height as u32,
