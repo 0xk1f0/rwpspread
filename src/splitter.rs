@@ -1,6 +1,7 @@
 use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use std::cmp;
 use std::env::var;
+use std::path::PathBuf;
 use colored::Colorize;
 use crate::Config;
 use crate::wpaperd::WpaperdConfig;
@@ -14,7 +15,7 @@ pub struct ResultPaper {
 }
 
 pub struct Splitter {
-    base_image_path: String,
+    base_image_path: PathBuf,
     save_path: String,
     monitors: Vec<Monitor>,
     result_papers: Vec<ResultPaper>,
@@ -24,8 +25,8 @@ pub struct Splitter {
 impl Splitter {
     pub fn new(cfg: Config) -> Self {
         Self {
-            base_image_path: cfg.image_file,
-            save_path: format!("{}/.cache/", var("Home").unwrap()),
+            base_image_path: cfg.image_path,
+            save_path: format!("{}/.cache/", var("HOME").unwrap()),
             monitors: cfg.mon_list,
             result_papers: Vec::new(),
             with_wpaperd: cfg.with_wpaperd
