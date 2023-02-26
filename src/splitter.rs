@@ -115,18 +115,21 @@ impl Splitter {
             paper.image.save(
                 &paper.image_full_path
             ).map_err(
-                |_| "error while saving"
+                |err| err.to_string()
             )?;
         }
 
         // check if we need to generate wpaperd config
         if self.with_wpaperd {
+            // create new wpaperd instance
             let wpaperd = WpaperdConfig::new(
                 format!("{}/.config/wpaperd/output.conf", var("HOME").unwrap()),
                 self.result_papers
             );
+
+            // build config
             wpaperd.build().map_err(
-                |_| "error while creating wpaperd config"
+                |err| err.to_string()
             )?;
         }
 

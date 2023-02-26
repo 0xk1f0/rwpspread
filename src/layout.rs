@@ -23,8 +23,8 @@ impl Monitor {
         // get monitor dimensions
         for monitor in all {
             // always check rotation
-            let mut adj_width = monitor.width;
-            let mut adj_height = monitor.height;
+            let adj_width: u16;
+            let adj_height: u16;
             match monitor.transform {
                 Transforms::Normal90 => {
                     adj_width = monitor.height;
@@ -34,7 +34,10 @@ impl Monitor {
                     adj_width = monitor.height;
                     adj_height = monitor.width;
                 },
-                _ => {}
+                _ => {
+                    adj_width = monitor.width;
+                    adj_height = monitor.height;
+                }
             }
             // create new from struct
             let new_mon = Monitor {

@@ -17,10 +17,14 @@ impl WpaperdConfig {
     }
     pub fn build(&self) -> Result<(), String> {
         // Create a new config file
-        let mut file = File::create(&self.config_path).map_err(|_| "error while creating config file")?;
+        let mut file = File::create(&self.config_path).map_err(
+            |err| err.to_string()
+        )?;
 
         // Open the file
-        let read_file = std::fs::read_to_string(&self.config_path).map_err(|_| "error while opening config file")?;
+        let read_file = std::fs::read_to_string(&self.config_path).map_err(
+            |err| err.to_string()
+        )?;
 
         // Parse the string into a TOML value
         let mut value = read_file.parse::<Value>().unwrap();

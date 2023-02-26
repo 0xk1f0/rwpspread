@@ -8,13 +8,18 @@ use colored::Colorize;
 use parser::Config;
 use splitter::Splitter;
 
-fn run(config: Config) -> Result<(), String> {
+fn run() -> Result<(), String> {
+    // create new config
+    let worker_config = Config::new().map_err(
+        |err| err.to_string()
+    )?;
+
     // create new splitter
-    let worker = Splitter::new(config);
+    let worker = Splitter::new(worker_config);
 
     // perform split
     worker.run().map_err(
-       |_| "error while splitting"
+        |err| err.to_string()
     )?;
 
     // return
@@ -22,14 +27,8 @@ fn run(config: Config) -> Result<(), String> {
 }
 
 fn main() {
-    // create new config
-    if let Err(err) = Config::new() {
-        eprintln!("{}: {}", "rwpspread".red().bold(), err);
-        process::exit(1);
-    }
-
     // run with config
-    if let Err(err) = run(Config::new().unwrap()) {
+    if let Err(err) = run() {
         eprintln!("{}: {}", "rwpspread".red().bold(), err);
         process::exit(1);
     }
