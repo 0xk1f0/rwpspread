@@ -2,8 +2,9 @@ use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use std::cmp;
 use std::env::var;
 use std::path::PathBuf;
-use md5::compute;
+use md5::{compute, Digest};
 use colored::Colorize;
+use glob::glob;
 use crate::Config;
 use crate::wpaperd::{WpaperdConfig, check_existing};
 use crate::layout::Monitor;
@@ -42,20 +43,31 @@ impl Splitter {
             |err| err.to_string()
         )?;
 
-        // calculate the hash
-        self.base_hash = format!("# {:x}\n", compute(img.as_bytes()));
+        // calculate hash
+        self.base_hash = self.hash_config(
+            compute(img.as_bytes())
+        );
 
-        // check existing config
+        //check hash
         if self.with_wpaperd {
-            let check_result = check_existing(
-                format!("{}/.config/wpaperd/output.conf",var("HOME").unwrap()),
+            if let true = check_existing(
+                &format!(
+                    "{}/.config/wpaperd/output.conf",
+                    var("HOME").unwrap()
+                ),
                 &self.base_hash
-            ).map_err(
-                |err| err.to_string()
-            )?;
-            if check_result {
-                // we're done
-                return Ok(())
+            ).map_err( |err| err.to_string())? {
+                // config hashes match
+                println!(
+                    "{}: Hashes match",
+                    "INFO".green().bold()
+                );
+
+                // check caches
+                if self.check_caches() {
+                    // we're done
+                    return Ok(())
+                }
             }
         }
 
@@ -87,8 +99,14 @@ impl Splitter {
         let mut overall_width = 0;
         let mut overall_height = 0;
         for monitor in &self.monitors {
-            overall_width = cmp::max(monitor.width + monitor.x as u32, overall_width);
-            overall_height = cmp::max(monitor.height + monitor.y as u32, overall_height);
+            overall_width = cmp::max(
+                monitor.width + monitor.x as u32,
+                overall_width
+            );
+            overall_height = cmp::max(
+                monitor.height + monitor.y as u32,
+                overall_height
+            );
         }
 
         // check if we need to upscale
@@ -121,11 +139,10 @@ impl Splitter {
                 ResultPaper { 
                     monitor_name: format!("{}", &monitor.name),
                     image_full_path: format!(
-                        "{}rwpspread_{}_{}x{}.png",
+                        "{}rwps_{}_{}.png",
                         &self.save_path,
+                        &self.base_hash[2..16],
                         format!("{}", &monitor.name),
-                        cropped_image.width(),
-                        cropped_image.height(),
                     ),
                     image: cropped_image
                 }
@@ -158,5 +175,55 @@ impl Splitter {
 
         // return
         Ok(())
+    }
+    fn hash_config(&self, img_hash: Digest) -> String {
+        // new hash string
+        let mut hash_string = String::new();
+
+        // loop over config params and add to string
+        for monitor in &self.monitors {
+            hash_string.push_str(
+                &format!("{}{}{}{}{}",
+                    monitor.name,
+                    monitor.x,
+                    monitor.y,
+                    monitor.width,
+                    monitor.height
+                )
+            );
+        }
+
+        // compute and assemble hash
+        format!(
+            "# {:?}{:?}\n",
+            img_hash,
+            compute(hash_string.as_bytes())
+        )
+    }
+    fn check_caches(&self) -> bool {
+        // wildacrd search for cached images
+        for entry in glob(
+            &format!(
+                "{}/.cache/rwps_{}*",
+                var("HOME").unwrap(),
+                &self.base_hash[2..16]
+            )
+        ).unwrap() {
+            match entry {
+                Ok(_) => {
+                    // files exist
+                    println!(
+                        "{}: Cache exists",
+                        "INFO".green().bold(),
+                    );
+
+                    return true
+                },
+                Err(_) => break
+            }
+        }
+
+        // if we dont exit sooner, return false
+        false
     }
 }

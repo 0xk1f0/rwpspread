@@ -60,15 +60,8 @@ impl WpaperdConfig {
     }
 }
 
-/*
-    check for existing config file
-
-    @TODO:
-    -> Currently only compares bae image hash
-    -> we have to check if cached images still exist
-    -> also check if layout is still the same (incorporate to hash)
-*/
-pub fn check_existing(path: String, base_hash: &String) -> Result<bool, String> {
+// check for existing config
+pub fn check_existing(path: &String, base_hash: &String) -> Result<bool, String> {
     // Open the file
     let read_file = std::fs::read_to_string(path).map_err(
         |_| "unable to open config"
