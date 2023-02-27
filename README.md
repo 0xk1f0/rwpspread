@@ -9,6 +9,14 @@ WIP Wallpaper Utility written in Rust
 - Uses [wpaperd](https://github.com/danyspin97/wpaperd) as wallpaper daemon
 - Code quality is probably pretty poor as I'm new to Rust
 
+## Installing
+
+On Archlinux via the [AUR](https://aur.archlinux.org/)
+
+```bash
+paru -S rwpspread-git
+```
+
 ## Building
 
 ```bash
