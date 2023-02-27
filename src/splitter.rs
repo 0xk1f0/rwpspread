@@ -2,9 +2,10 @@ use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use std::cmp;
 use std::env::var;
 use std::path::PathBuf;
+use md5::compute;
 use colored::Colorize;
 use crate::Config;
-use crate::wpaperd::WpaperdConfig;
+use crate::wpaperd::{WpaperdConfig, check_existing};
 use crate::layout::Monitor;
 
 // result paper struct
@@ -16,6 +17,7 @@ pub struct ResultPaper {
 
 pub struct Splitter {
     base_image_path: PathBuf,
+    base_hash: String,
     save_path: String,
     monitors: Vec<Monitor>,
     result_papers: Vec<ResultPaper>,
@@ -26,6 +28,7 @@ impl Splitter {
     pub fn new(cfg: Config) -> Self {
         Self {
             base_image_path: cfg.image_path,
+            base_hash: String::new(),
             save_path: format!("{}/.cache/", var("HOME").unwrap()),
             monitors: cfg.mon_list,
             result_papers: Vec::new(),
@@ -35,7 +38,26 @@ impl Splitter {
     // split main image into two seperate, utilizes scaling
     pub fn run(mut self) -> Result<(), String> {
         // open original input image
-        let mut img = image::open(&self.base_image_path).map_err(|_| "")?;
+        let mut img = image::open(&self.base_image_path).map_err(
+            |err| err.to_string()
+        )?;
+
+        // calculate the hash
+        self.base_hash = format!("# {:x}\n", compute(img.as_bytes()));
+
+        // check existing config
+        if self.with_wpaperd {
+            let check_result = check_existing(
+                format!("{}/.config/wpaperd/output.conf",var("HOME").unwrap()),
+                &self.base_hash
+            ).map_err(
+                |err| err.to_string()
+            )?;
+            if check_result {
+                // we're done
+                return Ok(())
+            }
+        }
 
         // get base image details
         let (main_width, main_height) = img.dimensions();
@@ -124,7 +146,8 @@ impl Splitter {
             // create new wpaperd instance
             let wpaperd = WpaperdConfig::new(
                 format!("{}/.config/wpaperd/output.conf", var("HOME").unwrap()),
-                self.result_papers
+                self.result_papers,
+                self.base_hash
             );
 
             // build config
