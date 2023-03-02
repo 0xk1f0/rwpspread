@@ -3,13 +3,11 @@ use std::cmp;
 use std::env::var;
 use std::path::PathBuf;
 use md5::{compute, Digest};
-use colored::Colorize;
 use glob::glob;
 use crate::Config;
 use crate::wpaperd::{WpaperdConfig, check_existing};
 use crate::layout::Monitor;
 
-// result paper struct
 pub struct ResultPaper {
     pub monitor_name: String,
     pub image_full_path: String,
@@ -17,29 +15,36 @@ pub struct ResultPaper {
 }
 
 pub struct Splitter {
-    base_image_path: PathBuf,
+    base_image_full_path: PathBuf,
     base_hash: String,
     save_path: String,
     monitors: Vec<Monitor>,
     result_papers: Vec<ResultPaper>,
-    with_wpaperd: bool
+    with_wpaperd: bool,
+    force_resplit: bool
 }
 
 impl Splitter {
     pub fn new(cfg: Config) -> Self {
         Self {
-            base_image_path: cfg.image_path,
+            base_image_full_path: cfg.image_path,
             base_hash: String::new(),
-            save_path: format!("{}/.cache/", var("HOME").unwrap()),
+            save_path: format!(
+                "{}/.cache/",
+                var("HOME").unwrap()
+            ),
             monitors: cfg.mon_list,
             result_papers: Vec::new(),
-            with_wpaperd: cfg.with_wpaperd
+            with_wpaperd: cfg.with_wpaperd,
+            force_resplit: cfg.force_resplit,
         }
     }
     // split main image into two seperate, utilizes scaling
     pub fn run(mut self) -> Result<(), String> {
         // open original input image
-        let mut img = image::open(&self.base_image_path).map_err(
+        let mut img = image::open(
+            &self.base_image_full_path
+        ).map_err(
             |err| err.to_string()
         )?;
 
@@ -49,23 +54,20 @@ impl Splitter {
         );
 
         //check hash
-        if self.with_wpaperd {
+        if self.with_wpaperd && ! self.force_resplit {
             if let true = check_existing(
                 &format!(
                     "{}/.config/wpaperd/output.conf",
                     var("HOME").unwrap()
                 ),
                 &self.base_hash
-            ).map_err( |err| err.to_string())? {
+            ).map_err(
+                |err| err.to_string()
+            )? {
                 // config hashes match
-                println!(
-                    "{}: Hashes match",
-                    "INFO".green().bold()
-                );
-
-                // check caches
+                // finally, check caches
                 if self.check_caches() {
-                    // we're done
+                    // if they still exist, we're done
                     return Ok(())
                 }
             }
@@ -93,8 +95,6 @@ impl Splitter {
             from root, we can say that max width will be the biggest monitor
             with the greatest x-offset, max height will be defined in the same
             way except using y-offset
-
-            Should we ever get a negative offset, this will definitely panic ¯\_(ツ)_/¯
         */
         let mut overall_width = 0;
         let mut overall_height = 0;
@@ -110,15 +110,8 @@ impl Splitter {
         }
 
         // check if we need to upscale
-        if overall_width > main_width || overall_height > main_height {
-            // we need to scale
-            println!(
-                "{}: Scaling image to fit {}x{}",
-                "WARNING".red().bold(),
-                overall_width,
-                overall_height
-            );
-
+        if overall_width > main_width ||
+        overall_height > main_height {
             // upscale image to fit
             img = img.resize_to_fill(
                 overall_width,
@@ -141,7 +134,7 @@ impl Splitter {
                     image_full_path: format!(
                         "{}rwps_{}_{}.png",
                         &self.save_path,
-                        &self.base_hash[2..16],
+                        &self.base_hash[2..12],
                         format!("{}", &monitor.name),
                     ),
                     image: cropped_image
@@ -162,7 +155,10 @@ impl Splitter {
         if self.with_wpaperd {
             // create new wpaperd instance
             let wpaperd = WpaperdConfig::new(
-                format!("{}/.config/wpaperd/output.conf", var("HOME").unwrap()),
+                format!(
+                    "{}/.config/wpaperd/output.conf",
+                    var("HOME").unwrap()
+                ),
                 self.result_papers,
                 self.base_hash
             );
@@ -182,15 +178,7 @@ impl Splitter {
 
         // loop over config params and add to string
         for monitor in &self.monitors {
-            hash_string.push_str(
-                &format!("{}{}{}{}{}",
-                    monitor.name,
-                    monitor.x,
-                    monitor.y,
-                    monitor.width,
-                    monitor.height
-                )
-            );
+            hash_string.push_str(&monitor.to_string());
         }
 
         // compute and assemble hash
@@ -206,19 +194,11 @@ impl Splitter {
             &format!(
                 "{}/.cache/rwps_{}*",
                 var("HOME").unwrap(),
-                &self.base_hash[2..16]
+                &self.base_hash[2..12]
             )
         ).unwrap() {
             match entry {
-                Ok(_) => {
-                    // files exist
-                    println!(
-                        "{}: Cache exists",
-                        "INFO".green().bold(),
-                    );
-
-                    return true
-                },
+                Ok(_) => return true,
                 Err(_) => break
             }
         }

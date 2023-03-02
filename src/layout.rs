@@ -17,7 +17,7 @@ impl Monitor {
 
         // fetch all
         let all = Monitors::get().map_err(
-            |_| ""
+            |err| err.to_string()
         )?;
 
         // get monitor dimensions
@@ -25,31 +25,42 @@ impl Monitor {
             // always check rotation
             let adj_width: u16;
             let adj_height: u16;
+            // we only need reversal on some orientations
             match monitor.transform {
-                Transforms::Normal90 => {
-                    adj_width = monitor.height;
-                    adj_height = monitor.width;
-                },
+                Transforms::Normal90 | 
                 Transforms::Normal270 => {
+                    // flipped
                     adj_width = monitor.height;
                     adj_height = monitor.width;
                 },
                 _ => {
+                    // else normal
                     adj_width = monitor.width;
                     adj_height = monitor.height;
                 }
             }
-            // create new from struct
-            let new_mon = Monitor {
-                name: monitor.name,
-                width: adj_width as u32,
-                height: adj_height as u32,
-                x: monitor.x,
-                y: monitor.y
-            };
             // push to vector
-            result.push(new_mon);
+            result.push(
+                Monitor {
+                    name: monitor.name,
+                    width: adj_width as u32,
+                    height: adj_height as u32,
+                    x: monitor.x,
+                    y: monitor.y
+                }
+            );
         }
         Ok(result)
+    }
+    // string format for hash calculation
+    pub fn to_string(&self) -> String {
+        format!(
+            "{}{}{}{}{}",
+            &self.name,
+            &self.x,
+            &self.y,
+            &self.width,
+            &self.height
+        )
     }
 }

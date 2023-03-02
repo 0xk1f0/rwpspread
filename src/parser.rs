@@ -14,12 +14,17 @@ struct Args {
    /// Use wpaperd integration
    #[arg(short, long)]
    wpaperd: bool,
+
+   /// Force Resplit even if cache exists
+   #[arg(short, long)]
+   force_resplit: bool,
 }
 
 pub struct Config {
     pub image_path: PathBuf,
     pub mon_list: Vec<Monitor>,
-    pub with_wpaperd: bool
+    pub with_wpaperd: bool,
+    pub force_resplit: bool
 }
 
 impl Config {
@@ -33,31 +38,32 @@ impl Config {
         }
 
         // create new path for image
-        let in_path = check_path(Path::new(&args.image));
+        let in_path = Config::check_path(Path::new(&args.image));
 
         // construct
         Ok(Self {
             image_path: in_path,
             mon_list: Monitor::new_from_hyprland().unwrap(),
-            with_wpaperd: args.wpaperd
+            with_wpaperd: args.wpaperd,
+            force_resplit: args.force_resplit
         })
     }
-}
-
-fn is_symlink(path: &Path) -> bool {
-    if let Ok(metadata) = fs::symlink_metadata(path) {
-        metadata.file_type().is_symlink()
-    } else {
-        false
+    // check if target path is a symlink
+    fn is_symlink(path: &Path) -> bool {
+        if let Ok(metadata) = fs::symlink_metadata(path) {
+            metadata.file_type().is_symlink()
+        } else {
+            false
+        }
     }
-}
-
-fn check_path(path: &Path) -> PathBuf {
-    if is_symlink(path) {
-        let parent = path.parent().unwrap_or_else(|| Path::new(""));
-        let target = fs::read_link(path).unwrap();
-        parent.join(target)
-    } else {
-        path.to_path_buf()
+    // path checker when we need to extend from symlink
+    fn check_path(path: &Path) -> PathBuf {
+        if Config::is_symlink(path) {
+            let parent = path.parent().unwrap_or_else(|| Path::new(""));
+            let target = fs::read_link(path).unwrap();
+            parent.join(target)
+        } else {
+            path.to_path_buf()
+        }
     }
 }
