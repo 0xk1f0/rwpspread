@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use std::process::{Command, Stdio, exit};
 use toml::{Value, to_string_pretty};
 use crate::splitter::ResultPaper;
 
@@ -74,4 +75,32 @@ pub fn check_existing(path: &String, base_hash: &String) -> Result<bool, String>
 
     // return
     Ok(false)
+}
+
+pub fn cmd_wrapper() -> Result<(), String> {
+    // Check if there is a running wpaperd process
+    match Command::new("pidof")
+        .args(&["wpaperd"])
+        .stdout(Stdio::null())
+        .status() {
+            Ok(_) => {
+                // kill it with fire
+                Command::new("killall")
+                    .args(&["-9", "wpaperd"])
+                    .stdout(Stdio::null())
+                    .output().map_err(
+                        |err| err.to_string()
+                    )?;
+            },
+            Err(_) => {},
+    }
+
+    // Spawn new wpaperd instance
+    Command::new("wpaperd")
+        .spawn().map_err(
+            |err| err.to_string()
+        )?;
+    
+    // exit
+    exit(0);
 }

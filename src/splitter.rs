@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use md5::{compute, Digest};
 use glob::glob;
 use crate::Config;
-use crate::wpaperd::{WpaperdConfig, check_existing};
+use crate::wpaperd::{WpaperdConfig, check_existing, cmd_wrapper};
 use crate::layout::Monitor;
 
 pub struct ResultPaper {
@@ -68,7 +68,11 @@ impl Splitter {
                 // finally, check caches
                 if self.check_caches() {
                     // if they still exist, we're done
-                    return Ok(())
+                    
+                    // run wrapper
+                    cmd_wrapper().map_err(
+                        |err| err.to_string()
+                    )?;
                 }
             }
         }
@@ -165,6 +169,11 @@ impl Splitter {
 
             // build config
             wpaperd.build().map_err(
+                |err| err.to_string()
+            )?;
+
+            // run wrapper
+            cmd_wrapper().map_err(
                 |err| err.to_string()
             )?;
         }

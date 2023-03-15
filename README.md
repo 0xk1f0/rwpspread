@@ -52,6 +52,7 @@ rwpspread --help
 - [x] Hyprland Integration
 - [x] wpaperd Integration
 - [x] wallpaper caching (don't resplit if we don't need to)
+- [ ] Hyprland socket watchdog
 - [ ] restore standalone support
 - [ ] alignment adjust if wallpaper is big enough
 - [ ] monitor bezel compensation
