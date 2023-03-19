@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use clap::Parser;
-use crate::layout::Monitor;
 
 /// Multi-Monitor Wallpaper Utility
 #[derive(Parser, Debug)]
@@ -26,7 +25,6 @@ struct Args {
 
 pub struct Config {
     pub image_path: PathBuf,
-    pub mon_list: Vec<Monitor>,
     pub with_wpaperd: bool,
     pub force_resplit: bool,
     pub dont_downscale: bool,
@@ -48,7 +46,6 @@ impl Config {
         // construct
         Ok(Self {
             image_path: in_path,
-            mon_list: Monitor::new_from_hyprland().unwrap(),
             with_wpaperd: args.wpaperd,
             force_resplit: args.force_resplit,
             dont_downscale: args.dont_downscale

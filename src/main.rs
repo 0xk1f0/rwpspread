@@ -15,11 +15,11 @@ fn run() -> Result<(), String> {
     )?;
 
     // create new splitter
-    let worker = Splitter::new(worker_config);
+    let worker = Splitter::new();
 
     // perform split
-    worker.run().map_err(
-        |err| err.to_string()
+    worker.run(&worker_config).map_err(
+        |err| err.to_string(),
     )?;
 
     // return

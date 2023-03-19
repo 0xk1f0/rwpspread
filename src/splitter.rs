@@ -1,7 +1,6 @@
-use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use std::cmp;
 use std::env::var;
-use std::path::PathBuf;
+use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use md5::{compute, Digest};
 use glob::glob;
 use crate::Config;
@@ -15,48 +14,46 @@ pub struct ResultPaper {
 }
 
 pub struct Splitter {
-    base_image_full_path: PathBuf,
     base_hash: String,
     save_path: String,
     monitors: Vec<Monitor>,
     result_papers: Vec<ResultPaper>,
-    with_wpaperd: bool,
-    force_resplit: bool,
-    dont_downscale: bool
 }
 
 impl Splitter {
-    pub fn new(cfg: Config) -> Self {
+    pub fn new() -> Self {
         Self {
-            base_image_full_path: cfg.image_path,
             base_hash: String::new(),
             save_path: format!(
                 "{}/.cache/",
                 var("HOME").unwrap()
             ),
-            monitors: cfg.mon_list,
-            result_papers: Vec::new(),
-            with_wpaperd: cfg.with_wpaperd,
-            force_resplit: cfg.force_resplit,
-            dont_downscale: cfg.dont_downscale,
+            monitors: Vec::new(),
+            result_papers: Vec::new()
         }
     }
     // split main image into two seperate, utilizes scaling
-    pub fn run(mut self) -> Result<(), String> {
+    pub fn run(mut self, cfg: &Config) -> Result<(), String> {
         // open original input image
         let mut img = image::open(
-            &self.base_image_full_path
+            &cfg.image_path
         ).map_err(
+            |err| err.to_string()
+        )?;
+
+        // fetch monitors
+        self.monitors = Monitor::new_from_hyprland().map_err(
             |err| err.to_string()
         )?;
 
         // calculate hash
         self.base_hash = self.hash_config(
-            compute(img.as_bytes())
+            compute(img.as_bytes()),
+            cfg
         );
 
         //check hash
-        if self.with_wpaperd && ! self.force_resplit {
+        if cfg.with_wpaperd && ! cfg.force_resplit {
             if let true = check_existing(
                 &format!(
                     "{}/.config/wpaperd/output.conf",
@@ -81,19 +78,6 @@ impl Splitter {
 
         /*
             Calculate Overall Size
-            Assuming the following configuration:
-
-            +--------------+  +-----------------+
-            |              |  |                 |
-            |              |  |    primary      |
-            |              |  |     monitor     |
-            |  secondary   |  |                 |
-            |    monitor   |  +-----------------+
-            |              |
-            |              |
-            |              |
-            +--------------+
-            
             Assuming a monitor can never be negatively offset
             from root, we can say that max width will be the biggest monitor
             with the greatest x-offset, max height will be defined in the same
@@ -116,7 +100,7 @@ impl Splitter {
         // either if user doesn't deny
         // or if image is too small
         if 
-            self.dont_downscale == false
+            cfg.dont_downscale == false
             || img.dimensions().0 < overall_width
             || img.dimensions().1 < overall_height
         {
@@ -160,19 +144,18 @@ impl Splitter {
         }
 
         // check if we need to generate wpaperd config
-        if self.with_wpaperd {
+        if cfg.with_wpaperd {
             // create new wpaperd instance
             let wpaperd = WpaperdConfig::new(
                 format!(
                     "{}/.config/wpaperd/output.conf",
                     var("HOME").unwrap()
                 ),
-                self.result_papers,
                 self.base_hash
             );
 
             // build config
-            wpaperd.build().map_err(
+            wpaperd.build(&self.result_papers).map_err(
                 |err| err.to_string()
             )?;
 
@@ -185,7 +168,7 @@ impl Splitter {
         // return
         Ok(())
     }
-    fn hash_config(&self, img_hash: Digest) -> String {
+    fn hash_config(&self, img_hash: Digest, cfg: &Config) -> String {
         // new hash string
         let mut hash_string = String::new();
 
@@ -200,7 +183,7 @@ impl Splitter {
         format!(
             "# {:?}{:?}{:?}\n",
             img_hash,
-            compute(self.dont_downscale.to_string()),
+            compute(cfg.dont_downscale.to_string()),
             compute(hash_string.as_bytes())
         )
     }

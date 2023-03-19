@@ -6,19 +6,17 @@ use crate::splitter::ResultPaper;
 
 pub struct WpaperdConfig {
     pub config_path: String,
-    pub papers: Vec<ResultPaper>,
     pub hash: String
 }
 
 impl WpaperdConfig {
-    pub fn new(path: String, wallpapers: Vec<ResultPaper>, hash: String) -> Self {
+    pub fn new(path: String, hash: String) -> Self {
         Self {
             config_path: path,
-            papers: wallpapers,
             hash
         }
     }
-    pub fn build(&self) -> Result<(), String> {
+    pub fn build(&self, wallpapers: &Vec<ResultPaper>) -> Result<(), String> {
         // Create a new config file
         let mut file = File::create(&self.config_path).map_err(
             |_| "unable to open config"
@@ -31,11 +29,11 @@ impl WpaperdConfig {
 
         // Parse the string into a TOML value
         let mut values = read_file.parse::<Value>().map_err(
-            |err| err.to_string()
+            |_| "unable to parse config"
         )?;
 
         // Add new output sections
-        for monitor in &self.papers {
+        for monitor in wallpapers {
             // insert new section
             values.as_table_mut().unwrap().insert(
                 monitor.monitor_name.to_string(), 
@@ -68,6 +66,7 @@ pub fn check_existing(path: &String, base_hash: &String) -> Result<bool, String>
         |_| "unable to open config"
     )?;
 
+    // check if we find the correct hash
     if read_file.starts_with(base_hash) {
         // hash matches, don't regenerate
         return Ok(true) 
