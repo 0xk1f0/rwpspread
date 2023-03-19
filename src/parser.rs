@@ -18,13 +18,18 @@ struct Args {
    /// Force Resplit even if cache exists
    #[arg(short, long)]
    force_resplit: bool,
+
+   /// Don't downscale base image, even if it's bigger than needed
+   #[arg(short, long)]
+   dont_downscale: bool,
 }
 
 pub struct Config {
     pub image_path: PathBuf,
     pub mon_list: Vec<Monitor>,
     pub with_wpaperd: bool,
-    pub force_resplit: bool
+    pub force_resplit: bool,
+    pub dont_downscale: bool,
 }
 
 impl Config {
@@ -45,7 +50,8 @@ impl Config {
             image_path: in_path,
             mon_list: Monitor::new_from_hyprland().unwrap(),
             with_wpaperd: args.wpaperd,
-            force_resplit: args.force_resplit
+            force_resplit: args.force_resplit,
+            dont_downscale: args.dont_downscale
         })
     }
     // check if target path is a symlink

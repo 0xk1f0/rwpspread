@@ -21,7 +21,8 @@ pub struct Splitter {
     monitors: Vec<Monitor>,
     result_papers: Vec<ResultPaper>,
     with_wpaperd: bool,
-    force_resplit: bool
+    force_resplit: bool,
+    dont_downscale: bool
 }
 
 impl Splitter {
@@ -37,6 +38,7 @@ impl Splitter {
             result_papers: Vec::new(),
             with_wpaperd: cfg.with_wpaperd,
             force_resplit: cfg.force_resplit,
+            dont_downscale: cfg.dont_downscale,
         }
     }
     // split main image into two seperate, utilizes scaling
@@ -77,9 +79,6 @@ impl Splitter {
             }
         }
 
-        // get base image details
-        let (main_width, main_height) = img.dimensions();
-
         /*
             Calculate Overall Size
             Assuming the following configuration:
@@ -113,10 +112,15 @@ impl Splitter {
             );
         }
 
-        // check if we need to upscale
-        if overall_width > main_width ||
-        overall_height > main_height {
-            // upscale image to fit
+        // check if we need to resize
+        // either if user doesn't deny
+        // or if image is too small
+        if 
+            self.dont_downscale == false
+            || img.dimensions().0 < overall_width
+            || img.dimensions().1 < overall_height
+        {
+            // scale image to fit calculated size
             img = img.resize_to_fill(
                 overall_width,
                 overall_height,
@@ -191,9 +195,12 @@ impl Splitter {
         }
 
         // compute and assemble hash
+        // we also factor in downscaling as images
+        // might be different if we dont downscale
         format!(
-            "# {:?}{:?}\n",
+            "# {:?}{:?}{:?}\n",
             img_hash,
+            compute(self.dont_downscale.to_string()),
             compute(hash_string.as_bytes())
         )
     }
