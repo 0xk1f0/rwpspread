@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::Write;
-use std::process::{Command, Stdio, exit};
+use std::process::{Command, Stdio};
 use toml::{Value, to_string_pretty};
 use crate::splitter::ResultPaper;
 
@@ -16,6 +16,8 @@ impl WpaperdConfig {
             hash
         }
     }
+
+    // build new wpaperd config to file
     pub fn build(&self, wallpapers: &Vec<ResultPaper>) -> Result<(), String> {
         // Create a new config file
         let mut file = File::create(&self.config_path).map_err(
@@ -57,23 +59,23 @@ impl WpaperdConfig {
         // return
         Ok(())
     }
-}
 
-// check for existing config
-pub fn check_existing(path: &String, base_hash: &String) -> Result<bool, String> {
-    // Open the file
-    let read_file = std::fs::read_to_string(path).map_err(
-        |_| "unable to open config"
-    )?;
+    // check for existing config
+    pub fn check_existing(&self) -> Result<bool, String> {
+        // Open the file
+        let read_file = std::fs::read_to_string(&self.config_path).map_err(
+            |_| "unable to open config"
+        )?;
 
-    // check if we find the correct hash
-    if read_file.starts_with(base_hash) {
-        // hash matches, don't regenerate
-        return Ok(true) 
+        // check if we find the correct hash
+        if read_file.starts_with(&self.hash) {
+            // hash matches, don't regenerate
+            return Ok(true) 
+        }
+
+        // return
+        Ok(false)
     }
-
-    // return
-    Ok(false)
 }
 
 pub fn cmd_wrapper() -> Result<(), String> {
@@ -100,6 +102,5 @@ pub fn cmd_wrapper() -> Result<(), String> {
             |err| err.to_string()
         )?;
     
-    // exit
-    exit(0);
+    Ok(())
 }

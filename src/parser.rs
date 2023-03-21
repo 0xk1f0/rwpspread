@@ -51,6 +51,7 @@ impl Config {
             dont_downscale: args.dont_downscale
         })
     }
+
     // check if target path is a symlink
     fn is_symlink(path: &Path) -> bool {
         if let Ok(metadata) = fs::symlink_metadata(path) {
@@ -59,6 +60,7 @@ impl Config {
             false
         }
     }
+
     // path checker when we need to extend from symlink
     fn check_path(path: &Path) -> PathBuf {
         if Config::is_symlink(path) {

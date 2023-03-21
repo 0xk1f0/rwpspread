@@ -52,6 +52,7 @@ impl Monitor {
         }
         Ok(result)
     }
+
     // string format for hash calculation
     pub fn to_string(&self) -> String {
         format!(
