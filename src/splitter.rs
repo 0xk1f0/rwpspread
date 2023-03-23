@@ -14,8 +14,7 @@ pub struct ResultPaper {
 }
 
 pub struct Splitter {
-    base_hash: String,
-    save_path: String,
+    hash: String,
     monitors: Vec<Monitor>,
     result_papers: Vec<ResultPaper>,
 }
@@ -23,11 +22,7 @@ pub struct Splitter {
 impl Splitter {
     pub fn new() -> Self {
         Self {
-            base_hash: String::new(),
-            save_path: format!(
-                "{}/.cache/",
-                var("HOME").unwrap()
-            ),
+            hash: String::new(),
             monitors: Vec::new(),
             result_papers: Vec::new()
         }
@@ -36,7 +31,7 @@ impl Splitter {
     // split main image into two seperate, utilizes scaling
     pub fn run(mut self, config: &Config) -> Result<(), String> {
         // open original input image
-        let mut img = image::open(
+        let img = image::open(
             &config.image_path
         ).map_err(
             |err| err.to_string()
@@ -48,26 +43,83 @@ impl Splitter {
         )?;
 
         // calculate hash
-        self.base_hash = self.hash_config(
+        self.hash = self.hash_config(
             compute(img.as_bytes()),
             config
         );
 
-        // check caches and config force bool
-        if 
-            self.check_caches() &&
-            ! config.force_resplit 
-        {
-            // caches exist
-            // run wrapper
-            cmd_wrapper().map_err(
+        // check if we need to generate wpaperd config
+        if config.with_wpaperd {
+            // check caches and config force bool
+            if 
+                self.check_caches() &&
+                ! config.force_resplit 
+            {
+                // caches exist
+                // run wrapper if wpaperd is enabled
+                cmd_wrapper().map_err(
+                    |err| err.to_string()
+                )?;
+
+                // exit
+                return Ok(())
+            }
+
+            // create new wpaperd instance
+            let wpaperd = WpaperdConfig::new(
+                format!(
+                    "{}/.config/wpaperd/output.conf",
+                    var("HOME").unwrap()
+                ),
+                self.hash.clone()
+            );
+
+            //check wpaper config hash
+            if ! config.force_resplit {
+                if let true = wpaperd.check_existing().map_err(
+                    |err| err.to_string()
+                )? {
+                    // match, don't rebuild
+                }
+                else {
+                    // we need to rebuild
+                    self.result_papers = self.perform_split(
+                        img,
+                        config,
+                        format!("{}/.cache/",var("HOME").unwrap())
+                    ).map_err(
+                        |err| err.to_string()
+                    )?;
+
+                    // also config
+                    wpaperd.build(&self.result_papers).map_err(
+                        |err| err.to_string()
+                    )?;
+
+                    // finally, run wrapper
+                    cmd_wrapper().map_err(
+                        |err| err.to_string()
+                    )?;
+                }
+            }
+        // no wpaperd to worry about, just split
+        } else {
+            // just split
+            self.result_papers = self.perform_split(
+                img,
+                config,
+                format!("{}/",var("PWD").unwrap())
+            ).map_err(
                 |err| err.to_string()
             )?;
-
-            // exit since wrapper will be run
-            return Ok(())
         }
 
+        // return
+        Ok(())
+    }
+
+    // do the actual splitting
+    fn perform_split(&self, mut img: DynamicImage, config: &Config, save_path: String) -> Result<Vec<ResultPaper>, String> {
         /*
             Calculate Overall Size
             Assuming a monitor can never be negatively offset
@@ -75,6 +127,7 @@ impl Splitter {
             with the greatest x-offset, max height will be defined in the same
             way except using y-offset
         */
+        let mut result = Vec::new();
         let mut overall_width = 0;
         let mut overall_height = 0;
         for monitor in &self.monitors {
@@ -91,7 +144,7 @@ impl Splitter {
         // check if we need to resize
         // either if user doesn't deny
         // or if image is too small
-        if 
+        if
             config.dont_downscale == false
             || img.dimensions().0 < overall_width
             || img.dimensions().1 < overall_height
@@ -112,13 +165,13 @@ impl Splitter {
                 monitor.width,
                 monitor.height
             );
-            self.result_papers.push(
+            result.push(
                 ResultPaper { 
                     monitor_name: format!("{}", &monitor.name),
                     image_full_path: format!(
                         "{}rwps_{}_{}.png",
-                        &self.save_path,
-                        &self.base_hash[2..12],
+                        save_path,
+                        &self.hash[2..12],
                         format!("{}", &monitor.name),
                     ),
                     image: cropped_image
@@ -127,7 +180,7 @@ impl Splitter {
         }
 
         // save our result images
-        for paper in &self.result_papers {
+        for paper in &result {
             paper.image.save(
                 &paper.image_full_path
             ).map_err(
@@ -135,46 +188,10 @@ impl Splitter {
             )?;
         }
 
-        // check if we need to generate wpaperd config
-        if config.with_wpaperd {
-            // create new wpaperd instance
-            let wpaperd = WpaperdConfig::new(
-                format!(
-                    "{}/.config/wpaperd/output.conf",
-                    var("HOME").unwrap()
-                ),
-                self.base_hash
-            );
-
-            //check wpaper config hash
-            if
-                config.with_wpaperd && 
-                ! config.force_resplit 
-            {
-                if let true = wpaperd.check_existing().map_err(
-                    |err| err.to_string()
-                )? {
-                    // match, don't rebuild
-                }
-                else {
-                    // we need to rebuild
-                    wpaperd.build(&self.result_papers).map_err(
-                        |err| err.to_string()
-                    )?;
-                }
-            }
-
-            // finally, run wrapper
-            cmd_wrapper().map_err(
-                |err| err.to_string()
-            )?;
-        }
-
-        // return
-        Ok(())
+        Ok(result)
     }
 
-    fn hash_config(&self, img_hash: Digest, cfg: &Config) -> String {
+    fn hash_config(&self, img_hash: Digest, config: &Config) -> String {
         // new hash string
         let mut hash_string = String::new();
 
@@ -189,7 +206,7 @@ impl Splitter {
         format!(
             "# {:?}{:?}{:?}\n",
             img_hash,
-            compute(cfg.dont_downscale.to_string()),
+            compute(config.dont_downscale.to_string()),
             compute(hash_string.as_bytes())
         )
     }
@@ -200,7 +217,7 @@ impl Splitter {
             &format!(
                 "{}/.cache/rwps_{}*",
                 var("HOME").unwrap(),
-                &self.base_hash[2..12]
+                &self.hash[2..12]
             )
         ).unwrap() {
             match entry {
