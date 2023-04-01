@@ -38,7 +38,7 @@ impl Splitter {
         )?;
 
         // fetch monitors
-        self.monitors = Monitor::new_from_hyprland().map_err(
+        self.monitors = Monitor::new().map_err(
             |err| err.to_string()
         )?;
 
@@ -76,12 +76,9 @@ impl Splitter {
 
             //check wpaper config hash
             if ! config.force_resplit {
-                if let true = wpaperd.check_existing().map_err(
+                if let false = wpaperd.check_existing().map_err(
                     |err| err.to_string()
                 )? {
-                    // match, don't rebuild
-                }
-                else {
                     // we need to rebuild
                     self.result_papers = self.perform_split(
                         img,
@@ -91,17 +88,30 @@ impl Splitter {
                         |err| err.to_string()
                     )?;
 
-                    // also config
                     wpaperd.build(&self.result_papers).map_err(
                         |err| err.to_string()
                     )?;
-
-                    // finally, run wrapper
-                    cmd_wrapper().map_err(
-                        |err| err.to_string()
-                    )?;
                 }
+            } else {
+                // we need to rebuild
+                self.result_papers = self.perform_split(
+                    img,
+                    config,
+                    format!("{}/.cache/",var("HOME").unwrap())
+                ).map_err(
+                    |err| err.to_string()
+                )?;
+
+                wpaperd.build(&self.result_papers).map_err(
+                    |err| err.to_string()
+                )?;
             }
+
+            // finally, run wrapper
+            cmd_wrapper().map_err(
+                |err| err.to_string()
+            )?;
+
         // no wpaperd to worry about, just split
         } else {
             // just split

@@ -21,7 +21,7 @@ struct ListOutputs {
 }
 
 impl Monitor {
-    pub fn new_from_hyprland() -> Result<Vec<Monitor>, String> {
+    pub fn new() -> Result<Vec<Monitor>, String> {
         // new vector for result imgs
         let mut result: Vec<Monitor> = Vec::new();
 
