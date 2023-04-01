@@ -1,11 +1,11 @@
 # rwpspread
 
-WIP Wallpaper Utility written in Rust
+Wallpaper Utility written in Rust
 
 ## Features
 
 - Spans an input wallpaper across all monitors
-- Works alongside [Hyprland](https://hyprland.org/)
+- Works alongside any wlroots based compositor f.E. [Hyprland](https://hyprland.org/)
 - Uses [wpaperd](https://github.com/danyspin97/wpaperd) as wallpaper daemon
 - Code quality is probably pretty poor as I'm new to Rust
 
@@ -30,7 +30,7 @@ cargo build --release
 ```bash
 # it takes an input image
 # screens are automatically read
-# if running a Hyprland session
+# if running a wlroots based compositor
 rwpspread -i <image>
 
 # for example
@@ -49,10 +49,10 @@ rwpspread --help
 
 - [x] splitting for dual screen layout
 - [x] splitting for any screen layout (two or more screens)
-- [x] Hyprland Integration
+- [x] Hyprland/wlroots Integration
 - [x] wpaperd Integration
 - [x] wallpaper caching (don't resplit if we don't need to)
-- [ ] Hyprland socket watchdog
+- [ ] watchdog auto-resplit on output change
 - [ ] restore standalone support
 - [ ] alignment adjust if wallpaper is big enough
 - [ ] monitor bezel compensation

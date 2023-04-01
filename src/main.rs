@@ -1,6 +1,6 @@
 mod parser;
 mod splitter;
-mod layout;
+mod outputs;
 mod wpaperd;
 
 use std::process;

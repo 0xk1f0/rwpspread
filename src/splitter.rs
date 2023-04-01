@@ -5,7 +5,7 @@ use md5::{compute, Digest};
 use glob::glob;
 use crate::Config;
 use crate::wpaperd::{WpaperdConfig, cmd_wrapper};
-use crate::layout::Monitor;
+use crate::outputs::Monitor;
 
 pub struct ResultPaper {
     pub monitor_name: String,
