@@ -3,6 +3,7 @@ use std::env::var;
 use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use md5::{compute, Digest};
 use glob::glob;
+use std::fs::remove_file;
 use crate::Config;
 use crate::wpaperd::{WpaperdConfig, cmd_wrapper};
 use crate::outputs::Monitor;
@@ -75,7 +76,10 @@ impl Splitter {
             );
 
             //check wpaper config hash
-            if ! config.force_resplit {
+            if 
+                self.check_caches() &&
+                ! config.force_resplit 
+            {
                 if let false = wpaperd.check_existing().map_err(
                     |err| err.to_string()
                 )? {
@@ -221,22 +225,44 @@ impl Splitter {
         )
     }
 
+    fn cleanup_cache(&self) {
+        for entry in glob(
+            &format!(
+                "{}/.cache/rwps_*",
+                var("HOME").unwrap()
+            )
+        ).unwrap() {
+            if let Ok(path) = entry {
+                if let Some(_) = path.file_name() {
+                    // yeet any file that we cached
+                    remove_file(path).unwrap();
+                }
+            }
+        }
+    }
+
     fn check_caches(&self) -> bool {
-        // wildacrd search for cached images
+        // wildcard search for cached images
         for entry in glob(
             &format!(
                 "{}/.cache/rwps_{}*",
                 var("HOME").unwrap(),
                 &self.hash[2..12]
             )
+            // @TODO:
+            // this assumes we have cached files
+            // only by checking one file, there could
+            // be partial cached images and one missing
+            // and this would still return true
         ).unwrap() {
             match entry {
                 Ok(_) => return true,
-                Err(_) => break
+                Err(_) => { break }
             }
         }
 
-        // if we dont exit sooner, return false
+        // cleanup since we regenerate anyways
+        self.cleanup_cache();
         false
     }
 }
