@@ -69,7 +69,7 @@ impl Splitter {
             // create new wpaperd instance
             let wpaperd = WpaperdConfig::new(
                 format!(
-                    "{}/.config/wpaperd/output.conf",
+                    "{}/.config/wpaperd/wallpaper.toml",
                     var("HOME").unwrap()
                 ),
                 self.hash.clone()
@@ -233,10 +233,8 @@ impl Splitter {
             )
         ).unwrap() {
             if let Ok(path) = entry {
-                if let Some(_) = path.file_name() {
-                    // yeet any file that we cached
-                    remove_file(path).unwrap();
-                }
+                // yeet any file that we cached
+                remove_file(path).unwrap();
             }
         }
     }
