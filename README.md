@@ -53,6 +53,5 @@ rwpspread --help
 - [x] wpaperd Integration
 - [x] wallpaper caching (don't resplit if we don't need to)
 - [ ] watchdog auto-resplit on output change
-- [ ] restore standalone support
 - [ ] alignment adjust if wallpaper is big enough
 - [ ] monitor bezel compensation
