@@ -185,7 +185,7 @@ impl Splitter {
                     image_full_path: format!(
                         "{}rwps_{}_{}.png",
                         save_path,
-                        &self.hash[2..12],
+                        &self.hash[2..32],
                         format!("{}", &monitor.name),
                     ),
                     image: cropped_image
@@ -240,13 +240,16 @@ impl Splitter {
     }
 
     fn check_caches(&self) -> bool {
+        // what we search for
+        let base_format = format!(
+            "{}/.cache/rwps_{}",
+            var("HOME").unwrap(),
+            &self.hash[2..32]
+        );
+
         // wildcard search for cached images
         for entry in glob(
-            &format!(
-                "{}/.cache/rwps_{}*",
-                var("HOME").unwrap(),
-                &self.hash[2..12]
-            )
+            &format!("{}{}", base_format, "*")
             // @TODO:
             // this assumes we have cached files
             // only by checking one file, there could
