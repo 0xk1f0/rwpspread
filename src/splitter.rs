@@ -35,7 +35,7 @@ impl Splitter {
         let img = image::open(
             &config.image_path
         ).map_err(
-            |err| err.to_string()
+            |_| "failed to open image"
         )?;
 
         // fetch monitors
@@ -51,21 +51,6 @@ impl Splitter {
 
         // check if we need to generate wpaperd config
         if config.with_wpaperd {
-            // check caches and config force bool
-            if 
-                self.check_caches() &&
-                ! config.force_resplit 
-            {
-                // caches exist
-                // run wrapper if wpaperd is enabled
-                cmd_wrapper().map_err(
-                    |err| err.to_string()
-                )?;
-
-                // exit
-                return Ok(())
-            }
-
             // create new wpaperd instance
             let wpaperd = WpaperdConfig::new(
                 format!(
@@ -75,29 +60,20 @@ impl Splitter {
                 self.hash.clone()
             );
 
-            //check wpaper config hash
-            if 
-                self.check_caches() &&
-                ! config.force_resplit 
-            {
-                if let false = wpaperd.check_existing().map_err(
-                    |err| err.to_string()
-                )? {
-                    // we need to rebuild
-                    self.result_papers = self.perform_split(
-                        img,
-                        config,
-                        format!("{}/.cache/",var("HOME").unwrap())
-                    ).map_err(
-                        |err| err.to_string()
-                    )?;
+            // check caches
+            let caches_present = self.check_caches();
 
-                    wpaperd.build(&self.result_papers).map_err(
-                        |err| err.to_string()
-                    )?;
-                }
-            } else {
-                // we need to rebuild
+            //check wpaper config hash
+            let wpaperd_present = wpaperd.check_existing().map_err(
+                |err| err.to_string()
+            )?;
+
+            // do we need to resplit
+            if
+                config.force_resplit ||
+                ! caches_present
+            {
+                // yes we need to resplit
                 self.result_papers = self.perform_split(
                     img,
                     config,
@@ -105,7 +81,15 @@ impl Splitter {
                 ).map_err(
                     |err| err.to_string()
                 )?;
+            }
 
+            // do we need to rebuild config
+            // also always rebuild when force resplit was set
+            if
+                config.force_resplit ||
+                ! wpaperd_present 
+            {
+                // yes we do
                 wpaperd.build(&self.result_papers).map_err(
                     |err| err.to_string()
                 )?;
