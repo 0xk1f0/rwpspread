@@ -4,6 +4,7 @@ use image::{GenericImageView, DynamicImage, imageops::FilterType};
 use md5::{compute, Digest};
 use glob::glob;
 use std::fs::remove_file;
+use std::path::Path;
 use crate::Config;
 use crate::wpaperd::{WpaperdConfig, cmd_wrapper};
 use crate::outputs::Monitor;
@@ -63,17 +64,15 @@ impl Splitter {
             // check caches
             let caches_present = self.check_caches();
 
-            //check wpaper config hash
-            let wpaperd_present = wpaperd.check_existing().map_err(
-                |err| err.to_string()
-            )?;
-
             // do we need to resplit
             if
                 config.force_resplit ||
                 ! caches_present
             {
-                // yes we need to resplit
+                // cleanup caches first
+                self.cleanup_cache();
+
+                // we need to resplit
                 self.result_papers = self.perform_split(
                     img,
                     config,
@@ -82,6 +81,11 @@ impl Splitter {
                     |err| err.to_string()
                 )?;
             }
+
+            //check wpaper config hash
+            let wpaperd_present = wpaperd.check_existing().map_err(
+                |err| err.to_string()
+            )?;
 
             // do we need to rebuild config
             // also always rebuild when force resplit was set
@@ -210,6 +214,8 @@ impl Splitter {
     }
 
     fn cleanup_cache(&self) {
+        // wildcard search for our
+        // images and delete them
         for entry in glob(
             &format!(
                 "{}/.cache/rwps_*",
@@ -231,23 +237,21 @@ impl Splitter {
             &self.hash[2..32]
         );
 
-        // wildcard search for cached images
-        for entry in glob(
-            &format!("{}{}", base_format, "*")
-            // @TODO:
-            // this assumes we have cached files
-            // only by checking one file, there could
-            // be partial cached images and one missing
-            // and this would still return true
-        ).unwrap() {
-            match entry {
-                Ok(_) => return true,
-                Err(_) => { break }
+        // check for every monitor
+        for monitor in &self.monitors {
+            let image_path = format!(
+                "{}_{}.png",
+                base_format,
+                monitor.name
+            );
+            // check if a cached image exists
+            if ! Path::new(&image_path).exists() {
+                // we're missing an image, regenerate
+                return false;
             }
         }
 
-        // cleanup since we regenerate anyways
-        self.cleanup_cache();
-        false
+        // if we pass, we're good
+        true
     }
 }
