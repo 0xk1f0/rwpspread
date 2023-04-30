@@ -1,5 +1,8 @@
 # rwpspread
 
+[![Rust](https://github.com/0xk1f0/rwpspread/actions/workflows/rust.yml/badge.svg)](https://github.com/0xk1f0/rwpspread/actions/workflows/rust.yml)
+![AUR](https://img.shields.io/aur/version/rwpspread-git)
+
 Wallpaper Utility written in Rust
 
 ## Features
@@ -52,6 +55,7 @@ rwpspread --help
 - [x] Hyprland/wlroots Integration
 - [x] wpaperd Integration
 - [x] wallpaper caching (don't resplit if we don't need to)
+- [ ] color palette generation from wallpaper
 - [ ] watchdog auto-resplit on output change
 - [ ] alignment adjust if wallpaper is big enough
 - [ ] monitor bezel compensation
