@@ -1,26 +1,26 @@
+use clap::Parser;
 use std::fs;
 use std::path::{Path, PathBuf};
-use clap::Parser;
 
 /// Multi-Monitor Wallpaper Utility
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-   /// Image File Path
-   #[arg(short, long)]
-   image: String,
+    /// Image File Path
+    #[arg(short, long)]
+    image: String,
 
-   /// Use wpaperd integration
-   #[arg(short, long)]
-   wpaperd: bool,
+    /// Use wpaperd integration
+    #[arg(short, long)]
+    wpaperd: bool,
 
-   /// Force Resplit even if cache exists
-   #[arg(short, long)]
-   force_resplit: bool,
+    /// Force Resplit even if cache exists
+    #[arg(short, long)]
+    force_resplit: bool,
 
-   /// Don't downscale base image, even if it's bigger than needed
-   #[arg(short, long)]
-   dont_downscale: bool,
+    /// Don't downscale base image, even if it's bigger than needed
+    #[arg(short, long)]
+    dont_downscale: bool,
 }
 
 pub struct Config {
@@ -36,7 +36,7 @@ impl Config {
         let args = Args::parse();
 
         // check if path is valid
-        if ! fs::metadata(Path::new(&args.image)).is_ok() {
+        if !fs::metadata(Path::new(&args.image)).is_ok() {
             Err("Invalid Path")?
         }
 
@@ -48,7 +48,7 @@ impl Config {
             image_path: in_path,
             with_wpaperd: args.wpaperd,
             force_resplit: args.force_resplit,
-            dont_downscale: args.dont_downscale
+            dont_downscale: args.dont_downscale,
         })
     }
 
