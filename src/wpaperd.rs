@@ -58,44 +58,71 @@ impl WpaperdConfig {
     }
 
     // check for existing config
-    pub fn check_existing(&self) -> Result<bool, String> {
+    pub fn check_existing(&self) -> bool {
         // Open the file
-        let read_file =
-            std::fs::read_to_string(&self.config_path).map_err(|_| "unable to open config")?;
+        let read_file = std::fs::read_to_string(&self.config_path).unwrap_or_default();
 
         // check if we find the correct hash
         if read_file.starts_with(&self.config_hash) {
             // hash matches, don't regenerate
-            return Ok(true);
+            return true;
         }
 
-        // return
-        Ok(false)
+        false
     }
 }
 
-pub fn cmd_wrapper() -> Result<(), String> {
-    // Check if there is a running wpaperd process
-    match Command::new("pidof")
-        .args(&["wpaperd"])
-        .stdout(Stdio::null())
-        .status()
-    {
-        Ok(_) => {
-            // kill it with fire
-            Command::new("killall")
-                .args(&["-9", "wpaperd"])
-                .stdout(Stdio::null())
-                .output()
-                .map_err(|err| err.to_string())?;
+pub struct CmdWrapper {}
+
+impl CmdWrapper {
+    // check if running, if not run
+    pub fn restart() -> Result<(), String> {
+        // Check if there is a running wpaperd process
+        match Command::new("pidof")
+            .args(&["wpaperd"])
+            .stdout(Stdio::null())
+            .status()
+        {
+            Ok(status) => {
+                if status.success() {
+                    // kill it with fire
+                    Command::new("killall")
+                        .args(&["-9", "wpaperd"])
+                        .stdout(Stdio::null())
+                        .output()
+                        .map_err(|err| err.to_string())?;
+                }
+            }
+            Err(_) => {}
         }
-        Err(_) => {}
+
+        // Spawn new wpaperd instance
+        Command::new("wpaperd")
+            .spawn()
+            .map_err(|err| err.to_string())?;
+
+        Ok(())
     }
 
-    // Spawn new wpaperd instance
-    Command::new("wpaperd")
-        .spawn()
-        .map_err(|err| err.to_string())?;
+    // kill first, then restart
+    pub fn soft_restart() -> Result<(), String> {
+        // Check if there is a running wpaperd process
+        match Command::new("pidof")
+            .args(&["wpaperd"])
+            .stdout(Stdio::null())
+            .status()
+        {
+            Ok(status) => {
+                if !status.success() {
+                    // Spawn new wpaperd instance
+                    Command::new("wpaperd")
+                        .spawn()
+                        .map_err(|err| err.to_string())?;
+                }
+            }
+            Err(_) => {}
+        }
 
-    Ok(())
+        Ok(())
+    }
 }

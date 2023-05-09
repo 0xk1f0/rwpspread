@@ -1,5 +1,5 @@
 use crate::wayland::{Monitor, MonitorConfig};
-use crate::wpaperd::{cmd_wrapper, WpaperdConfig};
+use crate::wpaperd::{CmdWrapper, WpaperdConfig};
 use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
@@ -64,7 +64,7 @@ impl Splitter {
             }
 
             //check wpaper config hash
-            let wpaperd_present = wpaperd.check_existing().map_err(|err| err.to_string())?;
+            let wpaperd_present = wpaperd.check_existing();
 
             // do we need to rebuild config
             // also always rebuild when force resplit was set
@@ -73,10 +73,13 @@ impl Splitter {
                 wpaperd
                     .build(&self.result_papers)
                     .map_err(|err| err.to_string())?;
+
+                // restart
+                CmdWrapper::restart().map_err(|err| err.to_string())?;
             }
 
-            // finally, run wrapper
-            cmd_wrapper().map_err(|err| err.to_string())?;
+            // only start if we're not running already
+            CmdWrapper::soft_restart().map_err(|err| err.to_string())?;
 
         // no wpaperd to worry about, just split
         } else {
@@ -104,7 +107,6 @@ impl Splitter {
             with the greatest x-offset, max height will be defined in the same
             way except using y-offset
         */
-        let mut result = Vec::new();
         let mut overall_width = 0;
         let mut overall_height = 0;
         for monitor in &self.monitors {
@@ -124,6 +126,8 @@ impl Splitter {
         }
 
         // Crop image for screens
+        // and push them to the result vector
+        let mut result = Vec::with_capacity(self.monitors.len());
         for monitor in &self.monitors {
             let cropped_image = img.crop(
                 monitor.x as u32,
