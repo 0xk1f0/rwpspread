@@ -129,30 +129,33 @@ impl Splitter {
         // and push them to the result vector
         let mut result = Vec::with_capacity(self.monitors.len());
         for monitor in &self.monitors {
+            // crop the image
             let cropped_image = img.crop(
                 monitor.x as u32,
                 monitor.y as u32,
                 monitor.width,
                 monitor.height,
             );
+
+            // get full image path
+            let path_image = format!(
+                "{}rwps_{}_{}.png",
+                save_path,
+                &self.hash[2..32],
+                format!("{}", &monitor.name),
+            );
+
+            // save it
+            cropped_image
+                .save(&path_image)
+                .map_err(|err| err.to_string())?;
+
+            // push to result vector
             result.push(ResultPaper {
                 monitor_name: format!("{}", &monitor.name),
-                image_full_path: format!(
-                    "{}rwps_{}_{}.png",
-                    save_path,
-                    &self.hash[2..32],
-                    format!("{}", &monitor.name),
-                ),
+                image_full_path: path_image,
                 image: cropped_image,
             })
-        }
-
-        // save our result images
-        for paper in &result {
-            paper
-                .image
-                .save(&paper.image_full_path)
-                .map_err(|err| err.to_string())?;
         }
 
         Ok(result)
