@@ -11,7 +11,7 @@ use std::path::Path;
 
 pub struct ResultPaper {
     pub monitor_name: String,
-    pub image_full_path: String,
+    pub full_path: String,
     pub image: DynamicImage,
 }
 
@@ -44,10 +44,7 @@ impl Splitter {
         // check if we need to generate wpaperd config
         if config.with_wpaperd {
             // create new wpaperd instance
-            let wpaperd = WpaperdConfig::new(
-                format!("{}/.config/wpaperd/wallpaper.toml", var("HOME").unwrap()),
-                self.hash.clone(),
-            );
+            let wpaperd = WpaperdConfig::new(self.hash.clone());
 
             // check caches
             let caches_present = self.check_caches();
@@ -59,7 +56,7 @@ impl Splitter {
 
                 // we need to resplit
                 self.result_papers = self
-                    .perform_split(img, config, format!("{}/.cache/", var("HOME").unwrap()))
+                    .perform_split(img, config)
                     .map_err(|err| err.to_string())?;
             }
 
@@ -85,7 +82,7 @@ impl Splitter {
         } else {
             // just split
             self.result_papers = self
-                .perform_split(img, config, format!("{}/", var("PWD").unwrap()))
+                .perform_split(img, config)
                 .map_err(|err| err.to_string())?;
         }
 
@@ -98,7 +95,6 @@ impl Splitter {
         &self,
         mut img: DynamicImage,
         config: &Config,
-        save_path: String,
     ) -> Result<Vec<ResultPaper>, String> {
         /*
             Calculate Overall Size
@@ -139,10 +135,10 @@ impl Splitter {
 
             // get full image path
             let path_image = format!(
-                "{}rwps_{}_{}.png",
-                save_path,
+                "{}/rwps_{}_{}.png",
+                var("PWD").unwrap(),
                 &self.hash[2..32],
-                format!("{}", &monitor.name),
+                &monitor.name,
             );
 
             // save it
@@ -153,7 +149,7 @@ impl Splitter {
             // push to result vector
             result.push(ResultPaper {
                 monitor_name: format!("{}", &monitor.name),
-                image_full_path: path_image,
+                full_path: path_image,
                 image: cropped_image,
             })
         }
