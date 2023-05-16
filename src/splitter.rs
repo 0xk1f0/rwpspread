@@ -56,7 +56,7 @@ impl Splitter {
 
                 // we need to resplit
                 self.result_papers = self
-                    .perform_split(img, config)
+                    .perform_split(img, config, format!("{}/.cache", var("HOME").unwrap()))
                     .map_err(|err| err.to_string())?;
             }
 
@@ -82,7 +82,7 @@ impl Splitter {
         } else {
             // just split
             self.result_papers = self
-                .perform_split(img, config)
+                .perform_split(img, config, var("PWD").unwrap())
                 .map_err(|err| err.to_string())?;
         }
 
@@ -95,6 +95,7 @@ impl Splitter {
         &self,
         mut img: DynamicImage,
         config: &Config,
+        save_path: String
     ) -> Result<Vec<ResultPaper>, String> {
         /*
             Calculate Overall Size
@@ -136,7 +137,7 @@ impl Splitter {
             // get full image path
             let path_image = format!(
                 "{}/rwps_{}_{}.png",
-                var("PWD").unwrap(),
+                save_path,
                 &self.hash[2..32],
                 &monitor.name,
             );
