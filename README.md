@@ -17,6 +17,9 @@ Wallpaper Utility written in Rust
 On Archlinux via the [AUR](https://aur.archlinux.org/)
 
 ```bash
+# stable
+paru -S rwpspread
+# git
 paru -S rwpspread-git
 ```
 
