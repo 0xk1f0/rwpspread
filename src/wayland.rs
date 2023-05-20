@@ -70,16 +70,6 @@ impl MonitorConfig {
     }
 }
 
-impl Monitor {
-    // string format for hash calculation
-    pub fn to_string(&self) -> String {
-        format!(
-            "{}{}{}{}{}",
-            &self.name, &self.x, &self.y, &self.width, &self.height
-        )
-    }
-}
-
 impl OutputHandler for ListOutputs {
     fn output_state(&mut self) -> &mut OutputState {
         &mut self.output_state

@@ -3,10 +3,11 @@ use crate::wpaperd::{CmdWrapper, WpaperdConfig};
 use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
-use md5::{compute, Digest};
 use std::cmp;
+use std::collections::hash_map::DefaultHasher;
 use std::env::var;
 use std::fs::remove_file;
+use std::hash::{Hash, Hasher};
 use std::path::Path;
 
 pub struct ResultPaper {
@@ -39,7 +40,10 @@ impl Splitter {
         self.monitors = MonitorConfig::new().map_err(|err| err.to_string())?;
 
         // calculate hash
-        self.hash = self.hash_config(compute(img.as_bytes()), config);
+        let mut hasher = DefaultHasher::new();
+        img.as_bytes().hash(&mut hasher);
+        config.hash(&mut hasher);
+        self.hash = format!("{:x}", hasher.finish());
 
         // check if we need to generate wpaperd config
         if config.with_wpaperd {
@@ -95,7 +99,7 @@ impl Splitter {
         &self,
         mut img: DynamicImage,
         config: &Config,
-        save_path: String
+        save_path: String,
     ) -> Result<Vec<ResultPaper>, String> {
         /*
             Calculate Overall Size
@@ -138,7 +142,7 @@ impl Splitter {
             let path_image = format!(
                 "{}/rwps_{}_{}.png",
                 save_path,
-                &self.hash[2..32],
+                &self.hash,
                 &monitor.name,
             );
 
@@ -158,26 +162,6 @@ impl Splitter {
         Ok(result)
     }
 
-    fn hash_config(&self, img_hash: Digest, config: &Config) -> String {
-        // new hash string
-        let mut hash_string = String::new();
-
-        // loop over config params and add to string
-        for monitor in &self.monitors {
-            hash_string.push_str(&monitor.to_string());
-        }
-
-        // compute and assemble hash
-        // we also factor in downscaling as images
-        // might be different if we dont downscale
-        format!(
-            "# {:?}{:?}{:?}\n",
-            img_hash,
-            compute(config.dont_downscale.to_string()),
-            compute(hash_string.as_bytes())
-        )
-    }
-
     fn cleanup_cache(&self) {
         // wildcard search for our
         // images and delete them
@@ -191,7 +175,7 @@ impl Splitter {
 
     fn check_caches(&self) -> bool {
         // what we search for
-        let base_format = format!("{}/.cache/rwps_{}", var("HOME").unwrap(), &self.hash[2..32]);
+        let base_format = format!("{}/.cache/rwps_{}", var("HOME").unwrap(), &self.hash);
 
         // check for every monitor
         for monitor in &self.monitors {

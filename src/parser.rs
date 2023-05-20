@@ -23,6 +23,7 @@ struct Args {
     dont_downscale: bool,
 }
 
+#[derive(Hash)]
 pub struct Config {
     pub image_path: PathBuf,
     pub with_wpaperd: bool,
