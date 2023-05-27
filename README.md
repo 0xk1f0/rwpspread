@@ -58,7 +58,7 @@ rwpspread --help
 - [x] Hyprland/wlroots Integration
 - [x] wpaperd Integration
 - [x] wallpaper caching (don't resplit if we don't need to)
-- [ ] color palette generation from wallpaper
+- [x] color palette generation from wallpaper
 - [ ] watchdog auto-resplit on output change
 - [ ] alignment adjust if wallpaper is big enough
 - [ ] monitor bezel compensation

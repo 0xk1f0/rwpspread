@@ -1,3 +1,4 @@
+use crate::palette::Palette;
 use crate::wayland::{Monitor, MonitorConfig};
 use crate::wpaperd::{CmdWrapper, WpaperdConfig};
 use crate::Config;
@@ -44,6 +45,14 @@ impl Splitter {
         img.as_bytes().hash(&mut hasher);
         config.hash(&mut hasher);
         self.hash = format!("{:x}", hasher.finish());
+
+        // check for palette bool and do that first
+        if config.with_palette {
+            let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
+            color_palette
+                .generate_mostused(format!("{}/.cache/rwpcolors.json", var("HOME").unwrap()))
+                .map_err(|err| err.to_string())?;
+        }
 
         // check if we need to generate wpaperd config
         if config.with_wpaperd {
@@ -139,12 +148,7 @@ impl Splitter {
             );
 
             // get full image path
-            let path_image = format!(
-                "{}/rwps_{}_{}.png",
-                save_path,
-                &self.hash,
-                &monitor.name,
-            );
+            let path_image = format!("{}/rwps_{}_{}.png", save_path, &self.hash, &monitor.name,);
 
             // save it
             cropped_image

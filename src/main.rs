@@ -1,3 +1,4 @@
+mod palette;
 mod parser;
 mod splitter;
 mod wayland;

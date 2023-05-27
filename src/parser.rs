@@ -14,6 +14,10 @@ struct Args {
     #[arg(short, long)]
     wpaperd: bool,
 
+    /// Generate a color palette from wallpaper
+    #[arg(short, long)]
+    palette: bool,
+
     /// Force Resplit even if cache exists
     #[arg(short, long)]
     force_resplit: bool,
@@ -27,6 +31,7 @@ struct Args {
 pub struct Config {
     pub image_path: PathBuf,
     pub with_wpaperd: bool,
+    pub with_palette: bool,
     pub force_resplit: bool,
     pub dont_downscale: bool,
 }
@@ -48,6 +53,7 @@ impl Config {
         Ok(Self {
             image_path: in_path,
             with_wpaperd: args.wpaperd,
+            with_palette: args.palette,
             force_resplit: args.force_resplit,
             dont_downscale: args.dont_downscale,
         })
