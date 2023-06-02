@@ -44,6 +44,7 @@ impl Splitter {
         let mut hasher = DefaultHasher::new();
         img.as_bytes().hash(&mut hasher);
         config.hash(&mut hasher);
+        self.monitors.hash(&mut hasher);
         self.hash = format!("{:x}", hasher.finish());
 
         // check for palette bool and do that first

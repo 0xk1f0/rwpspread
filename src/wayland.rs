@@ -11,6 +11,7 @@ struct ListOutputs {
     output_state: OutputState,
 }
 
+#[derive(Hash)]
 pub struct Monitor {
     pub name: String,
     pub width: u32,
