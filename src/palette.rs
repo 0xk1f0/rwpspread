@@ -29,8 +29,8 @@ impl Palette {
         // Load the image
         let img = image::open(image_path).map_err(|err| err.to_string())?;
 
-        // Resize the image to a small size for faster processing
-        let small_img = img.resize_exact(16, 16, image::imageops::FilterType::Triangle);
+        // Resize the image to a small size for less color diversion and faster processing
+        let small_img = img.resize_exact(16, 16, image::imageops::FilterType::Nearest);
 
         // Collect the RGBA values of each pixel in a vector
         let mut pixels = Vec::with_capacity(16 * 16);
@@ -49,8 +49,7 @@ impl Palette {
         // Loop over the vector to analyze pixels
         for entry in &self.pixels {
             // Count the frequency of each color
-            let count = color_counts.entry(*entry).or_insert(0);
-            *count += 1;
+            *color_counts.entry(*entry).or_insert(0) += 1;
         }
 
         // Sort the colors by frequency in descending order
@@ -58,8 +57,8 @@ impl Palette {
         sorted_colors.sort_by_key(|(_, count)| *count);
         sorted_colors.reverse();
 
-        // Get the top num_colors most used colors in hexadecimal notation
-        let most_used_colors = sorted_colors
+        // Most used colors in hexadecimal notation
+        let mut most_used_colors = sorted_colors
             .iter()
             .take(16)
             .map(|(color, _)| {
@@ -67,16 +66,30 @@ impl Palette {
                     .0
                     .iter()
                     .take(3)
-                    .map(|channel| format!("{:x}", channel))
+                    .map(|channel| format!("{:02x}", channel))
                     .collect::<Vec<String>>();
-                format!("#{}", hex_channels.join(""))
+                let hex_string = format!("#{}", hex_channels.join(""));
+                let mut values = color
+                    .0
+                    .iter()
+                    .take(3)
+                    .map(|&channel| channel as u32)
+                    .collect::<Vec<u32>>();
+                // this makes sure the highest val is the
+                // third number in the vector
+                values.sort();
+                (hex_string, values[2])
             })
-            .collect::<Vec<String>>();
+            .collect::<Vec<(String, u32)>>();
 
-        // Sort the output values darkest to brightest
-        let mut sorted_output = most_used_colors.clone();
-        sorted_output.sort();
-        self.colors = sorted_output;
+        // sort by max value reached by color
+        most_used_colors.sort_by(|(_, avg_value1), (_, avg_value2)| {
+            avg_value1.partial_cmp(avg_value2).unwrap()
+        });
+        self.colors = most_used_colors
+            .iter()
+            .map(|(color, _)| color.clone())
+            .collect::<Vec<String>>();
 
         // out to json
         self.to_json(save_path).map_err(|err| err.to_string())?;
