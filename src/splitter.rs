@@ -1,5 +1,5 @@
 use crate::palette::Palette;
-use crate::wayland::{Monitor, MonitorConfig};
+use crate::wayland::Monitor;
 use crate::wpaperd::{CmdWrapper, WpaperdConfig};
 use crate::Config;
 use glob::glob;
@@ -33,12 +33,12 @@ impl Splitter {
     }
 
     // split main image into two seperate, utilizes scaling
-    pub fn run(mut self, config: &Config) -> Result<(), String> {
+    pub fn run(&mut self, config: &Config, mon_vec: Vec<Monitor>) -> Result<(), String> {
         // open original input image
         let img = image::open(&config.image_path).map_err(|_| "failed to open image")?;
 
-        // fetch monitors
-        self.monitors = MonitorConfig::new().map_err(|err| err.to_string())?;
+        // set monitors
+        self.monitors = mon_vec;
 
         // calculate hash
         let mut hasher = DefaultHasher::new();
@@ -58,7 +58,10 @@ impl Splitter {
         // check if we need to generate wpaperd config
         if config.with_wpaperd {
             // create new wpaperd instance
-            let wpaperd = WpaperdConfig::new(self.hash.clone());
+            let wpaperd = WpaperdConfig::new(
+                config.image_path.to_string_lossy().to_string(),
+                self.hash.clone(),
+            );
 
             // check caches
             let caches_present = self.check_caches();

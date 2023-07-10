@@ -18,13 +18,17 @@ struct Args {
     #[arg(short, long)]
     palette: bool,
 
-    /// Force Resplit even if cache exists
+    /// Enable Daemon Watchdog mode, will resplit on output changes
     #[arg(short, long)]
+    daemon: bool,
+
+    /// Force Resplit even if cache exists
+    #[arg(long)]
     force_resplit: bool,
 
     /// Don't downscale base image, even if it's bigger than needed
-    #[arg(short, long)]
-    dont_downscale: bool,
+    #[arg(long)]
+    dont_downscale: bool
 }
 
 #[derive(Hash)]
@@ -32,8 +36,9 @@ pub struct Config {
     pub image_path: PathBuf,
     pub with_wpaperd: bool,
     pub with_palette: bool,
+    pub daemon: bool,
     pub force_resplit: bool,
-    pub dont_downscale: bool,
+    pub dont_downscale: bool
 }
 
 impl Config {
@@ -54,8 +59,9 @@ impl Config {
             image_path: in_path,
             with_wpaperd: args.wpaperd,
             with_palette: args.palette,
+            daemon: args.daemon,
             force_resplit: args.force_resplit,
-            dont_downscale: args.dont_downscale,
+            dont_downscale: args.dont_downscale
         })
     }
 

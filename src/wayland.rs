@@ -4,11 +4,14 @@ use smithay_client_toolkit::{
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
 };
-use wayland_client::{globals::registry_queue_init, protocol::wl_output, Connection, QueueHandle};
+use wayland_client::{
+    globals::registry_queue_init, protocol::wl_output, Connection, EventQueue, QueueHandle,
+};
 
 struct ListOutputs {
     registry_state: RegistryState,
     output_state: OutputState,
+    needs_recalc: bool,
 }
 
 #[derive(Hash)]
@@ -20,18 +23,18 @@ pub struct Monitor {
     pub y: i32,
 }
 
-pub struct MonitorConfig {}
+pub struct MonitorConfig {
+    lo: ListOutputs,
+    eq: EventQueue<ListOutputs>,
+}
 
 impl MonitorConfig {
-    pub fn new() -> Result<Vec<Monitor>, String> {
-        // new vector for result imgs
-        let mut result: Vec<Monitor> = Vec::new();
-
+    pub fn new() -> Result<Self, String> {
         // Try to connect to the Wayland server.
         let conn = Connection::connect_to_env().map_err(|_| "wayland connection error")?;
 
         // Now create an event queue and a handle to the queue so we can create objects.
-        let (globals, mut event_queue) =
+        let (globals, event_queue) =
             registry_queue_init(&conn).map_err(|_| "wayland regqueue error")?;
         let qh = event_queue.handle();
 
@@ -42,21 +45,32 @@ impl MonitorConfig {
         let output_delegate = OutputState::new(&globals, &qh);
 
         // Set up application state.
-        let mut list_outputs = ListOutputs {
+        let list_outputs = ListOutputs {
             registry_state,
             output_state: output_delegate,
+            needs_recalc: false,
         };
 
-        event_queue
-            .roundtrip(&mut list_outputs)
+        Ok(Self {
+            lo: list_outputs,
+            eq: event_queue,
+        })
+    }
+    pub fn run(&mut self) -> Result<Vec<Monitor>, String> {
+        // Initialize data
+        self.eq
+            .roundtrip(&mut self.lo)
             .map_err(|_| "wayland eventqueue error")?;
+
+        // new result vector
+        let mut result: Vec<Monitor> = Vec::new();
 
         // Now our outputs have been initialized with data,
         // we may access what outputs exist and information about
         // said outputs using the output delegate.
-        for output in list_outputs.output_state.outputs() {
+        for output in self.lo.output_state.outputs() {
             // get info
-            let info = &list_outputs.output_state.info(&output).unwrap();
+            let info = self.lo.output_state.info(&output).unwrap();
             // push to vector
             result.push(Monitor {
                 name: info.name.as_ref().unwrap().to_string(),
@@ -68,6 +82,21 @@ impl MonitorConfig {
         }
 
         Ok(result)
+    }
+    pub fn refresh(&mut self) -> Result<bool, String> {
+        // make a roundtrip with queue to dispatch events
+        self.eq
+            .roundtrip(&mut self.lo)
+            .map_err(|_| "wayland eventqueue error")?;
+
+        if self.lo.needs_recalc == true {
+            // reset and recalc
+            self.lo.needs_recalc = false;
+            return Ok(true);
+        }
+
+        // nothing to do
+        Ok(false)
     }
 }
 
@@ -82,6 +111,8 @@ impl OutputHandler for ListOutputs {
         _qh: &QueueHandle<Self>,
         _output: wl_output::WlOutput,
     ) {
+        // set recalc to true
+        self.needs_recalc = true
     }
 
     fn update_output(
@@ -90,6 +121,8 @@ impl OutputHandler for ListOutputs {
         _qh: &QueueHandle<Self>,
         _output: wl_output::WlOutput,
     ) {
+        // set recalc to true
+        self.needs_recalc = true
     }
 
     fn output_destroyed(
@@ -98,6 +131,8 @@ impl OutputHandler for ListOutputs {
         _qh: &QueueHandle<Self>,
         _output: wl_output::WlOutput,
     ) {
+        // set recalc to true
+        self.needs_recalc = true
     }
 }
 

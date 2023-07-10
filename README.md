@@ -47,6 +47,11 @@ rwpspread -i /some/path/wallpaper.png
 # you will need to have wpaperd installed
 rwpspread -w -i /some/path/wallpaper.png
 
+# if you want automatic resplits when
+# connecting new monitors, start with
+# daemon mode -> pairs well with wpaperd
+rwpspread -w -d -i /some/path/wallpaper.png
+
 # for more info
 rwpspread --help
 ```
@@ -59,6 +64,6 @@ rwpspread --help
 - [x] wpaperd Integration
 - [x] wallpaper caching (don't resplit if we don't need to)
 - [x] color palette generation from wallpaper
-- [ ] watchdog auto-resplit on output change
+- [x] watchdog auto-resplit on output change
 - [ ] alignment adjust if wallpaper is big enough
 - [ ] monitor bezel compensation
