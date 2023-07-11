@@ -84,11 +84,12 @@ impl MonitorConfig {
         Ok(result)
     }
     pub fn refresh(&mut self) -> Result<bool, String> {
-        // make a roundtrip with queue to dispatch events
+        // dispatch events
         self.eq
-            .roundtrip(&mut self.lo)
+            .blocking_dispatch(&mut self.lo)
             .map_err(|_| "wayland eventqueue error")?;
 
+        // check if recalculation boolean was set
         if self.lo.needs_recalc == true {
             // reset and recalc
             self.lo.needs_recalc = false;
