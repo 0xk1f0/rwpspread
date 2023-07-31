@@ -121,22 +121,30 @@ impl Splitter {
             with the greatest x-offset, max height will be defined in the same
             way except using y-offset
         */
-        let mut overall_width = 0;
-        let mut overall_height = 0;
+        let (mut overall_width, mut overall_height) = (0, 0);
         for monitor in &self.monitors {
             overall_width = cmp::max(monitor.width + monitor.x as u32, overall_width);
             overall_height = cmp::max(monitor.height + monitor.y as u32, overall_height);
         }
 
-        // check if we need to resize
-        // either if user doesn't deny
-        // or if image is too small
-        if config.dont_downscale == false
+        /*
+            Check how we resize
+            Either at users choice or if image is too small
+            Should input be big enough, we can consider centering
+        */
+        let (mut resize_offset_x, mut resize_offset_y) = (0, 0);
+        if config.center == false
             || img.dimensions().0 < overall_width
             || img.dimensions().1 < overall_height
         {
             // scale image to fit calculated size
             img = img.resize_to_fill(overall_width, overall_height, FilterType::Lanczos3);
+        } else {
+            // we can actually try to center the monitor layout since we have
+            // some room to work with
+            // assuming image is bigger than monitor layout
+            resize_offset_x = (img.dimensions().0 - overall_width) / 2;
+            resize_offset_y = (img.dimensions().1 - overall_height) / 2;
         }
 
         // Crop image for screens
@@ -145,8 +153,8 @@ impl Splitter {
         for monitor in &self.monitors {
             // crop the image
             let cropped_image = img.crop(
-                monitor.x as u32,
-                monitor.y as u32,
+                monitor.x as u32 + resize_offset_x,
+                monitor.y as u32 + resize_offset_y,
                 monitor.width,
                 monitor.height,
             );

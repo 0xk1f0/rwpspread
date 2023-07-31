@@ -10,25 +10,25 @@ struct Args {
     #[arg(short, long)]
     image: String,
 
-    /// Use wpaperd integration
+    /// Use wpaperd Integration
     #[arg(short, long)]
     wpaperd: bool,
 
-    /// Generate a color palette from wallpaper
+    /// Generate a color palette from Wallpaper
     #[arg(short, long)]
     palette: bool,
 
-    /// Enable Daemon Watchdog mode, will resplit on output changes
+    /// Enable Daemon Watchdog mode, will resplit on Output changes
     #[arg(short, long)]
     daemon: bool,
 
-    /// Force Resplit even if cache exists
+    /// Force Resplit, skips all Image Cache checks
     #[arg(long)]
     force_resplit: bool,
 
-    /// Don't downscale base image, even if it's bigger than needed
+    /// Don't downscale the Base Image, center the Layout instead
     #[arg(long)]
-    dont_downscale: bool
+    center: bool,
 }
 
 #[derive(Hash)]
@@ -38,7 +38,7 @@ pub struct Config {
     pub with_palette: bool,
     pub daemon: bool,
     pub force_resplit: bool,
-    pub dont_downscale: bool
+    pub center: bool,
 }
 
 impl Config {
@@ -61,7 +61,7 @@ impl Config {
             with_palette: args.palette,
             daemon: args.daemon,
             force_resplit: args.force_resplit,
-            dont_downscale: args.dont_downscale
+            center: args.center,
         })
     }
 

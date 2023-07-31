@@ -65,5 +65,6 @@ rwpspread --help
 - [x] wallpaper caching (don't resplit if we don't need to)
 - [x] color palette generation from wallpaper
 - [x] watchdog auto-resplit on output change
-- [ ] alignment adjust if wallpaper is big enough
+- [x] center if wallpaper is big enough
 - [ ] monitor bezel compensation
+- [ ] more alignment options if wallpaper is big enough
