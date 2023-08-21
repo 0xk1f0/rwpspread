@@ -11,7 +11,7 @@ wayland-client = "0.30.2"
 image = "0.24.7"
 toml = "0.7.6"
 serde = { version = "1.0.183", features = ["derive"] }
-serde_json = "1.0.104"
+serde_json = "1.0.105"
 
 # makes image lib faster for dev
 [profile.dev-unopt]
