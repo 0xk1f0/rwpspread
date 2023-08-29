@@ -5,10 +5,12 @@ use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
 use std::cmp;
+use std::num::Wrapping;
 use std::collections::hash_map::DefaultHasher;
 use std::env::var;
 use std::fs::remove_file;
 use std::hash::{Hash, Hasher};
+use std::ops::Sub;
 use std::path::Path;
 
 pub struct ResultPaper {
@@ -126,16 +128,11 @@ impl Splitter {
         */
         let (mut overall_width, mut overall_height) = (0, 0);
         for monitor in &self.monitors {
-            let mut adjusted_x: i32 = monitor.x;
-            let mut adjusted_y: i32  = monitor.y;
             // special case for negative offsets
-            if monitor.x < 0 {
-                adjusted_x = monitor.x * -1;
-            } else if monitor.y < 0 {
-                adjusted_y = monitor.y * -1;
-            }
-            overall_width = cmp::max(monitor.width + adjusted_x as u32, overall_width);
-            overall_height = cmp::max(monitor.height + adjusted_y as u32, overall_height);
+            let actual_x = u32::try_from(monitor.x.abs()).map_err(|err| err.to_string())?;
+            let actual_y = u32::try_from(monitor.x.abs()).map_err(|err| err.to_string())?;
+            overall_width = cmp::max(monitor.width + actual_x, overall_width);
+            overall_height = cmp::max(monitor.height + actual_y, overall_height);
         }
 
         /*
@@ -166,18 +163,24 @@ impl Splitter {
         */
         let mut result = Vec::with_capacity(self.monitors.len());
         for monitor in &self.monitors {
-            let mut adjusted_x: i32 = monitor.x;
-            let mut adjusted_y: i32  = monitor.y;
             // special case for negative offsets
-            if monitor.x < 0 {
-                adjusted_x = monitor.x * -1;
-            } else if monitor.y < 0 {
-                adjusted_y = monitor.y * -1;
+            // we need to take into account that if an offset is negative
+            // it is calculated with a combination of the overall width
+            // from the right hand corner in this case
+            let mut actual_x = monitor.x.abs();
+            let mut actual_y = monitor.y.abs();
+            if monitor.x.is_negative() {
+                actual_x = overall_width as i32 - (actual_x + monitor.width as i32);
+            } else if monitor.y.is_negative() {
+                actual_y = overall_height as i32 - (actual_y + monitor.height as i32);
             }
+            // convert for cropping
+            let adjusted_x = u32::try_from(actual_x).map_err(|err| err.to_string())?;
+            let adjusted_y = u32::try_from(actual_y).map_err(|err| err.to_string())?;
             // crop the image
             let cropped_image = img.crop(
-                adjusted_x as u32 + resize_offset_x,
-                adjusted_y as u32 + resize_offset_y,
+                adjusted_x + resize_offset_x,
+                adjusted_y + resize_offset_y,
                 monitor.width,
                 monitor.height,
             );

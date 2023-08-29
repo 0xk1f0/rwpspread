@@ -56,6 +56,21 @@ rwpspread -w -d -i /some/path/wallpaper.png
 rwpspread --help
 ```
 
+# Troubleshooting
+
+If you encounter issues after an update or with a new version please do the following:
+
+```bash
+# clear cached images
+rm /home/$USER/.cache/rwps_*
+# clear wpaperd config (if you use it)
+rm /home/$USER/.config/wpaperd/wallpaper.toml
+```
+
+And try again.
+
+If this doesn't fix your issue, feel free to open a PR and I'll look into it when I find the time.
+
 ## Checklist
 
 - [x] splitting for dual screen layout
