@@ -5,12 +5,10 @@ use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
 use std::cmp;
-use std::num::Wrapping;
 use std::collections::hash_map::DefaultHasher;
 use std::env::var;
 use std::fs::remove_file;
 use std::hash::{Hash, Hasher};
-use std::ops::Sub;
 use std::path::Path;
 
 pub struct ResultPaper {
