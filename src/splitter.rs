@@ -115,7 +115,7 @@ impl Splitter {
         save_path: String,
     ) -> Result<Vec<ResultPaper>, String> {
         /*
-            @TODO: Might need Changes.
+            @TODO: This is still a bit wonky
             Calculate Overall Size
             We can say that max width will be the biggest monitor
             with the greatest x-offset, max height will be defined in the same
@@ -123,14 +123,24 @@ impl Splitter {
             Taking account of negative offset, which might be possible.
             In theory biggest size will still be same as above, except that we
             need to make the negative offsets always positive, to ge the total span.
+            Then we also need to keep track of how far our origin changes
         */
         let (mut overall_width, mut overall_height) = (0, 0);
+        let (mut origin_x, mut origin_y) = (0, 0);
         for monitor in &self.monitors {
-            // special case for negative offsets
+            // convert the negative values to positive ones
             let actual_x = u32::try_from(monitor.x.abs()).map_err(|err| err.to_string())?;
-            let actual_y = u32::try_from(monitor.x.abs()).map_err(|err| err.to_string())?;
-            overall_width = cmp::max(monitor.width + actual_x, overall_width);
-            overall_height = cmp::max(monitor.height + actual_y, overall_height);
+            let actual_y = u32::try_from(monitor.y.abs()).map_err(|err| err.to_string())?;
+            // keep track of origin offsets
+            if monitor.x.is_negative() {
+                origin_x = cmp::max(actual_x, origin_x);
+            }
+            if monitor.y.is_negative() {
+                origin_y = cmp::max(actual_y, origin_y);
+            }
+            // check for the biggest stretch
+            overall_width = cmp::max(monitor.width + origin_x, overall_width);
+            overall_height = cmp::max(monitor.height + origin_y, overall_height);
         }
 
         /*
@@ -154,24 +164,15 @@ impl Splitter {
         }
 
         /*
-            @TODO: Might need Changes, same as above.
             Crop image for screens
             and push them to the result vector, taking into
             account negative offsets
         */
         let mut result = Vec::with_capacity(self.monitors.len());
         for monitor in &self.monitors {
-            // special case for negative offsets
-            // we need to take into account that if an offset is negative
-            // it is calculated with a combination of the overall width
-            // from the right hand corner in this case
-            let mut actual_x = monitor.x.abs();
-            let mut actual_y = monitor.y.abs();
-            if monitor.x.is_negative() {
-                actual_x = overall_width as i32 - (actual_x + monitor.width as i32);
-            } else if monitor.y.is_negative() {
-                actual_y = overall_height as i32 - (actual_y + monitor.height as i32);
-            }
+            // calculate the offset values
+            let actual_x = origin_x as i32 + monitor.x;
+            let actual_y = origin_y as i32 + monitor.y;
             // convert for cropping
             let adjusted_x = u32::try_from(actual_x).map_err(|err| err.to_string())?;
             let adjusted_y = u32::try_from(actual_y).map_err(|err| err.to_string())?;
