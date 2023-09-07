@@ -725,7 +725,6 @@ dependencies = [
  "serde_json",
  "smithay-client-toolkit",
  "toml",
- "wayland-client",
 ]
 
 [[package]]

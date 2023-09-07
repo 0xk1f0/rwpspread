@@ -1,11 +1,11 @@
+use smithay_client_toolkit::reexports::client::{
+    globals::registry_queue_init, protocol::wl_output, Connection, EventQueue, QueueHandle,
+};
 use smithay_client_toolkit::{
     delegate_output, delegate_registry,
     output::{OutputHandler, OutputState},
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
-};
-use wayland_client::{
-    globals::registry_queue_init, protocol::wl_output, Connection, EventQueue, QueueHandle,
 };
 
 struct ListOutputs {
