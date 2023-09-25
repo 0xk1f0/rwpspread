@@ -115,32 +115,42 @@ impl Splitter {
         save_path: String,
     ) -> Result<Vec<ResultPaper>, String> {
         /*
-            @TODO: This is still a bit wonky
             Calculate Overall Size
             We can say that max width will be the biggest monitor
             with the greatest x-offset, max height will be defined in the same
             way except using y-offset.
-            Taking account of negative offset, which might be possible.
-            In theory biggest size will still be same as above, except that we
-            need to make the negative offsets always positive, to ge the total span.
-            Then we also need to keep track of how far our origin changes
+            For Negative offsets, this will be the same except that we keep track
+            of them in two seperate max variables.
+            We also check how far negatively offset the biggest screen is so we can
+            take it as the new origin.
         */
-        let (mut overall_width, mut overall_height) = (0, 0);
+        let (mut max_x, mut max_y, mut max_negative_x, mut max_negative_y) = (0, 0, 0, 0);
         let (mut origin_x, mut origin_y) = (0, 0);
         for monitor in &self.monitors {
             // convert the negative values to positive ones
             let actual_x = u32::try_from(monitor.x.abs()).map_err(|err| err.to_string())?;
             let actual_y = u32::try_from(monitor.y.abs()).map_err(|err| err.to_string())?;
-            // keep track of origin offsets
+            // compare to max vals depending if positive or negative
+            // also keep track of max negative offset
+            // should offset be smaller than mon size, add back to positive
             if monitor.x.is_negative() {
+                max_negative_x = cmp::max(actual_x, max_negative_x);
                 origin_x = cmp::max(actual_x, origin_x);
+                if monitor.x < monitor.width as i32 {
+                    max_x = cmp::max(monitor.width - actual_x, max_x);
+                }
+            } else {
+                max_x = cmp::max(actual_x + monitor.width, max_x);
             }
             if monitor.y.is_negative() {
+                max_negative_y = cmp::max(actual_y, max_negative_y);
                 origin_y = cmp::max(actual_y, origin_y);
+                if monitor.y < monitor.height as i32 {
+                    max_y = cmp::max(monitor.height - actual_y, max_y);
+                }
+            } else {
+                max_y = cmp::max(actual_y + monitor.height, max_y);
             }
-            // check for the biggest stretch
-            overall_width = cmp::max(monitor.width + origin_x, overall_width);
-            overall_height = cmp::max(monitor.height + origin_y, overall_height);
         }
 
         /*
@@ -150,17 +160,21 @@ impl Splitter {
         */
         let (mut resize_offset_x, mut resize_offset_y) = (0, 0);
         if config.center == false
-            || img.dimensions().0 < overall_width
-            || img.dimensions().1 < overall_height
+            || img.dimensions().0 < max_x + max_negative_x
+            || img.dimensions().1 < max_y + max_negative_y
         {
             // scale image to fit calculated size
-            img = img.resize_to_fill(overall_width, overall_height, FilterType::Lanczos3);
+            img = img.resize_to_fill(
+                max_x + max_negative_x,
+                max_y + max_negative_y,
+                FilterType::Lanczos3,
+            );
         } else {
             // we can actually try to center the monitor layout since we have
             // some room to work with
             // assuming image is bigger than monitor layout
-            resize_offset_x = (img.dimensions().0 - overall_width) / 2;
-            resize_offset_y = (img.dimensions().1 - overall_height) / 2;
+            resize_offset_x = (img.dimensions().0 - (max_x + max_negative_x)) / 2;
+            resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;
         }
 
         /*
@@ -170,12 +184,9 @@ impl Splitter {
         */
         let mut result = Vec::with_capacity(self.monitors.len());
         for monitor in &self.monitors {
-            // calculate the offset values
-            let actual_x = origin_x as i32 + monitor.x;
-            let actual_y = origin_y as i32 + monitor.y;
             // convert for cropping
-            let adjusted_x = u32::try_from(actual_x).map_err(|err| err.to_string())?;
-            let adjusted_y = u32::try_from(actual_y).map_err(|err| err.to_string())?;
+            let adjusted_x = u32::try_from(origin_x as i32 + monitor.x).map_err(|err| err.to_string())?;
+            let adjusted_y = u32::try_from(origin_y as i32 + monitor.y).map_err(|err| err.to_string())?;
             // crop the image
             let cropped_image = img.crop(
                 adjusted_x + resize_offset_x,
