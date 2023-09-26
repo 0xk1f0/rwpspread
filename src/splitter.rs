@@ -128,28 +128,27 @@ impl Splitter {
         let (mut origin_x, mut origin_y) = (0, 0);
         for monitor in &self.monitors {
             // convert the negative values to positive ones
-            let actual_x = u32::try_from(monitor.x.abs()).map_err(|err| err.to_string())?;
-            let actual_y = u32::try_from(monitor.y.abs()).map_err(|err| err.to_string())?;
+            let (abs_x, abs_y) = (monitor.x.abs() as u32, monitor.y.abs() as u32);
             // compare to max vals depending if positive or negative
             // also keep track of max negative offset
             // should offset be smaller than mon size, add back to positive
             if monitor.x.is_negative() {
-                max_negative_x = cmp::max(actual_x, max_negative_x);
-                origin_x = cmp::max(actual_x, origin_x);
-                if monitor.x < monitor.width as i32 {
-                    max_x = cmp::max(monitor.width - actual_x, max_x);
+                max_negative_x = cmp::max(abs_x, max_negative_x);
+                origin_x = cmp::max(abs_x, origin_x);
+                if abs_x < monitor.width {
+                    max_x = cmp::max(monitor.width - abs_x, max_x);
                 }
             } else {
-                max_x = cmp::max(actual_x + monitor.width, max_x);
+                max_x = cmp::max(abs_x + monitor.width, max_x);
             }
             if monitor.y.is_negative() {
-                max_negative_y = cmp::max(actual_y, max_negative_y);
-                origin_y = cmp::max(actual_y, origin_y);
-                if monitor.y < monitor.height as i32 {
-                    max_y = cmp::max(monitor.height - actual_y, max_y);
+                max_negative_y = cmp::max(abs_y, max_negative_y);
+                origin_y = cmp::max(abs_y, origin_y);
+                if abs_y < monitor.height {
+                    max_y = cmp::max(monitor.height - abs_y, max_y);
                 }
             } else {
-                max_y = cmp::max(actual_y + monitor.height, max_y);
+                max_y = cmp::max(abs_y + monitor.height, max_y);
             }
         }
 
@@ -185,8 +184,10 @@ impl Splitter {
         let mut result = Vec::with_capacity(self.monitors.len());
         for monitor in &self.monitors {
             // convert for cropping
-            let adjusted_x = u32::try_from(origin_x as i32 + monitor.x).map_err(|err| err.to_string())?;
-            let adjusted_y = u32::try_from(origin_y as i32 + monitor.y).map_err(|err| err.to_string())?;
+            let adjusted_x = u32::try_from(origin_x as i32 + monitor.x)
+                .map_err(|_| "x adjustment out of range")?;
+            let adjusted_y = u32::try_from(origin_y as i32 + monitor.y)
+                .map_err(|_| "y adjustment out of range")?;
             // crop the image
             let cropped_image = img.crop(
                 adjusted_x + resize_offset_x,

@@ -39,6 +39,7 @@ pub struct Config {
     pub daemon: bool,
     pub force_resplit: bool,
     pub center: bool,
+    version: String,
 }
 
 impl Config {
@@ -54,6 +55,9 @@ impl Config {
         // create new path for image
         let in_path = Config::check_path(Path::new(&args.image));
 
+        // get own version
+        let version: String = String::from(env!("CARGO_PKG_VERSION"));
+
         // construct
         Ok(Self {
             image_path: in_path,
@@ -62,6 +66,7 @@ impl Config {
             daemon: args.daemon,
             force_resplit: args.force_resplit,
             center: args.center,
+            version,
         })
     }
 
