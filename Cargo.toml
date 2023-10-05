@@ -4,7 +4,7 @@ version = "0.1.6-1"
 edition = "2021"
 
 [dependencies]
-clap = { version = "4.4.4", features = ["derive"] }
+clap = { version = "4.4.6", features = ["derive"] }
 glob = "0.3.1"
 smithay-client-toolkit = { git = "https://github.com/Smithay/client-toolkit", default_features = false, features = [ "calloop" ] }
 image = "0.24.7"
