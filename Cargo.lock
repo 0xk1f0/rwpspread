@@ -526,9 +526,9 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
 name = "memmap2"
-version = "0.7.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f49388d20533534cd19360ad3d6a7dadc885944aa802ba3995040c5ec11288c6"
+checksum = "deaba38d7abf1d4cca21cc89e932e542ba2b9258664d2a9ef0e61512039c9375"
 dependencies = [
  "libc",
 ]
@@ -853,13 +853,14 @@ checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 [[package]]
 name = "smithay-client-toolkit"
 version = "0.17.0"
-source = "git+https://github.com/Smithay/client-toolkit#5129dc28f346dde88d56ec88257e29505c728c34"
+source = "git+https://github.com/Smithay/client-toolkit#658fb4bcb9b82d4e64c8756c78048067aec520ca"
 dependencies = [
  "bitflags 2.4.0",
  "calloop",
  "calloop-wayland-source",
  "cursor-icon",
  "dlib",
+ "libc",
  "log",
  "memmap2",
  "rustix",
