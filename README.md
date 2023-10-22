@@ -10,7 +10,6 @@ Wallpaper Utility written in Rust
 - Spans an input wallpaper across all monitors
 - Works alongside any wlroots based compositor f.E. [Hyprland](https://hyprland.org/)
 - Uses [wpaperd](https://github.com/danyspin97/wpaperd) as wallpaper daemon
-- Code quality is probably pretty poor as I'm new to Rust
 
 ## Installing
 
