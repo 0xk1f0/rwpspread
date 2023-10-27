@@ -27,11 +27,11 @@ jobs:
         run: |
           mv target/x86_64-unknown-linux-gnu/release/rwpspread target/release/rwpspread_gnu
           mv target/x86_64-unknown-linux-musl/release/rwpspread target/release/rwpspread_musl
-      - name: Upload built binaries
+      - name: Upload gnu binary
         uses: actions/upload-artifact@v3
         with:
-          name: release-binaries
-          path: |
-            target/release/rwpspread
-            target/x86_64-unknown-linux-gnu/release/rwpspread_gnu
-            target/x86_64-unknown-linux-musl/release/rwpspread_musl
+          path: target/x86_64-unknown-linux-gnu/release/rwpspread_gnu
+      - name: Upload musl binary
+        uses: actions/upload-artifact@v3
+        with:
+          path: target/x86_64-unknown-linux-musl/release/rwpspread_musl
