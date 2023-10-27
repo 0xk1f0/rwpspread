@@ -1,0 +1,36 @@
+name: Build and Upload
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Build dynamic linked
+        run: cargo build --release --verbose
+      - name: Build static linked
+        run: RUSTFLAGS='-C target-feature=-crt-static' cargo build --target=x86_64-unknown-linux-gnu --release --verbose
+      - name: Build musl static linked
+        run: cargo build --target=x86_64-unknown-linux-musl --release --verbose
+      - name: Rename binaries
+        run: |
+          mv target/x86_64-unknown-linux-gnu/release/rwpspread target/release/rwpspread_gnu
+          mv target/x86_64-unknown-linux-musl/release/rwpspread target/release/rwpspread_musl
+        run: mv oldfile.txt newfile.txt
+      - name: Upload built binaries
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-binaries
+          path: |
+            target/release/rwpspread
+            target/x86_64-unknown-linux-gnu/release/rwpspread_gnu
+            target/x86_64-unknown-linux-musl/release/rwpspread_musl
