@@ -89,7 +89,10 @@ impl Palette {
             let median_b = if count > 0 { b_sum / count } else { 0 };
             let median_hex = format!("#{:02X}{:02X}{:02X}", median_r, median_g, median_b);
 
-            self.colors.push(ColorData { index: i, color: median_hex });
+            self.colors.push(ColorData {
+                index: i,
+                color: median_hex,
+            });
         }
 
         // save to json
@@ -120,17 +123,21 @@ impl Palette {
         let mut color_map = Map::new();
 
         for color in &self.colors {
-            color_map.insert(format!("color{}", color.index), Value::String((*color.color).to_string()));
+            color_map.insert(
+                format!("color{}", color.index),
+                Value::String((*color.color).to_string()),
+            );
         }
 
         let json_output = PaletteFormat {
             wallpaper: self.path,
             foreground: (*self.colors.last().expect("Palette Error").color).to_string(),
             background: (*self.colors.first().expect("Palette Error").color).to_string(),
-            colors: color_map
+            colors: color_map,
         };
 
-        let file = File::create(path).map_err(|err| err.to_string())?;
+        let file =
+            File::create(format!("{}/rwps_colors.json", path)).map_err(|err| err.to_string())?;
         to_writer_pretty(file, &json_output).map_err(|err| err.to_string())?;
 
         Ok(())

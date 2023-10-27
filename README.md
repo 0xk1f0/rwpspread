@@ -51,9 +51,21 @@ rwpspread -w -i /some/path/wallpaper.png
 # daemon mode -> pairs well with wpaperd
 rwpspread -w -d -i /some/path/wallpaper.png
 
-# for more info
+# for all commands
 rwpspread --help
 ```
+
+## Save Locations
+
+All generate files are stored in `/home/$USER/.cache/` with the `rwps_` prefix.
+
+To get all files simply do:
+
+```bash
+ls /home/$USER/.cache/rwps_*
+```
+
+> Note: If you are using the wpaperd, `rwpspread` will use its default config path `/home/$USER/.config/wpaperd/`.
 
 # Troubleshooting
 

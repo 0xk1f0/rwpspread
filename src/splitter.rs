@@ -1,4 +1,5 @@
 use crate::palette::Palette;
+use crate::swaylock::Swaylock;
 use crate::wayland::Monitor;
 use crate::wpaperd::{CmdWrapper, WpaperdConfig};
 use crate::Config;
@@ -51,7 +52,7 @@ impl Splitter {
         if config.with_palette {
             let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
             color_palette
-                .generate_mostused(format!("{}/.cache/rwpcolors.json", var("HOME").unwrap()))
+                .generate_mostused(format!("{}/.cache", var("HOME").unwrap()))
                 .map_err(|err| err.to_string())?;
         }
 
@@ -101,6 +102,15 @@ impl Splitter {
             self.result_papers = self
                 .perform_split(img, config, var("PWD").unwrap())
                 .map_err(|err| err.to_string())?;
+        }
+
+        // check if we need to generate for swaylock
+        if config.with_swaylock {
+            Swaylock::generate(
+                &self.result_papers,
+                format!("{}/.cache", var("HOME").unwrap()),
+            )
+            .map_err(|err| err.to_string())?;
         }
 
         // return

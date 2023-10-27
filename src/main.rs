@@ -1,6 +1,7 @@
 mod palette;
 mod parser;
 mod splitter;
+mod swaylock;
 mod wayland;
 mod wpaperd;
 

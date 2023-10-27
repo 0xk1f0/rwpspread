@@ -14,6 +14,10 @@ struct Args {
     #[arg(short, long)]
     wpaperd: bool,
 
+    /// Generate swaylock file
+    #[arg(short, long)]
+    swaylock: bool,
+
     /// Generate a color palette from Wallpaper
     #[arg(short, long)]
     palette: bool,
@@ -35,6 +39,7 @@ struct Args {
 pub struct Config {
     pub image_path: PathBuf,
     pub with_wpaperd: bool,
+    pub with_swaylock: bool,
     pub with_palette: bool,
     pub daemon: bool,
     pub force_resplit: bool,
@@ -62,6 +67,7 @@ impl Config {
         Ok(Self {
             image_path: in_path,
             with_wpaperd: args.wpaperd,
+            with_swaylock: args.swaylock,
             with_palette: args.palette,
             daemon: args.daemon,
             force_resplit: args.force_resplit,
