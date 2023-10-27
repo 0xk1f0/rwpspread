@@ -67,7 +67,7 @@ ls /home/$USER/.cache/rwps_*
 
 > Note: If you are using the wpaperd, `rwpspread` will use its default config path `/home/$USER/.config/wpaperd/`.
 
-# Troubleshooting
+## Troubleshooting
 
 If you encounter issues after an update or with a new version please do the following:
 
