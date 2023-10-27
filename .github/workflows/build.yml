@@ -25,7 +25,6 @@ jobs:
         run: |
           mv target/x86_64-unknown-linux-gnu/release/rwpspread target/release/rwpspread_gnu
           mv target/x86_64-unknown-linux-musl/release/rwpspread target/release/rwpspread_musl
-        run: mv oldfile.txt newfile.txt
       - name: Upload built binaries
         uses: actions/upload-artifact@v3
         with:
