@@ -1,7 +1,8 @@
 use crate::palette::Palette;
-use crate::swaylock::Swaylock;
+use crate::swaylock;
 use crate::wayland::Monitor;
-use crate::wpaperd::{CmdWrapper, WpaperdConfig};
+use crate::wpaperd;
+use crate::wpaperd::Wpaperd;
 use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
@@ -59,7 +60,7 @@ impl Worker {
         // check if we need to generate wpaperd config
         if config.with_wpaperd {
             // create new wpaperd instance
-            let wpaperd = WpaperdConfig::new(
+            let wpaperd = Wpaperd::new(
                 config.image_path.to_string_lossy().to_string(),
                 self.hash.clone(),
             );
@@ -90,11 +91,11 @@ impl Worker {
                     .map_err(|err| err.to_string())?;
 
                 // restart
-                CmdWrapper::restart().map_err(|err| err.to_string())?;
+                wpaperd::restart().map_err(|err| err.to_string())?;
             }
 
             // only start if we're not running already
-            CmdWrapper::soft_restart().map_err(|err| err.to_string())?;
+            wpaperd::soft_restart().map_err(|err| err.to_string())?;
 
         // no wpaperd to worry about, just split
         } else {
@@ -106,7 +107,7 @@ impl Worker {
 
         // check if we need to generate for swaylock
         if config.with_swaylock {
-            Swaylock::generate(
+            swaylock::generate(
                 &self.result_papers,
                 format!("{}/.cache", env::var("HOME").unwrap()),
             )

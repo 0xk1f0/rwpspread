@@ -5,13 +5,13 @@ use std::io::Write;
 use std::process;
 use toml;
 
-pub struct WpaperdConfig {
+pub struct Wpaperd {
     pub initial_path: String,
     pub config_hash: String,
     config_path: String,
 }
 
-impl WpaperdConfig {
+impl Wpaperd {
     pub fn new(initial_path: String, config_hash: String) -> Self {
         Self {
             initial_path,
@@ -93,57 +93,53 @@ impl WpaperdConfig {
     }
 }
 
-pub struct CmdWrapper {}
-
-impl CmdWrapper {
-    // check if running, if not run
-    pub fn restart() -> Result<(), String> {
-        // Check if there is a running wpaperd process
-        match process::Command::new("pidof")
-            .args(&["wpaperd"])
-            .stdout(process::Stdio::null())
-            .status()
-        {
-            Ok(status) => {
-                if status.success() {
-                    // kill it with fire
-                    process::Command::new("killall")
-                        .args(&["-9", "wpaperd"])
-                        .stdout(process::Stdio::null())
-                        .output()
-                        .map_err(|err| err.to_string())?;
-                }
+// check if running, if not run
+pub fn restart() -> Result<(), String> {
+    // Check if there is a running wpaperd process
+    match process::Command::new("pidof")
+        .args(&["wpaperd"])
+        .stdout(process::Stdio::null())
+        .status()
+    {
+        Ok(status) => {
+            if status.success() {
+                // kill it with fire
+                process::Command::new("killall")
+                    .args(&["-9", "wpaperd"])
+                    .stdout(process::Stdio::null())
+                    .output()
+                    .map_err(|err| err.to_string())?;
             }
-            Err(e) => return Err(e.to_string()),
         }
-
-        // Spawn new wpaperd instance
-        process::Command::new("wpaperd")
-            .spawn()
-            .map_err(|err| err.to_string())?;
-
-        Ok(())
+        Err(e) => return Err(e.to_string()),
     }
 
-    // only start if we need to
-    pub fn soft_restart() -> Result<(), String> {
-        // Check if there is a running wpaperd process
-        match process::Command::new("pidof")
-            .args(&["wpaperd"])
-            .stdout(process::Stdio::null())
-            .status()
-        {
-            Ok(status) => {
-                if !status.success() {
-                    // Spawn new wpaperd instance
-                    process::Command::new("wpaperd")
-                        .spawn()
-                        .map_err(|err| err.to_string())?;
-                }
-            }
-            Err(e) => return Err(e.to_string()),
-        }
+    // Spawn new wpaperd instance
+    process::Command::new("wpaperd")
+        .spawn()
+        .map_err(|err| err.to_string())?;
 
-        Ok(())
+    Ok(())
+}
+
+// only start if we need to
+pub fn soft_restart() -> Result<(), String> {
+    // Check if there is a running wpaperd process
+    match process::Command::new("pidof")
+        .args(&["wpaperd"])
+        .stdout(process::Stdio::null())
+        .status()
+    {
+        Ok(status) => {
+            if !status.success() {
+                // Spawn new wpaperd instance
+                process::Command::new("wpaperd")
+                    .spawn()
+                    .map_err(|err| err.to_string())?;
+            }
+        }
+        Err(e) => return Err(e.to_string()),
     }
+
+    Ok(())
 }
