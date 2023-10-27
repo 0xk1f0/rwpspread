@@ -1,4 +1,4 @@
-use crate::splitter::ResultPaper;
+use crate::worker::ResultPaper;
 use std::fs;
 
 pub struct Swaylock {}

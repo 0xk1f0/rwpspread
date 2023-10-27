@@ -1,6 +1,7 @@
 use image::{GenericImageView, Rgba};
 use serde::Serialize;
-use serde_json::{to_writer_pretty, Map, Value};
+use serde_json;
+use serde_json::{Map, Value};
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -138,7 +139,7 @@ impl Palette {
 
         let file =
             File::create(format!("{}/rwps_colors.json", path)).map_err(|err| err.to_string())?;
-        to_writer_pretty(file, &json_output).map_err(|err| err.to_string())?;
+        serde_json::to_writer_pretty(file, &json_output).map_err(|err| err.to_string())?;
 
         Ok(())
     }

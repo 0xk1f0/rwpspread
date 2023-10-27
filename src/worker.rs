@@ -6,9 +6,9 @@ use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
 use std::cmp;
-use std::collections::hash_map::DefaultHasher;
-use std::env::var;
-use std::fs::remove_file;
+use std::collections::hash_map;
+use std::env;
+use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 
@@ -18,13 +18,13 @@ pub struct ResultPaper {
     pub image: DynamicImage,
 }
 
-pub struct Splitter {
+pub struct Worker {
     hash: String,
     monitors: Vec<Monitor>,
     result_papers: Vec<ResultPaper>,
 }
 
-impl Splitter {
+impl Worker {
     pub fn new() -> Self {
         Self {
             hash: String::new(),
@@ -42,7 +42,7 @@ impl Splitter {
         self.monitors = mon_vec;
 
         // calculate hash
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = hash_map::DefaultHasher::new();
         img.as_bytes().hash(&mut hasher);
         config.hash(&mut hasher);
         self.monitors.hash(&mut hasher);
@@ -52,7 +52,7 @@ impl Splitter {
         if config.with_palette {
             let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
             color_palette
-                .generate_mostused(format!("{}/.cache", var("HOME").unwrap()))
+                .generate_mostused(format!("{}/.cache", env::var("HOME").unwrap()))
                 .map_err(|err| err.to_string())?;
         }
 
@@ -74,7 +74,7 @@ impl Splitter {
 
                 // we need to resplit
                 self.result_papers = self
-                    .perform_split(img, config, format!("{}/.cache", var("HOME").unwrap()))
+                    .perform_split(img, config, format!("{}/.cache", env::var("HOME").unwrap()))
                     .map_err(|err| err.to_string())?;
             }
 
@@ -100,7 +100,7 @@ impl Splitter {
         } else {
             // just split
             self.result_papers = self
-                .perform_split(img, config, var("PWD").unwrap())
+                .perform_split(img, config, env::var("PWD").unwrap())
                 .map_err(|err| err.to_string())?;
         }
 
@@ -108,7 +108,7 @@ impl Splitter {
         if config.with_swaylock {
             Swaylock::generate(
                 &self.result_papers,
-                format!("{}/.cache", var("HOME").unwrap()),
+                format!("{}/.cache", env::var("HOME").unwrap()),
             )
             .map_err(|err| err.to_string())?;
         }
@@ -228,17 +228,17 @@ impl Splitter {
     fn cleanup_cache(&self) {
         // wildcard search for our
         // images and delete them
-        for entry in glob(&format!("{}/.cache/rwps_*", var("HOME").unwrap())).unwrap() {
+        for entry in glob(&format!("{}/.cache/rwps_*", env::var("HOME").unwrap())).unwrap() {
             if let Ok(path) = entry {
                 // yeet any file that we cached
-                remove_file(path).unwrap();
+                fs::remove_file(path).unwrap();
             }
         }
     }
 
     fn check_caches(&self) -> bool {
         // what we search for
-        let base_format = format!("{}/.cache/rwps_{}", var("HOME").unwrap(), &self.hash);
+        let base_format = format!("{}/.cache/rwps_{}", env::var("HOME").unwrap(), &self.hash);
 
         // check for every monitor
         for monitor in &self.monitors {

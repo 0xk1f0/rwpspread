@@ -1,9 +1,9 @@
-use crate::splitter::ResultPaper;
-use std::env::var;
+use crate::worker::ResultPaper;
+use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::process::{Command, Stdio};
-use toml::{to_string_pretty, Value};
+use std::process;
+use toml;
 
 pub struct WpaperdConfig {
     pub initial_path: String,
@@ -16,7 +16,10 @@ impl WpaperdConfig {
         Self {
             initial_path,
             config_hash,
-            config_path: format!("{}/.config/wpaperd/wallpaper.toml", var("HOME").unwrap()),
+            config_path: format!(
+                "{}/.config/wpaperd/wallpaper.toml",
+                env::var("HOME").unwrap()
+            ),
         }
     }
 
@@ -32,7 +35,7 @@ impl WpaperdConfig {
 
         // Parse the string into a TOML value
         let mut values = read_file
-            .parse::<Value>()
+            .parse::<toml::Value>()
             .map_err(|_| "unable to parse config")?;
 
         // Add new output sections
@@ -40,13 +43,13 @@ impl WpaperdConfig {
             // insert new section
             values.as_table_mut().unwrap().insert(
                 fragment.monitor_name.to_string(),
-                Value::Table(Default::default()),
+                toml::Value::Table(Default::default()),
             );
             // add path value
             let path = values.get_mut(fragment.monitor_name.to_string()).unwrap();
             path.as_table_mut().unwrap().insert(
                 "path".to_string(),
-                Value::String(fragment.full_path.to_string()),
+                toml::Value::String(fragment.full_path.to_string()),
             );
         }
 
@@ -68,7 +71,7 @@ impl WpaperdConfig {
 
         // write actual config
         config_file
-            .write_all(to_string_pretty(&values).unwrap().as_bytes())
+            .write_all(toml::to_string_pretty(&values).unwrap().as_bytes())
             .unwrap();
 
         // return
@@ -96,17 +99,17 @@ impl CmdWrapper {
     // check if running, if not run
     pub fn restart() -> Result<(), String> {
         // Check if there is a running wpaperd process
-        match Command::new("pidof")
+        match process::Command::new("pidof")
             .args(&["wpaperd"])
-            .stdout(Stdio::null())
+            .stdout(process::Stdio::null())
             .status()
         {
             Ok(status) => {
                 if status.success() {
                     // kill it with fire
-                    Command::new("killall")
+                    process::Command::new("killall")
                         .args(&["-9", "wpaperd"])
-                        .stdout(Stdio::null())
+                        .stdout(process::Stdio::null())
                         .output()
                         .map_err(|err| err.to_string())?;
                 }
@@ -115,7 +118,7 @@ impl CmdWrapper {
         }
 
         // Spawn new wpaperd instance
-        Command::new("wpaperd")
+        process::Command::new("wpaperd")
             .spawn()
             .map_err(|err| err.to_string())?;
 
@@ -125,15 +128,15 @@ impl CmdWrapper {
     // only start if we need to
     pub fn soft_restart() -> Result<(), String> {
         // Check if there is a running wpaperd process
-        match Command::new("pidof")
+        match process::Command::new("pidof")
             .args(&["wpaperd"])
-            .stdout(Stdio::null())
+            .stdout(process::Stdio::null())
             .status()
         {
             Ok(status) => {
                 if !status.success() {
                     // Spawn new wpaperd instance
-                    Command::new("wpaperd")
+                    process::Command::new("wpaperd")
                         .spawn()
                         .map_err(|err| err.to_string())?;
                 }

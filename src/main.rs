@@ -1,14 +1,14 @@
 mod palette;
 mod parser;
-mod splitter;
 mod swaylock;
 mod wayland;
+mod worker;
 mod wpaperd;
 
 use parser::Config;
-use splitter::Splitter;
 use std::process;
 use wayland::MonitorConfig;
+use worker::Worker;
 
 fn run() -> Result<(), String> {
     // create new config
@@ -21,7 +21,7 @@ fn run() -> Result<(), String> {
     let mon_config = mon_conn.run().map_err(|err| err.to_string())?;
 
     // create new splitter
-    let mut worker = Splitter::new();
+    let mut worker = Worker::new();
 
     // perform split
     worker
