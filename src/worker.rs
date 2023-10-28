@@ -49,13 +49,8 @@ impl Worker {
         self.monitors.hash(&mut hasher);
         self.hash = format!("{:x}", hasher.finish());
 
-        // check for palette bool and do that first
-        if config.with_palette {
-            let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
-            color_palette
-                .generate_mostused(format!("{}/.cache", env::var("HOME").unwrap()))
-                .map_err(|err| err.to_string())?;
-        }
+        // check caches first
+        let caches_present: bool = self.check_caches(&config);
 
         // check if we need to generate wpaperd config
         if config.with_wpaperd {
@@ -64,9 +59,6 @@ impl Worker {
                 config.image_path.to_string_lossy().to_string(),
                 self.hash.clone(),
             );
-
-            // check caches
-            let caches_present = self.check_caches();
 
             // do we need to resplit
             if config.force_resplit || !caches_present {
@@ -105,8 +97,16 @@ impl Worker {
                 .map_err(|err| err.to_string())?;
         }
 
+        // check for palette bool
+        if config.with_palette && !caches_present || config.force_resplit {
+            let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
+            color_palette
+                .generate_mostused(format!("{}/.cache", env::var("HOME").unwrap()))
+                .map_err(|err| err.to_string())?;
+        }
+
         // check if we need to generate for swaylock
-        if config.with_swaylock {
+        if config.with_swaylock && !caches_present || config.force_resplit {
             swaylock::generate(
                 &self.result_papers,
                 format!("{}/.cache", env::var("HOME").unwrap()),
@@ -237,16 +237,31 @@ impl Worker {
         }
     }
 
-    fn check_caches(&self) -> bool {
+    fn check_caches(&self, config: &Config) -> bool {
         // what we search for
-        let base_format = format!("{}/.cache/rwps_{}", env::var("HOME").unwrap(), &self.hash);
+        let base_format = format!("{}/.cache/rwps_", env::var("HOME").unwrap());
+
+        // path vector
+        let mut path_list: Vec<(bool, String)> = Vec::with_capacity(3);
 
         // check for every monitor
         for monitor in &self.monitors {
-            let image_path = format!("{}_{}.png", base_format, monitor.name);
-            // check if a cached image exists
-            if !Path::new(&image_path).exists() {
-                // we're missing an image, regenerate
+            path_list.push((
+                true,
+                format!("{}{}_{}.png", base_format, &self.hash, monitor.name),
+            ));
+        }
+
+        path_list.push((
+            config.with_swaylock,
+            format!("{}swaylock.conf", base_format),
+        ));
+        path_list.push((config.with_palette, format!("{}colors.json", base_format)));
+
+        // check if cache exists
+        for path in path_list {
+            if path.0 && !Path::new(&path.1).exists() {
+                // we're something, regenerate
                 return false;
             }
         }
