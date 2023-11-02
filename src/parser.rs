@@ -23,7 +23,7 @@ struct Args {
     palette: bool,
 
     /// Enable Daemon Watchdog mode, will resplit on Output changes
-    #[arg(short, long)]
+    #[arg(short, long, requires("wpaperd"))]
     daemon: bool,
 
     /// Force Resplit, skips all Image Cache checks

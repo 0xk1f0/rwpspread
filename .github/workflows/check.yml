@@ -1,0 +1,24 @@
+name: Build and Upload
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Build static linked
+        run: RUSTFLAGS='-C target-feature=-crt-static' cargo build --target=x86_64-unknown-linux-gnu --release --verbose
+      - name: Generate Checksums
+        run: |
+          sha512sum target/x86_64-unknown-linux-gnu/release/rwpspread > target/x86_64-unknown-linux-gnu/release/rwpspread.sha512sum
+      - name: Upload gnu binary
+        uses: actions/upload-artifact@v3
+        with:
+          path: target/x86_64-unknown-linux-gnu/release/rwpspread*

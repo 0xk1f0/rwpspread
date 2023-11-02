@@ -3,8 +3,6 @@ name: Build and Upload
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,8 +13,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Build dynamic linked
-        run: cargo build --release --verbose
       - name: Build static linked
         run: RUSTFLAGS='-C target-feature=-crt-static' cargo build --target=x86_64-unknown-linux-gnu --release --verbose
       - name: Build musl static linked
@@ -25,13 +21,16 @@ jobs:
           cargo build --target=x86_64-unknown-linux-musl --release --verbose
       - name: Rename binaries
         run: |
-          mv target/x86_64-unknown-linux-gnu/release/rwpspread target/x86_64-unknown-linux-gnu/release/rwpspread_gnu
           mv target/x86_64-unknown-linux-musl/release/rwpspread target/x86_64-unknown-linux-musl/release/rwpspread_musl
-      - name: Upload gnu binary
+      - name: Generate Checksums
+        run: |
+          sha512sum target/x86_64-unknown-linux-gnu/release/rwpspread > target/x86_64-unknown-linux-gnu/release/rwpspread.sha512sum
+          sha512sum target/x86_64-unknown-linux-musl/release/rwpspread_musl > target/x86_64-unknown-linux-musl/release/rwpspread_musl.sha512sum
+      - name: Upload GNU release files
         uses: actions/upload-artifact@v3
         with:
-          path: target/x86_64-unknown-linux-gnu/release/rwpspread_gnu
-      - name: Upload musl binary
+          path: target/x86_64-unknown-linux-gnu/release/rwpspread*
+      - name: Upload musl release files
         uses: actions/upload-artifact@v3
         with:
-          path: target/x86_64-unknown-linux-musl/release/rwpspread_musl
+          path: target/x86_64-unknown-linux-musl/release/rwpspread_musl*
