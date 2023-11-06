@@ -257,9 +257,9 @@ checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
 name = "cursor-icon"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "740bb192a8e2d1350119916954f4409ee7f62f149b536911eeb78ba5a20526bf"
+checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 
 [[package]]
 name = "dlib"
@@ -853,7 +853,7 @@ checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 [[package]]
 name = "smithay-client-toolkit"
 version = "0.18.0"
-source = "git+https://github.com/Smithay/client-toolkit#05e3f7f3d91f7953514b6fe04742dc57f5527819"
+source = "git+https://github.com/Smithay/client-toolkit#e63ab5f01964bc48766fc4c3bf79cc05dc59874c"
 dependencies = [
  "bitflags 2.4.0",
  "calloop",
