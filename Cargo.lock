@@ -766,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "rwpspread"
-version = "0.1.6-1"
+version = "0.1.7-1"
 dependencies = [
  "clap",
  "glob",
