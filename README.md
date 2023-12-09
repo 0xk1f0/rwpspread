@@ -55,6 +55,25 @@ rwpspread -w -d -i /some/path/wallpaper.png
 rwpspread --help
 ```
 
+## `swaylock` Integration
+
+A drop-in string for swaylock will be put in `/home/$USER/.cache/rwps_swaylock.conf` which can look something like:
+
+```text
+-i <image_path_1> -i <image_path_2>
+```
+
+This file can be sourced and used with your swaylock command, for exmaple:
+
+```bash
+#!/usr/bin/bash
+
+# source the command options
+IMAGES=$(/bin/cat /home/$USER/.cache/rwps_swaylock.conf)
+# execute with them
+/usr/bin/swaylock $IMAGES --scaling fill
+```
+
 ## Save Locations
 
 All generate files are stored in `/home/$USER/.cache/` with the `rwps_` prefix.
@@ -92,5 +111,6 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] color palette generation from wallpaper
 - [x] watchdog auto-resplit on output change
 - [x] center if wallpaper is big enough
+- [x] `swaylock` integration
 - [ ] monitor bezel compensation
 - [ ] more alignment options if wallpaper is big enough

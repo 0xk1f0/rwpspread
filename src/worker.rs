@@ -58,7 +58,8 @@ impl Worker {
             let wpaperd = Wpaperd::new(
                 config.image_path.to_string_lossy().to_string(),
                 self.hash.clone(),
-            );
+            )
+            .map_err(|err| err.to_string())?;
 
             // do we need to resplit
             if config.force_resplit || !caches_present {

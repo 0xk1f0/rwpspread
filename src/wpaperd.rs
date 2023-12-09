@@ -12,14 +12,29 @@ pub struct Wpaperd {
 }
 
 impl Wpaperd {
-    pub fn new(initial_path: String, config_hash: String) -> Self {
-        Self {
-            initial_path,
-            config_hash,
-            config_path: format!(
-                "{}/.config/wpaperd/wallpaper.toml",
-                env::var("HOME").unwrap()
-            ),
+    pub fn new(initial_path: String, config_hash: String) -> Result<Self, String> {
+        // Check if wpaperd is available
+        match process::Command::new("/bin/which")
+            .arg("wpaperd")
+            .stdout(process::Stdio::null())
+            .stderr(process::Stdio::null())
+            .status()
+        {
+            Ok(status) => {
+                if status.success() {
+                    Ok(Self {
+                        initial_path,
+                        config_hash,
+                        config_path: format!(
+                            "{}/.config/wpaperd/wallpaper.toml",
+                            env::var("HOME").unwrap()
+                        ),
+                    })
+                } else {
+                    return Err("wpaperd not installed".to_string());
+                }
+            }
+            Err(e) => return Err(e.to_string()),
         }
     }
 
