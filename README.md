@@ -1,7 +1,8 @@
 # rwpspread
 
 [![Pipeline](https://github.com/0xk1f0/rwpspread/actions/workflows/build.yml/badge.svg)](https://github.com/0xk1f0/rwpspread/actions/workflows/build.yml)
-![AUR](https://img.shields.io/aur/version/rwpspread)
+![AUR](https://img.shields.io/aur/version/rwpspread?label=AUR%20rwpspread)
+![AUR](https://img.shields.io/aur/version/rwpspread-git?label=AUR%20rwpspread-git)
 
 Wallpaper Utility written in Rust
 
