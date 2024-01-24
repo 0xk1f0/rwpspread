@@ -14,7 +14,7 @@ pub struct Wpaperd {
 impl Wpaperd {
     pub fn new(initial_path: String, config_hash: String) -> Result<Self, String> {
         // Check if wpaperd is available
-        match process::Command::new("/bin/which")
+        match process::Command::new("which")
             .arg("wpaperd")
             .stdout(process::Stdio::null())
             .stderr(process::Stdio::null())
