@@ -831,7 +831,7 @@ checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 [[package]]
 name = "smithay-client-toolkit"
 version = "0.18.0"
-source = "git+https://github.com/Smithay/client-toolkit#da3e5c573a261117cbd70dc079a333bcd610a1d7"
+source = "git+https://github.com/Smithay/client-toolkit#f3587a933ad822f729513cd1e1db3667b342ee72"
 dependencies = [
  "bitflags 2.4.0",
  "calloop",
