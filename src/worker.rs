@@ -6,12 +6,14 @@ use crate::wpaperd::Wpaperd;
 use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
+use rayon::prelude::*;
 use std::cmp;
 use std::collections::hash_map;
 use std::env;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 pub struct ResultPaper {
     pub monitor_name: String,
@@ -192,39 +194,48 @@ impl Worker {
             Crop image for screens
             and push them to the result vector, taking into
             account negative offsets
+            Doing it in parallel using rayon for speedup
         */
-        let mut result = Vec::with_capacity(self.monitors.len());
-        for monitor in &self.monitors {
-            // convert for cropping
-            let adjusted_x = u32::try_from(origin_x as i32 + monitor.x)
-                .map_err(|_| "x adjustment out of range")?;
-            let adjusted_y = u32::try_from(origin_y as i32 + monitor.y)
-                .map_err(|_| "y adjustment out of range")?;
-            // crop the image
-            let cropped_image = img.crop(
-                adjusted_x + resize_offset_x,
-                adjusted_y + resize_offset_y,
-                monitor.width,
-                monitor.height,
-            );
+        let result: Vec<Result<ResultPaper, String>> = self
+            .monitors
+            .par_iter()
+            .map(|monitor| -> Result<ResultPaper, String> {
+                let adjusted_x = u32::try_from(origin_x as i32 + monitor.x)
+                    .map_err(|_| "x adjustment out of range")?;
+                let adjusted_y = u32::try_from(origin_y as i32 + monitor.y)
+                    .map_err(|_| "y adjustment out of range")?;
 
-            // get full image path
-            let path_image = format!("{}/rwps_{}_{}.png", save_path, &self.hash, &monitor.name,);
+                // crop to size
+                let cropped_image = img.clone().crop(
+                    adjusted_x + resize_offset_x,
+                    adjusted_y + resize_offset_y,
+                    monitor.width,
+                    monitor.height,
+                );
 
-            // save it
-            cropped_image
-                .save(&path_image)
-                .map_err(|err| err.to_string())?;
+                // export to file
+                let path_image = format!("{}/rwps_{}_{}.png", save_path, &self.hash, &monitor.name);
+                cropped_image
+                    .save(&path_image)
+                    .map_err(|err| err.to_string())?;
 
-            // push to result vector
-            result.push(ResultPaper {
-                monitor_name: format!("{}", &monitor.name),
-                full_path: path_image,
-                image: cropped_image,
+                Ok(ResultPaper {
+                    monitor_name: format!("{}", &monitor.name),
+                    full_path: path_image,
+                    image: cropped_image.clone(),
+                })
             })
-        }
+            .collect();
 
-        Ok(result)
+        if &result.iter().all(Result::is_ok) == &true {
+            let converted: Vec<ResultPaper> = result
+                .into_iter()
+                .filter_map(|result| result.ok())
+                .collect();
+            Ok(converted)
+        } else {
+            Err("Cropping Error".to_string())
+        }
     }
 
     fn cleanup_cache(&self) {
