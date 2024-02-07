@@ -6,7 +6,7 @@ use crate::wpaperd::Wpaperd;
 use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
-use rayon::prelude::*;
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::cmp;
 use std::collections::hash_map;
 use std::env;
