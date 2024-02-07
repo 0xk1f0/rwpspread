@@ -13,7 +13,6 @@ use std::env;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 
 pub struct ResultPaper {
     pub monitor_name: String,
