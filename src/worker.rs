@@ -195,7 +195,7 @@ impl Worker {
             account negative offsets
             Doing it in parallel using rayon for speedup
         */
-        let result: Vec<Result<ResultPaper, String>> = self
+        let crop_results: Vec<Result<ResultPaper, String>> = self
             .monitors
             .par_iter()
             .map(|monitor| -> Result<ResultPaper, String> {
@@ -226,14 +226,18 @@ impl Worker {
             })
             .collect();
 
-        if &result.iter().all(Result::is_ok) == &true {
-            let converted: Vec<ResultPaper> = result
-                .into_iter()
-                .filter_map(|result| result.ok())
-                .collect();
-            Ok(converted)
+        // iterate and filter out the Ok() values
+        let output_papers: Vec<ResultPaper> = crop_results
+            .into_iter()
+            .take_while(|entry| entry.is_ok())
+            .filter_map(|result| result.ok())
+            .collect();
+
+        // if final papers length matches monitor count, we have no error
+        if output_papers.len() == self.monitors.len() {
+            Ok(output_papers)
         } else {
-            Err("Cropping Error".to_string())
+            Err("splitting error".to_string())
         }
     }
 
