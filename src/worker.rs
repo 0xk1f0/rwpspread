@@ -205,7 +205,7 @@ impl Worker {
                     .map_err(|_| "y adjustment out of range")?;
 
                 // crop to size
-                let cropped_image = &img.crop_imm(
+                let cropped_image = img.crop_imm(
                     adjusted_x + resize_offset_x,
                     adjusted_y + resize_offset_y,
                     monitor.width,
@@ -221,7 +221,7 @@ impl Worker {
                 Ok(ResultPaper {
                     monitor_name: format!("{}", &monitor.name),
                     full_path: path_image,
-                    image: cropped_image.clone(),
+                    image: cropped_image,
                 })
             })
             .collect();
