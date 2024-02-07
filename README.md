@@ -23,6 +23,10 @@ paru -S rwpspread
 paru -S rwpspread-git
 ```
 
+On NixOS via [nixpkgs](https://github.com/NixOS/nixpkgs)
+
+[PR Pending](https://github.com/NixOS/nixpkgs/pull/284144)
+
 ## Building
 
 ```bash
@@ -113,5 +117,6 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] watchdog auto-resplit on output change
 - [x] center if wallpaper is big enough
 - [x] `swaylock` integration
+- [x] parallel image processing
 - [ ] monitor bezel compensation
 - [ ] more alignment options if wallpaper is big enough
