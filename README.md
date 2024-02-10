@@ -38,26 +38,45 @@ cargo build --release
 ## Usage
 
 ```bash
+❯ rwpspread --help
+Multi-Monitor Wallpaper Utility
+
+Usage: rwpspread [OPTIONS] --image <IMAGE>
+
+Options:
+  -i, --image <IMAGE>  Image File Path
+  -w, --wpaperd        Use wpaperd Integration
+  -s, --swaylock       Generate swaylock file
+  -p, --palette        Generate a color palette from Wallpaper
+  -d, --daemon         Enable Daemon Watchdog mode, will resplit on Output changes
+      --force-resplit  Force Resplit, skips all Image Cache checks
+  -a, --align <ALIGN>  Don't downscale the Base Image, align the Layout instead [possible values: tl, tr, bl, br, c]
+  -h, --help           Print help
+  -V, --version        Print version
+```
+
+## Examples
+
+```bash
 # it takes an input image
 # screens are automatically read
 # if running a wlroots based compositor
-rwpspread -i <image>
-
-# for example
 rwpspread -i /some/path/wallpaper.png
+
+# to align the layout if the input images
+# is big enough, instead of resizing
+# for example, to align it top-right
+rwpspread -a tr -i /some/path/wallpaper.png
 
 # to use the wpaperd integration
 # this autogenerates the config file
 # you will need to have wpaperd installed
-rwpspread -w -i /some/path/wallpaper.png
+rwpspread -wi /some/path/wallpaper.png
 
 # if you want automatic resplits when
 # connecting new monitors, start with
-# daemon mode -> pairs well with wpaperd
-rwpspread -w -d -i /some/path/wallpaper.png
-
-# for all commands
-rwpspread --help
+# daemon mode -> requires wpaperd
+rwpspread -wdi /some/path/wallpaper.png
 ```
 
 ## `swaylock` Integration
@@ -118,5 +137,5 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] center if wallpaper is big enough
 - [x] `swaylock` integration
 - [x] parallel image processing
+- [x] more alignment options if wallpaper is big enough
 - [ ] monitor bezel compensation
-- [ ] more alignment options if wallpaper is big enough

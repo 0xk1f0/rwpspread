@@ -2,6 +2,16 @@ use clap::Parser;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+// alignment enumerator
+#[derive(clap::ValueEnum, Debug, Clone, Hash)]
+pub enum Alignment {
+    Tl,
+    Tr,
+    Bl,
+    Br,
+    C,
+}
+
 /// Multi-Monitor Wallpaper Utility
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -30,9 +40,9 @@ struct Args {
     #[arg(long)]
     force_resplit: bool,
 
-    /// Don't downscale the Base Image, center the Layout instead
-    #[arg(long)]
-    center: bool,
+    /// Don't downscale the Base Image, align the Layout instead
+    #[arg(short, long, value_enum)]
+    align: Option<Alignment>,
 }
 
 #[derive(Hash)]
@@ -43,7 +53,7 @@ pub struct Config {
     pub with_palette: bool,
     pub daemon: bool,
     pub force_resplit: bool,
-    pub center: bool,
+    pub align: Option<Alignment>,
     version: String,
 }
 
@@ -71,7 +81,7 @@ impl Config {
             with_palette: args.palette,
             daemon: args.daemon,
             force_resplit: args.force_resplit,
-            center: args.center,
+            align: args.align,
             version,
         })
     }

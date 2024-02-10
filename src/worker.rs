@@ -1,9 +1,9 @@
 use crate::palette::Palette;
+use crate::parser::{Alignment, Config};
 use crate::swaylock;
 use crate::wayland::Monitor;
 use crate::wpaperd;
 use crate::wpaperd::Wpaperd;
-use crate::Config;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
@@ -171,7 +171,7 @@ impl Worker {
             Should input be big enough, we can consider centering
         */
         let (mut resize_offset_x, mut resize_offset_y) = (0, 0);
-        if config.center == false
+        if config.align.is_none()
             || img.dimensions().0 < max_x + max_negative_x
             || img.dimensions().1 < max_y + max_negative_y
         {
@@ -182,11 +182,31 @@ impl Worker {
                 FilterType::Lanczos3,
             );
         } else {
-            // we can actually try to center the monitor layout since we have
+            // we can actually try to align the monitor layout since we have
             // some room to work with
             // assuming image is bigger than monitor layout
-            resize_offset_x = (img.dimensions().0 - (max_x + max_negative_x)) / 2;
-            resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;
+            match config.align.as_ref().unwrap() {
+                Alignment::Tl => {
+                    resize_offset_x = 0;
+                    resize_offset_y = 0;
+                }
+                Alignment::Bl => {
+                    resize_offset_x = 0;
+                    resize_offset_y = img.dimensions().1 - (max_y + max_negative_y);
+                }
+                Alignment::Tr => {
+                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x);
+                    resize_offset_y = 0;
+                }
+                Alignment::Br => {
+                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x);
+                    resize_offset_y = img.dimensions().1 - (max_y + max_negative_y);
+                }
+                Alignment::C => {
+                    resize_offset_x = (img.dimensions().0 - (max_x + max_negative_x)) / 2;
+                    resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;
+                }
+            }
         }
 
         /*
