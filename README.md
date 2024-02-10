@@ -50,7 +50,7 @@ Options:
   -p, --palette        Generate a color palette from Wallpaper
   -d, --daemon         Enable Daemon Watchdog mode, will resplit on Output changes
       --force-resplit  Force Resplit, skips all Image Cache checks
-  -a, --align <ALIGN>  Don't downscale the Base Image, align the Layout instead [possible values: tl, tr, bl, br, c]
+  -a, --align <ALIGN>  Do not downscale the Base Image, align the Layout instead [possible values: tl, tr, bl, br, c]
   -h, --help           Print help
   -V, --version        Print version
 ```

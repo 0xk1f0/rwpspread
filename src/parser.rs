@@ -40,7 +40,7 @@ struct Args {
     #[arg(long)]
     force_resplit: bool,
 
-    /// Don't downscale the Base Image, align the Layout instead
+    /// Do not downscale the Base Image, align the Layout instead
     #[arg(short, long, value_enum)]
     align: Option<Alignment>,
 }
