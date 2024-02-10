@@ -23,6 +23,7 @@ pub struct ResultPaper {
 pub struct Worker {
     hash: String,
     monitors: Vec<Monitor>,
+    cache_location: String,
     result_papers: Vec<ResultPaper>,
 }
 
@@ -31,6 +32,7 @@ impl Worker {
         Self {
             hash: String::new(),
             monitors: Vec::new(),
+            cache_location: String::new(),
             result_papers: Vec::new(),
         }
     }
@@ -42,6 +44,11 @@ impl Worker {
 
         // set monitors
         self.monitors = mon_vec;
+
+        // set cache location
+        self.cache_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
+        self.ensure_cache_location(&self.cache_location)
+            .map_err(|e| e)?;
 
         // calculate hash
         let mut hasher = hash_map::DefaultHasher::new();
@@ -69,7 +76,7 @@ impl Worker {
 
                 // we need to resplit
                 self.result_papers = self
-                    .perform_split(img, config, format!("{}/.cache", env::var("HOME").unwrap()))
+                    .perform_split(img, config, &self.cache_location)
                     .map_err(|err| err.to_string())?;
             }
 
@@ -95,7 +102,7 @@ impl Worker {
         } else {
             // just split
             self.result_papers = self
-                .perform_split(img, config, env::var("PWD").unwrap())
+                .perform_split(img, config, &env::var("PWD").unwrap())
                 .map_err(|err| err.to_string())?;
         }
 
@@ -103,17 +110,14 @@ impl Worker {
         if config.with_palette && !caches_present || config.force_resplit {
             let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
             color_palette
-                .generate_mostused(format!("{}/.cache", env::var("HOME").unwrap()))
+                .generate_mostused(&self.cache_location)
                 .map_err(|err| err.to_string())?;
         }
 
         // check if we need to generate for swaylock
         if config.with_swaylock && !caches_present || config.force_resplit {
-            swaylock::generate(
-                &self.result_papers,
-                format!("{}/.cache", env::var("HOME").unwrap()),
-            )
-            .map_err(|err| err.to_string())?;
+            swaylock::generate(&self.result_papers, &self.cache_location)
+                .map_err(|err| err.to_string())?;
         }
 
         // return
@@ -125,7 +129,7 @@ impl Worker {
         &self,
         mut img: DynamicImage,
         config: &Config,
-        save_path: String,
+        save_path: &String,
     ) -> Result<Vec<ResultPaper>, String> {
         /*
             Calculate Overall Size
@@ -261,10 +265,17 @@ impl Worker {
         }
     }
 
+    fn ensure_cache_location(&self, path: &str) -> Result<(), String> {
+        // try to create, notify if fail
+        fs::create_dir_all(path).map_err(|_| "Failed to create Cache Directory")?;
+        // else we're good
+        Ok(())
+    }
+
     fn cleanup_cache(&self) {
         // wildcard search for our
         // images and delete them
-        for entry in glob(&format!("{}/.cache/rwps_*", env::var("HOME").unwrap())).unwrap() {
+        for entry in glob(&format!("{}/rwps_*", &self.cache_location)).unwrap() {
             if let Ok(path) = entry {
                 // yeet any file that we cached
                 fs::remove_file(path).unwrap();
@@ -274,7 +285,7 @@ impl Worker {
 
     fn check_caches(&self, config: &Config) -> bool {
         // what we search for
-        let base_format = format!("{}/.cache/rwps_", env::var("HOME").unwrap());
+        let base_format = format!("{}/rwps_*", &self.cache_location);
 
         // path vector
         let mut path_list: Vec<(bool, String)> = Vec::with_capacity(3);

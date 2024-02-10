@@ -81,7 +81,7 @@ rwpspread -wdi /some/path/wallpaper.png
 
 ## `swaylock` Integration
 
-A drop-in string for swaylock will be put in `/home/$USER/.cache/rwps_swaylock.conf` which can look something like:
+A drop-in string for swaylock will be put in `/home/$USER/.cache/rwpspread/rwps_swaylock.conf` which can look something like:
 
 ```text
 -i <image_path_1> -i <image_path_2>
@@ -93,19 +93,19 @@ This file can be sourced and used with your swaylock command, for exmaple:
 #!/usr/bin/bash
 
 # source the command options
-IMAGES=$(/bin/cat /home/$USER/.cache/rwps_swaylock.conf)
+IMAGES=$(/bin/cat /home/$USER/.cache/rwpspread/rwps_swaylock.conf)
 # execute with them
 /usr/bin/swaylock $IMAGES --scaling fill
 ```
 
 ## Save Locations
 
-All generate files are stored in `/home/$USER/.cache/` with the `rwps_` prefix.
+All generate files are stored in `/home/$USER/.cache/rwpspread/` with the `rwps_` prefix.
 
 To get all files simply do:
 
 ```bash
-ls /home/$USER/.cache/rwps_*
+ls /home/$USER/.cache/rwpspread/
 ```
 
 > Note: If you are using the wpaperd, `rwpspread` will use its default config path `/home/$USER/.config/wpaperd/`.
@@ -116,7 +116,7 @@ If you encounter issues after an update or with a new version please do the foll
 
 ```bash
 # clear cached images
-rm /home/$USER/.cache/rwps_*
+rm -r /home/$USER/.cache/rwpspread/
 # clear wpaperd config (if you use it)
 rm /home/$USER/.config/wpaperd/wallpaper.toml
 ```

@@ -2,7 +2,7 @@ use crate::worker::ResultPaper;
 use std::fs;
 
 // generate new file
-pub fn generate(papers: &Vec<ResultPaper>, path: String) -> Result<(), String> {
+pub fn generate(papers: &Vec<ResultPaper>, path: &String) -> Result<(), String> {
     let mut base_string = String::from("");
 
     for paper in papers {

@@ -34,7 +34,7 @@ impl Palette {
         })
     }
 
-    pub fn generate_mostused(mut self, save_path: String) -> Result<(), String> {
+    pub fn generate_mostused(mut self, save_path: &String) -> Result<(), String> {
         // define 16 colors sections
         let sections = vec![
             (0..16, 0..16),
@@ -96,7 +96,8 @@ impl Palette {
         }
 
         // save to json
-        self.to_json(save_path).map_err(|err| err.to_string())?;
+        self.to_json(save_path.to_string())
+            .map_err(|err| err.to_string())?;
 
         // done
         Ok(())
