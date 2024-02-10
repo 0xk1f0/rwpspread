@@ -90,12 +90,12 @@ A drop-in string for swaylock will be put in `/home/$USER/.cache/rwpspread/rwps_
 This file can be sourced and used with your swaylock command, for exmaple:
 
 ```bash
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 # source the command options
-IMAGES=$(/bin/cat /home/$USER/.cache/rwpspread/rwps_swaylock.conf)
+IMAGES=$(cat /home/$USER/.cache/rwpspread/rwps_swaylock.conf)
 # execute with them
-/usr/bin/swaylock $IMAGES --scaling fill
+swaylock $IMAGES --scaling fill
 ```
 
 ## Save Locations
