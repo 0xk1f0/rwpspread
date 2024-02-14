@@ -9,12 +9,14 @@ Wallpaper Utility written in Rust
 ## Features
 
 - Spans an input wallpaper across all monitors
-- Works alongside any wlroots based compositor f.E. [Hyprland](https://hyprland.org/)
-- Uses [wpaperd](https://github.com/danyspin97/wpaperd) as wallpaper daemon
+- Works alongside any [`wlroots`](https://gitlab.freedesktop.org/wlroots/wlroots) based compositor f.E. [`Hyprland`](https://hyprland.org/)
+- Color-Palette generation
+- [`wpaperd`](https://github.com/danyspin97/wpaperd) wallpaper daemon integration
+- [`swaylock`](https://github.com/swaywm/swaylock) integration
 
 ## Installing
 
-On Archlinux via the [AUR](https://aur.archlinux.org/)
+![Arch Linux](https://img.shields.io/badge/Arch_Linux-via_AUR-grey?style=for-the-badge&logo=arch-linux&logoColor=white&labelColor=1793D1)
 
 ```bash
 # stable
@@ -23,9 +25,19 @@ paru -S rwpspread
 paru -S rwpspread-git
 ```
 
-On NixOS via [nixpkgs](https://github.com/NixOS/nixpkgs)
+![NixOS](https://img.shields.io/badge/NixOS-via_nixpkgs-grey?style=for-the-badge&logo=nixos&logoColor=white&labelColor=5277C3)
 
-[PR Pending](https://github.com/NixOS/nixpkgs/pull/284144)
+```bash
+# On NixOS
+nix-env -iA nixos.rwpspread
+# On Non NixOS
+nix-env -iA nixpkgs.rwpspread
+```
+
+> [!NOTE]  
+> The relevant PR has been merged: [#284144](https://github.com/NixOS/nixpkgs/pull/284144)
+> 
+> At the time of editing, [Nix Package Search](https://search.nixos.org/packages) does not yet list this package.
 
 ## Building
 
@@ -138,4 +150,13 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] `swaylock` integration
 - [x] parallel image processing
 - [x] more alignment options if wallpaper is big enough
+- [ ] palette generation rework (broken in some cases)
+- [ ] `swaybg` integration
+- [ ] standalone support
 - [ ] monitor bezel compensation
+
+## Credits and Thanks
+
+- [smithay-client-toolkit](https://github.com/Smithay/client-toolkit) - Rust Interaction with Wayland
+- [wpaperd](https://github.com/danyspin97/wpaperd) - Excellent Wallpaper Daemon
+- [nu-nu-ko](https://github.com/nu-nu-ko) - Nix Package Maintainer
