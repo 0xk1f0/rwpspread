@@ -34,11 +34,6 @@ nix-env -iA nixos.rwpspread
 nix-env -iA nixpkgs.rwpspread
 ```
 
-> [!NOTE]  
-> The relevant PR has been merged: [#284144](https://github.com/NixOS/nixpkgs/pull/284144)
-> 
-> At the time of editing, [Nix Package Search](https://search.nixos.org/packages) does not yet list this package.
-
 ## Building
 
 ```bash
