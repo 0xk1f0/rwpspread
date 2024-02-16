@@ -1,9 +1,9 @@
 use crate::integrations::palette::Palette;
-use crate::parser::{Alignment, Config};
 use crate::integrations::swaylock;
-use crate::wayland::Monitor;
 use crate::integrations::wpaperd;
 use crate::integrations::wpaperd::Wpaperd;
+use crate::parser::{Alignment, Config};
+use crate::wayland::Monitor;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};

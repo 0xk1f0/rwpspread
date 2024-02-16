@@ -1,7 +1,7 @@
+mod integrations;
 mod parser;
 mod wayland;
 mod worker;
-mod integrations;
 
 use parser::Config;
 use std::process;

@@ -1,6 +1,7 @@
 use image::{GenericImageView, Rgba};
 use serde::Serialize;
 use serde_json::{to_writer_pretty, Map, Value};
+use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -34,66 +35,123 @@ impl Palette {
         })
     }
 
+    fn extract_rgba_pixels(image_path: &PathBuf) -> Result<Vec<Rgba<u8>>, String> {
+        // Load the image
+        let img = image::open(image_path).map_err(|err| err.to_string())?;
+
+        // Resize the image to half the size for faster processing
+        let (width, height) = img.dimensions();
+        let small_img = img.resize_exact(
+            width.div_ceil(2),
+            height.div_ceil(2),
+            image::imageops::FilterType::Nearest,
+        );
+
+        // Collect the RGBA values of each pixel in a vector
+        let mut pixels = Vec::with_capacity((width.div_ceil(2) * height.div_ceil(2)) as usize);
+        for pixel in small_img.pixels() {
+            pixels.push(pixel.2);
+        }
+
+        // return them
+        Ok(pixels)
+    }
+
+    fn gamma_correct(&self, input: u8) -> f64 {
+        // approximate gamma correction for sRGB range
+        let gamma = 2.2;
+        let linear = (input as f64 / 255.0).powf(gamma);
+        linear
+    }
+
+    fn relative_luminance(&self, input: (u8, u8, u8)) -> f64 {
+        // calculate approximate relative luminance
+        (0.2126 * self.gamma_correct(input.0))
+            + (0.7152 * self.gamma_correct(input.1))
+            + (0.0722 * self.gamma_correct(input.2))
+    }
+
+    fn upshade_for_range(
+        &self,
+        last_color: (u8, u8, u8),
+        min_lumin: f64,
+        max_lumin: f64,
+    ) -> (u8, u8, u8) {
+        let mut luminance = self.relative_luminance(last_color);
+        let mut steps_taken: u8 = 1;
+        // step up the color until the target luminance range is met
+        while luminance > max_lumin || luminance < min_lumin {
+            luminance = self.relative_luminance((
+                last_color.0 + steps_taken,
+                last_color.1 + steps_taken,
+                last_color.2 + steps_taken,
+            ));
+            steps_taken += 1;
+        }
+
+        // return the modified color as a result
+        (
+            last_color.0 + steps_taken,
+            last_color.1 + steps_taken,
+            last_color.2 + steps_taken,
+        )
+    }
+
     pub fn generate_mostused(mut self, save_path: &String) -> Result<(), String> {
-        // define 16 colors sections
-        let sections = vec![
-            (0..16, 0..16),
-            (16..32, 16..32),
-            (32..48, 32..48),
-            (48..64, 48..64),
-            (64..80, 64..80),
-            (80..96, 80..96),
-            (96..112, 96..112),
-            (112..128, 112..128),
-            (128..144, 128..144),
-            (144..160, 144..160),
-            (160..176, 160..176),
-            (176..192, 176..192),
-            (192..208, 192..208),
-            (208..224, 208..224),
-            (224..240, 224..240),
-            (240..256, 240..256),
+        // define 16 luminance sections
+        let luminance_boundaries = [
+            0.0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.6875,
+            0.75, 0.8125, 0.875, 0.9375, 1.0,
         ];
 
-        // vectors for count and median sums
-        let mut median_sums = Vec::new();
-        let mut counts = Vec::new();
-
-        // fill them initially
-        for _ in 0..16 {
-            median_sums.push((0, 0, 0));
-            counts.push(0);
+        // generate a color to count hashmap
+        let mut color_map: HashMap<Rgba<u8>, usize> = HashMap::new();
+        for x in &self.pixels {
+            *color_map.entry(*x).or_default() += 1;
         }
 
-        // accumulate sums for every section
-        for rgb in &self.pixels {
-            let r = rgb[0] as u32;
-            let g = rgb[1] as u32;
-            let b = rgb[2] as u32;
+        // sort by color frequency
+        let mut count_vec: Vec<(Rgba<u8>, usize)> = color_map.into_iter().collect();
+        count_vec.sort_by(|a, b| b.1.cmp(&a.1));
 
-            for (i, (r_range, g_range)) in sections.iter().enumerate() {
-                if r_range.contains(&r) && g_range.contains(&g) {
-                    let (r_sum, g_sum, b_sum) = median_sums[i];
-                    median_sums[i] = (r_sum + r, g_sum + g, b_sum + b);
-                    counts[i] += 1;
-                }
-            }
-        }
-
-        // calculate the median for every section
-        for i in 0..16 {
-            let (r_sum, g_sum, b_sum) = median_sums[i];
-            let count = counts[i];
-            let median_r = if count > 0 { r_sum / count } else { 0 };
-            let median_g = if count > 0 { g_sum / count } else { 0 };
-            let median_b = if count > 0 { b_sum / count } else { 0 };
-            let median_hex = format!("#{:02X}{:02X}{:02X}", median_r, median_g, median_b);
-
-            self.colors.push(ColorData {
-                index: i,
-                color: median_hex,
-            });
-        }
+        // append them by checking their luminance
+        // and keep track of last color
+        // if no suitable color is found, reshade the last one
+        let mut last_color = (0, 0, 0);
+        (0..16)
+            .into_iter()
+            .map(|num| {
+                // find color with relative luminance calculation
+                let chosen_color: (u8, u8, u8) = count_vec
+                    .iter()
+                    .find(|&&color| {
+                        let this_lumin: f64 =
+                            self.relative_luminance((color.0[0], color.0[1], color.0[2]));
+                        this_lumin > luminance_boundaries[num]
+                            && this_lumin < luminance_boundaries[num + 1]
+                    })
+                    .map_or_else(
+                        || {
+                            self.upshade_for_range(
+                                last_color,
+                                luminance_boundaries[num],
+                                luminance_boundaries[num + 1],
+                            )
+                        },
+                        |color| (color.0[0], color.0[1], color.0[2]),
+                    );
+                // push it to the result vector
+                self.colors.push(ColorData {
+                    index: num,
+                    color: format!(
+                        "#{:02X}{:02X}{:02X}",
+                        chosen_color.0, chosen_color.1, chosen_color.2
+                    ),
+                });
+                // remember color
+                last_color = chosen_color;
+            })
+            .count();
 
         // save to json
         self.to_json(save_path.to_string())
@@ -101,23 +159,6 @@ impl Palette {
 
         // done
         Ok(())
-    }
-
-    fn extract_rgba_pixels(image_path: &PathBuf) -> Result<Vec<Rgba<u8>>, String> {
-        // Load the image
-        let img = image::open(image_path).map_err(|err| err.to_string())?;
-
-        // Resize the image to a small size for less color diversion and faster processing
-        let small_img = img.resize_exact(256, 256, image::imageops::FilterType::Nearest);
-
-        // Collect the RGBA values of each pixel in a vector
-        let mut pixels = Vec::with_capacity(256 * 256);
-        for pixel in small_img.pixels() {
-            pixels.push(pixel.2);
-        }
-
-        // return them
-        Ok(pixels)
     }
 
     fn to_json(self, path: String) -> Result<(), String> {

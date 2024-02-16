@@ -145,7 +145,7 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] `swaylock` integration
 - [x] parallel image processing
 - [x] more alignment options if wallpaper is big enough
-- [ ] palette generation rework (broken in some cases)
+- [x] palette generation rework (broken in some cases)
 - [ ] `swaybg` integration
 - [ ] standalone support
 - [ ] monitor bezel compensation
