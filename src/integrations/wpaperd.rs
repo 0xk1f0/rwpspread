@@ -31,10 +31,10 @@ impl Wpaperd {
                         ),
                     })
                 } else {
-                    return Err("wpaperd not installed".to_string());
+                    Err("wpaperd not installed".to_string())
                 }
             }
-            Err(e) => return Err(e.to_string()),
+            Err(e) => Err(e.to_string()),
         }
     }
 

@@ -1,8 +1,8 @@
 # rwpspread
 
 [![Pipeline](https://github.com/0xk1f0/rwpspread/actions/workflows/build.yml/badge.svg)](https://github.com/0xk1f0/rwpspread/actions/workflows/build.yml)
-![AUR](https://img.shields.io/aur/version/rwpspread?label=AUR%20rwpspread)
-![AUR](https://img.shields.io/aur/version/rwpspread-git?label=AUR%20rwpspread-git)
+[![AUR](https://img.shields.io/aur/version/rwpspread?label=AUR%20rwpspread)](https://aur.archlinux.org/packages/rwpspread) 
+[![AUR](https://img.shields.io/aur/version/rwpspread-git?label=AUR%20rwpspread-git)](https://aur.archlinux.org/packages/rwpspread-git)
 
 Wallpaper Utility written in Rust
 
@@ -16,7 +16,7 @@ Wallpaper Utility written in Rust
 
 ## Installing
 
-![Arch Linux](https://img.shields.io/badge/Arch_Linux-via_AUR-grey?style=for-the-badge&logo=arch-linux&logoColor=white&labelColor=1793D1)
+[![Arch Linux](https://img.shields.io/badge/Arch_Linux-via_AUR-grey?style=for-the-badge&logo=arch-linux&logoColor=white&labelColor=1793D1)](https://aur.archlinux.org/packages/rwpspread)
 
 ```bash
 # stable
@@ -25,7 +25,7 @@ paru -S rwpspread
 paru -S rwpspread-git
 ```
 
-![NixOS](https://img.shields.io/badge/NixOS-via_nixpkgs-grey?style=for-the-badge&logo=nixos&logoColor=white&labelColor=5277C3)
+[![NixOS](https://img.shields.io/badge/NixOS-via_nixpkgs-grey?style=for-the-badge&logo=nixos&logoColor=white&labelColor=5277C3)](https://search.nixos.org/packages?channel=unstable&show=rwpspread&type=packages&query=rwpspread)
 
 ```bash
 # On NixOS
