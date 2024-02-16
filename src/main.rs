@@ -1,9 +1,7 @@
-mod palette;
 mod parser;
-mod swaylock;
 mod wayland;
 mod worker;
-mod wpaperd;
+mod integrations;
 
 use parser::Config;
 use std::process;
