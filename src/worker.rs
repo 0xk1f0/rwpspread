@@ -206,6 +206,22 @@ impl Worker {
                     resize_offset_x = img.dimensions().0 - (max_x + max_negative_x);
                     resize_offset_y = img.dimensions().1 - (max_y + max_negative_y);
                 }
+                Alignment::Tc => {
+                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x) / 2;
+                    resize_offset_y = 0;
+                }
+                Alignment::Bc => {
+                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x) / 2;
+                    resize_offset_y = img.dimensions().1 - (max_y + max_negative_y);
+                }
+                Alignment::Rc => {
+                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x);
+                    resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;
+                }
+                Alignment::Lc => {
+                    resize_offset_x = 0;
+                    resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;
+                }
                 Alignment::C => {
                     resize_offset_x = (img.dimensions().0 - (max_x + max_negative_x)) / 2;
                     resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;

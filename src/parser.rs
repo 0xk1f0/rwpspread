@@ -5,11 +5,15 @@ use std::path::{Path, PathBuf};
 // alignment enumerator
 #[derive(clap::ValueEnum, Debug, Clone, Hash)]
 pub enum Alignment {
-    Tl,
-    Tr,
-    Bl,
-    Br,
-    C,
+    Tl, // Top-Left
+    Tr, // Top-Right
+    Tc, // Top-Centered
+    Bl, // Bottom-Left
+    Br, // Bottom-Right
+    Bc, // Bottom-Centered
+    Rc, // Right-Centered
+    Lc, // Left-Centered
+    C,  // Centered
 }
 
 /// Multi-Monitor Wallpaper Utility
