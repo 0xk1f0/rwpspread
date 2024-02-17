@@ -16,43 +16,50 @@ pub enum Alignment {
     C,  // Centered
 }
 
+// backend enumerator
+#[derive(clap::ValueEnum, Debug, Clone, Hash, PartialEq)]
+pub enum Backend {
+    Wpaperd,
+    Swaybg,
+}
+
 /// Multi-Monitor Wallpaper Utility
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Image File Path
+    /// Image file path
     #[arg(short, long)]
     image: String,
 
-    /// Use wpaperd Integration
-    #[arg(short, long)]
-    wpaperd: bool,
+    /// Do not downscale the base image, align the layout instead
+    #[arg(short, long, value_enum)]
+    align: Option<Alignment>,
 
-    /// Generate swaylock file
-    #[arg(short, long)]
-    swaylock: bool,
+    /// Wallpaper setter backend
+    #[arg(short, long, value_enum)]
+    backend: Option<Backend>,
 
-    /// Generate a color palette from Wallpaper
+    /// Enable daemon mode, will watch and resplit on output changes
+    #[arg(short, long, requires("backend"))]
+    daemon: bool,
+
+    /// Generate a color palette from input image
     #[arg(short, long)]
     palette: bool,
 
-    /// Enable Daemon Watchdog mode, will resplit on Output changes
-    #[arg(short, long, requires("wpaperd"))]
-    daemon: bool,
+    /// Use swaylock integration
+    #[arg(short, long)]
+    swaylock: bool,
 
-    /// Force Resplit, skips all Image Cache checks
-    #[arg(long)]
+    /// Force resplit, skips all image cache checks
+    #[arg(short, long)]
     force_resplit: bool,
-
-    /// Do not downscale the Base Image, align the Layout instead
-    #[arg(short, long, value_enum)]
-    align: Option<Alignment>,
 }
 
 #[derive(Hash)]
 pub struct Config {
     pub image_path: PathBuf,
-    pub with_wpaperd: bool,
+    pub with_backend: Option<Backend>,
     pub with_swaylock: bool,
     pub with_palette: bool,
     pub daemon: bool,
@@ -80,7 +87,7 @@ impl Config {
         // construct
         Ok(Self {
             image_path: in_path,
-            with_wpaperd: args.wpaperd,
+            with_backend: args.backend,
             with_swaylock: args.swaylock,
             with_palette: args.palette,
             daemon: args.daemon,

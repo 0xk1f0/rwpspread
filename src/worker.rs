@@ -1,8 +1,9 @@
 use crate::integrations::palette::Palette;
+use crate::integrations::swaybg;
 use crate::integrations::swaylock;
 use crate::integrations::wpaperd;
 use crate::integrations::wpaperd::Wpaperd;
-use crate::parser::{Alignment, Config};
+use crate::parser::{Alignment, Backend, Config};
 use crate::wayland::Monitor;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
@@ -61,14 +62,7 @@ impl Worker {
         let caches_present: bool = self.check_caches(&config);
 
         // check if we need to generate wpaperd config
-        if config.with_wpaperd {
-            // create new wpaperd instance
-            let wpaperd = Wpaperd::new(
-                config.image_path.to_string_lossy().to_string(),
-                self.hash.clone(),
-            )
-            .map_err(|err| err.to_string())?;
-
+        if config.with_backend.is_some() {
             // do we need to resplit
             if config.force_resplit || !caches_present {
                 // cleanup caches first
@@ -80,27 +74,41 @@ impl Worker {
                     .map_err(|err| err.to_string())?;
             }
 
-            //check wpaper config hash
-            let wpaperd_present = wpaperd.check_existing();
-
-            // do we need to rebuild config
-            // also always rebuild when force resplit was set
-            if config.force_resplit || !wpaperd_present {
-                // yes we do
-                wpaperd
-                    .build(&self.result_papers)
+            // recheck what integration we're working with
+            match config.with_backend.as_ref().unwrap() {
+                Backend::Wpaperd => {
+                    // create new wpaperd instance
+                    let wpaperd = Wpaperd::new(
+                        config.image_path.to_string_lossy().to_string(),
+                        self.hash.clone(),
+                    )
                     .map_err(|err| err.to_string())?;
 
-                // restart
-                wpaperd::restart().map_err(|err| err.to_string())?;
+                    //check wpaper config hash
+                    let wpaperd_present = wpaperd.check_existing();
+
+                    // do we need to rebuild config
+                    // also always rebuild when force resplit was set
+                    if config.force_resplit || !wpaperd_present {
+                        // yes we do
+                        wpaperd
+                            .build(&self.result_papers)
+                            .map_err(|err| err.to_string())?;
+
+                        // restart
+                        wpaperd::restart().map_err(|err| err.to_string())?;
+                    }
+
+                    // only start if we're not running already
+                    wpaperd::soft_restart().map_err(|err| err.to_string())?;
+                }
+                Backend::Swaybg => {
+                    // start or restart the swaybg instance
+                    swaybg::run(&self.result_papers).map_err(|err| err.to_string())?;
+                }
             }
-
-            // only start if we're not running already
-            wpaperd::soft_restart().map_err(|err| err.to_string())?;
-
-        // no wpaperd to worry about, just split
+        // no wpaperd or swaybg to worry about
         } else {
-            // just split
             self.result_papers = self
                 .perform_split(img, config, &env::var("PWD").unwrap())
                 .map_err(|err| err.to_string())?;

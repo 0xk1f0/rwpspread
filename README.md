@@ -11,7 +11,8 @@ Wallpaper Utility written in Rust
 - Spans an input wallpaper across all monitors
 - Works alongside any [`wlroots`](https://gitlab.freedesktop.org/wlroots/wlroots) based compositor f.E. [`Hyprland`](https://hyprland.org/)
 - Color-Palette generation
-- [`wpaperd`](https://github.com/danyspin97/wpaperd) wallpaper daemon integration
+- [`wpaperd`](https://github.com/danyspin97/wpaperd) wallpaper backend integration
+- [`swaybg`](https://github.com/swaywm/swaybg) wallpaper backend integration
 - [`swaylock`](https://github.com/swaywm/swaylock) integration
 
 ## Installing
@@ -51,15 +52,15 @@ Multi-Monitor Wallpaper Utility
 Usage: rwpspread [OPTIONS] --image <IMAGE>
 
 Options:
-  -i, --image <IMAGE>  Image File Path
-  -w, --wpaperd        Use wpaperd Integration
-  -s, --swaylock       Generate swaylock file
-  -p, --palette        Generate a color palette from Wallpaper
-  -d, --daemon         Enable Daemon Watchdog mode, will resplit on Output changes
-      --force-resplit  Force Resplit, skips all Image Cache checks
-  -a, --align <ALIGN>  Do not downscale the Base Image, align the Layout instead [possible values: tl, tr, tc, bl, br, bc, rc, lc, c]
-  -h, --help           Print help
-  -V, --version        Print version
+  -i, --image <IMAGE>      Image file path
+  -a, --align <ALIGN>      Do not downscale the base image, align the layout instead [possible values: tl, tr, tc, bl, br, bc, rc, lc, c]
+  -b, --backend <BACKEND>  Wallpaper setter backend [possible values: wpaperd, swaybg]
+  -d, --daemon             Enable daemon mode, will watch and resplit on output changes
+  -p, --palette            Generate a color palette from input image
+  -s, --swaylock           Use swaylock integration
+  -f, --force-resplit      Force resplit, skips all image cache checks
+  -h, --help               Print help
+  -V, --version            Print version
 ```
 
 ## Examples
@@ -146,7 +147,7 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] parallel image processing
 - [x] more alignment options if wallpaper is big enough
 - [x] palette generation rework (broken in some cases)
-- [ ] `swaybg` integration
+- [x] `swaybg` integration
 - [ ] standalone support
 - [ ] monitor bezel compensation
 
