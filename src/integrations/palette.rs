@@ -39,16 +39,21 @@ impl Palette {
         // Load the image
         let img = image::open(image_path).map_err(|err| err.to_string())?;
 
-        // Resize the image to half the size for faster processing
+        // determine resolution and downscale divisor
         let (width, height) = img.dimensions();
-        let small_img = img.resize_exact(
-            width.div_ceil(2),
-            height.div_ceil(2),
-            image::imageops::FilterType::Nearest,
-        );
+        // @TODO: Might make this changeable by user in the future
+        let downscale_divisor: f64 = (width.max(height) as f64 / 750.0).max(1.0);
+
+        // calculate new values and round
+        let new_width = (width as f64 / downscale_divisor).round() as u32;
+        let new_height = (height as f64 / downscale_divisor).round() as u32;
+
+        // Resize the image for faster processing
+        let small_img =
+            img.resize_exact(new_width, new_height, image::imageops::FilterType::Nearest);
 
         // Collect the RGBA values of each pixel in a vector
-        let mut pixels = Vec::with_capacity((width.div_ceil(2) * height.div_ceil(2)) as usize);
+        let mut pixels = Vec::with_capacity((new_width * new_height) as usize);
         for pixel in small_img.pixels() {
             pixels.push(pixel.2);
         }
