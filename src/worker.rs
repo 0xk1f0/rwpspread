@@ -17,7 +17,7 @@ use std::path::Path;
 
 pub struct ResultPaper {
     pub monitor_name: String,
-    pub full_path: String
+    pub full_path: String,
 }
 
 pub struct Worker {
@@ -105,18 +105,19 @@ impl Worker {
                     // start or restart the swaybg instance
                     // considering present caches
                     if config.force_resplit || !caches_present {
-                        swaybg::run(&self.result_papers, true)
-                            .map_err(|err| err.to_string())?;
+                        swaybg::run(&self.result_papers, true).map_err(|err| err.to_string())?;
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
                         for monitor in &self.monitors {
-                            self.result_papers.push(ResultPaper{
+                            self.result_papers.push(ResultPaper {
                                 monitor_name: monitor.name.clone(),
-                                full_path: format!("{}/rwps_{}_{}.png", &self.cache_location, &self.hash, monitor.name)
+                                full_path: format!(
+                                    "{}/rwps_{}_{}.png",
+                                    &self.cache_location, &self.hash, monitor.name
+                                ),
                             })
                         }
-                        swaybg::run(&self.result_papers, false)
-                            .map_err(|err| err.to_string())?;
+                        swaybg::run(&self.result_papers, false).map_err(|err| err.to_string())?;
                     }
                 }
             }
@@ -281,7 +282,7 @@ impl Worker {
 
                 Ok(ResultPaper {
                     monitor_name: format!("{}", &monitor.name),
-                    full_path: path_image
+                    full_path: path_image,
                 })
             })
             .collect();
