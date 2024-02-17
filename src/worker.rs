@@ -104,7 +104,9 @@ impl Worker {
                 }
                 Backend::Swaybg => {
                     // start or restart the swaybg instance
-                    swaybg::run(&self.result_papers).map_err(|err| err.to_string())?;
+                    // considering present caches
+                    swaybg::run(&self.result_papers, !caches_present)
+                        .map_err(|err| err.to_string())?;
                 }
             }
         // no wpaperd or swaybg to worry about

@@ -10,7 +10,7 @@ fn restart(arguments: Vec<&str>) -> Result<(), String> {
     {
         Ok(status) => {
             if status.success() {
-                // kill it with fire
+                // always kill it with fire
                 process::Command::new("killall")
                     .args(&["-9", "swaybg"])
                     .stdout(process::Stdio::null())
@@ -32,7 +32,32 @@ fn restart(arguments: Vec<&str>) -> Result<(), String> {
     Ok(())
 }
 
-pub fn run(papers: &Vec<ResultPaper>) -> Result<(), String> {
+fn soft_restart(arguments: Vec<&str>) -> Result<(), String> {
+    // Check if swaybg is running
+    match process::Command::new("pidof")
+        .args(&["swaybg"])
+        .stdout(process::Stdio::null())
+        .status()
+    {
+        Ok(status) => {
+            // if we're not running
+            if !status.success() {
+                // Spawn new wpaperd instance
+                process::Command::new("swaybg")
+                    .args(arguments)
+                    .stdout(process::Stdio::null())
+                    .stderr(process::Stdio::null())
+                    .spawn()
+                    .map_err(|err| err.to_string())?;
+            }
+        }
+        Err(e) => return Err(e.to_string()),
+    }
+
+    Ok(())
+}
+
+pub fn run(papers: &Vec<ResultPaper>, force: bool) -> Result<(), String> {
     // Check if swaybg is available
     match process::Command::new("which")
         .arg("swaybg")
@@ -49,7 +74,11 @@ pub fn run(papers: &Vec<ResultPaper>) -> Result<(), String> {
                     process_arguments.push(&"-i");
                     process_arguments.push(&paper.full_path);
                 }
-                restart(process_arguments)
+                if force {
+                    restart(process_arguments)
+                } else {
+                    soft_restart(process_arguments)
+                }
             } else {
                 Err("swaybg not installed".to_string())
             }
