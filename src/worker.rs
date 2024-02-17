@@ -17,8 +17,7 @@ use std::path::Path;
 
 pub struct ResultPaper {
     pub monitor_name: String,
-    pub full_path: String,
-    pub image: DynamicImage,
+    pub full_path: String
 }
 
 pub struct Worker {
@@ -105,8 +104,20 @@ impl Worker {
                 Backend::Swaybg => {
                     // start or restart the swaybg instance
                     // considering present caches
-                    swaybg::run(&self.result_papers, !caches_present)
-                        .map_err(|err| err.to_string())?;
+                    if config.force_resplit || !caches_present {
+                        swaybg::run(&self.result_papers, true)
+                            .map_err(|err| err.to_string())?;
+                    } else {
+                        // since swaybg has no config file, we need to assemble the names manually
+                        for monitor in &self.monitors {
+                            self.result_papers.push(ResultPaper{
+                                monitor_name: monitor.name.clone(),
+                                full_path: format!("{}/rwps_{}_{}.png", &self.cache_location, &self.hash, monitor.name)
+                            })
+                        }
+                        swaybg::run(&self.result_papers, false)
+                            .map_err(|err| err.to_string())?;
+                    }
                 }
             }
         // no wpaperd or swaybg to worry about
@@ -270,8 +281,7 @@ impl Worker {
 
                 Ok(ResultPaper {
                     monitor_name: format!("{}", &monitor.name),
-                    full_path: path_image,
-                    image: cropped_image,
+                    full_path: path_image
                 })
             })
             .collect();
@@ -311,7 +321,7 @@ impl Worker {
 
     fn check_caches(&self, config: &Config) -> bool {
         // what we search for
-        let base_format = format!("{}/rwps_*", &self.cache_location);
+        let base_format = format!("{}/rwps_", &self.cache_location);
 
         // path vector
         let mut path_list: Vec<(bool, String)> = Vec::with_capacity(3);
