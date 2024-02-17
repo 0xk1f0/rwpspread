@@ -79,12 +79,12 @@ rwpspread -a tr -i /some/path/wallpaper.png
 # to use the wpaperd integration
 # this autogenerates the config file
 # you will need to have wpaperd installed
-rwpspread -wi /some/path/wallpaper.png
+rwpspread -b wpaperd -i /some/path/wallpaper.png
 
 # if you want automatic resplits when
 # connecting new monitors, start with
 # daemon mode -> requires wpaperd
-rwpspread -wdi /some/path/wallpaper.png
+rwpspread -b wpaperd -di /some/path/wallpaper.png
 ```
 
 ## `swaylock` Integration
@@ -153,6 +153,8 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 
 ## Credits and Thanks
 
+- [nu-nu-ko](https://github.com/nu-nu-ko) - Nix Package Maintainer
 - [smithay-client-toolkit](https://github.com/Smithay/client-toolkit) - Rust Interaction with Wayland
 - [wpaperd](https://github.com/danyspin97/wpaperd) - Excellent Wallpaper Daemon
-- [nu-nu-ko](https://github.com/nu-nu-ko) - Nix Package Maintainer
+- [swaylock](https://github.com/swaywm/swaylock) - Screen Locking Utility
+- [swaybg](https://github.com/swaywm/swaybg) - Wallpaper Utility
