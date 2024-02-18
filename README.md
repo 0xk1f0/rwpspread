@@ -108,15 +108,27 @@ swaylock $IMAGES --scaling fill
 
 ## Save Locations
 
-All generate files are stored in `/home/$USER/.cache/rwpspread/` with the `rwps_` prefix.
+If used just to split images, output images are saved to the current working directory.
+
+```bash
+# output files in $PWD
+rwpspread -i /some/path/wallpaper.png
+```
+
+When used with a backend, output images are stored in `/home/$USER/.cache/rwpspread/` with the `rwps_` prefix.
+
+```bash
+# output files in /home/$USER/.cache/rwpspread/
+rwpspread -b swaybg -i /some/path/wallpaper.png
+```
 
 To get all files simply do:
 
 ```bash
 ls /home/$USER/.cache/rwpspread/
 ```
-
-> Note: If you are using the wpaperd, `rwpspread` will use its default config path `/home/$USER/.config/wpaperd/`.
+> [!NOTE]
+> If you are using the `wpaperd` backend, `rwpspread` will use its default config path `/home/$USER/.config/wpaperd/` for the auto-generated configuration.
 
 ## Troubleshooting
 
