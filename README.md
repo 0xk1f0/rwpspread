@@ -76,15 +76,15 @@ rwpspread -i /some/path/wallpaper.png
 # for example, to align it top-right
 rwpspread -a tr -i /some/path/wallpaper.png
 
-# to use the wpaperd integration
+# to use f.E. the wpaperd integration
 # this autogenerates the config file
 # you will need to have wpaperd installed
 rwpspread -b wpaperd -i /some/path/wallpaper.png
 
 # if you want automatic resplits when
-# connecting new monitors, start with
-# daemon mode -> requires wpaperd
-rwpspread -b wpaperd -di /some/path/wallpaper.png
+# connecting new monitors
+# start with daemon mode
+rwpspread -di /some/path/wallpaper.png
 ```
 
 ## `swaylock` Integration

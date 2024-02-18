@@ -1,6 +1,6 @@
 [package]
 name = "rwpspread"
-version = "0.2.0-1"
+version = "0.2.1-1"
 edition = "2021"
 
 [dependencies]

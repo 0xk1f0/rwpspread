@@ -40,7 +40,7 @@ struct Args {
     backend: Option<Backend>,
 
     /// Enable daemon mode, will watch and resplit on output changes
-    #[arg(short, long, requires("backend"))]
+    #[arg(short, long)]
     daemon: bool,
 
     /// Generate a color palette from input image
