@@ -23,7 +23,7 @@ pub struct ResultPaper {
 pub struct Worker {
     hash: String,
     monitors: Vec<Monitor>,
-    cache_location: String,
+    save_location: String,
     result_papers: Vec<ResultPaper>,
 }
 
@@ -32,7 +32,7 @@ impl Worker {
         Self {
             hash: String::new(),
             monitors: Vec::new(),
-            cache_location: String::new(),
+            save_location: String::new(),
             result_papers: Vec::new(),
         }
     }
@@ -46,9 +46,13 @@ impl Worker {
         self.monitors = mon_vec;
 
         // set cache location
-        self.cache_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
-        self.ensure_cache_location(&self.cache_location)
-            .map_err(|e| e)?;
+        if config.daemon {
+            self.save_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
+            self.ensure_cache_location(&self.save_location)
+                .map_err(|e| e)?;
+        } else {
+            self.save_location = env::var("PWD").unwrap();
+        }
 
         // calculate hash
         let mut hasher = hash_map::DefaultHasher::new();
@@ -60,19 +64,19 @@ impl Worker {
         // check caches first
         let caches_present: bool = self.check_caches(&config);
 
+        // do we need to resplit
+        if config.force_resplit || !caches_present {
+            // cleanup caches first
+            self.cleanup_cache();
+
+            // we need to resplit
+            self.result_papers = self
+                .perform_split(img, config, &self.save_location)
+                .map_err(|err| err.to_string())?;
+        }
+
         // check if we need to generate wpaperd config
         if config.with_backend.is_some() {
-            // do we need to resplit
-            if config.force_resplit || !caches_present {
-                // cleanup caches first
-                self.cleanup_cache();
-
-                // we need to resplit
-                self.result_papers = self
-                    .perform_split(img, config, &self.cache_location)
-                    .map_err(|err| err.to_string())?;
-            }
-
             // recheck what integration we're working with
             match config.with_backend.as_ref().unwrap() {
                 Backend::Wpaperd => {
@@ -113,7 +117,7 @@ impl Worker {
                                 monitor_name: monitor.name.clone(),
                                 full_path: format!(
                                     "{}/rwps_{}_{}.png",
-                                    &self.cache_location, &self.hash, monitor.name
+                                    &self.save_location, &self.hash, monitor.name
                                 ),
                             })
                         }
@@ -121,24 +125,19 @@ impl Worker {
                     }
                 }
             }
-        // no wpaperd or swaybg to worry about
-        } else {
-            self.result_papers = self
-                .perform_split(img, config, &env::var("PWD").unwrap())
-                .map_err(|err| err.to_string())?;
         }
 
         // check for palette bool
         if config.with_palette && !caches_present || config.force_resplit {
             let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
             color_palette
-                .generate_mostused(&self.cache_location)
+                .generate_mostused(&self.save_location)
                 .map_err(|err| err.to_string())?;
         }
 
         // check if we need to generate for swaylock
         if config.with_swaylock && !caches_present || config.force_resplit {
-            swaylock::generate(&self.result_papers, &self.cache_location)
+            swaylock::generate(&self.result_papers, &self.save_location)
                 .map_err(|err| err.to_string())?;
         }
 
@@ -312,7 +311,7 @@ impl Worker {
     fn cleanup_cache(&self) {
         // wildcard search for our
         // images and delete them
-        for entry in glob(&format!("{}/rwps_*", &self.cache_location)).unwrap() {
+        for entry in glob(&format!("{}/rwps_*", &self.save_location)).unwrap() {
             if let Ok(path) = entry {
                 // yeet any file that we cached
                 fs::remove_file(path).unwrap();
@@ -322,7 +321,7 @@ impl Worker {
 
     fn check_caches(&self, config: &Config) -> bool {
         // what we search for
-        let base_format = format!("{}/rwps_", &self.cache_location);
+        let base_format = format!("{}/rwps_", &self.save_location);
 
         // path vector
         let mut path_list: Vec<(bool, String)> = Vec::with_capacity(3);
