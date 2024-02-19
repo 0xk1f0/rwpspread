@@ -48,7 +48,7 @@ impl Worker {
         // set cache location
         if config.daemon {
             self.save_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
-            self.ensure_cache_location(&self.save_location)
+            self.ensure_save_location(&self.save_location)
                 .map_err(|e| e)?;
         } else {
             self.save_location = env::var("PWD").unwrap();
@@ -301,7 +301,7 @@ impl Worker {
         }
     }
 
-    fn ensure_cache_location(&self, path: &str) -> Result<(), String> {
+    fn ensure_save_location(&self, path: &str) -> Result<(), String> {
         // try to create, notify if fail
         fs::create_dir_all(path).map_err(|_| "Failed to create Cache Directory")?;
         // else we're good
