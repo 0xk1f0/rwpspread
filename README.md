@@ -115,11 +115,13 @@ If used just to split images, output images are saved to the current working dir
 rwpspread -i /some/path/wallpaper.png
 ```
 
-When used with a backend, output images are stored in `/home/$USER/.cache/rwpspread/` with the `rwps_` prefix.
+When used with the backend or daemon option, output images are stored in `/home/$USER/.cache/rwpspread/` with the `rwps_` prefix.
 
 ```bash
 # output files in /home/$USER/.cache/rwpspread/
 rwpspread -b swaybg -i /some/path/wallpaper.png
+# output files in /home/$USER/.cache/rwpspread/
+rwpspread -di /some/path/wallpaper.png
 ```
 
 To get all files simply do:
@@ -129,6 +131,24 @@ ls /home/$USER/.cache/rwpspread/
 ```
 > [!NOTE]
 > If you are using the `wpaperd` backend, `rwpspread` will use its default config path `/home/$USER/.config/wpaperd/` for the auto-generated configuration.
+
+### Pretty filenames
+
+In general the split files that `rwpspread` stores are not constant, they changed based on the configuration it receives. This includes what type of options it was run with and how many monitors are currently attached. Files are formatted in a specific way.
+
+```bash
+# actual output file
+rwps_<monitor-name>_<config-hash>.png
+```
+
+This can make these file a bit cumbersome to use in external tools or wallpaper setters. This is why rwpspread also creates additional symlinks that have a predictable name, which point to the output file. It is important to note that it will do this only if one of either `-b` or `-d` are specified.
+
+```bash
+# symlink to actual file
+rwps_<monitor-name>.png
+```
+
+You can use this in any other tool that uses the output files of `rwpspread` without worrying about changing names.
 
 ## Troubleshooting
 
