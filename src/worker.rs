@@ -13,6 +13,7 @@ use std::collections::hash_map;
 use std::env;
 use std::fs;
 use std::hash::{Hash, Hasher};
+use std::os::unix;
 use std::path::Path;
 
 pub struct ResultPaper {
@@ -46,7 +47,7 @@ impl Worker {
         self.monitors = mon_vec;
 
         // set cache location
-        if config.daemon {
+        if config.daemon || config.with_backend.is_some() {
             self.save_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
             self.ensure_save_location(&self.save_location)
                 .map_err(|e| e)?;
@@ -278,6 +279,12 @@ impl Worker {
                 cropped_image
                     .save(&path_image)
                     .map_err(|err| err.to_string())?;
+                // make a friendly name symlink to it
+                unix::fs::symlink(
+                    &path_image,
+                    format!("{}/rwps_{}.png", save_path, &monitor.name),
+                )
+                .map_err(|err| err.to_string())?;
 
                 Ok(ResultPaper {
                     monitor_name: format!("{}", &monitor.name),
