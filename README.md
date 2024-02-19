@@ -180,7 +180,8 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] more alignment options if wallpaper is big enough
 - [x] palette generation rework (broken in some cases)
 - [x] `swaybg` integration
-- [ ] standalone support
+- [ ] `hyprpaper` integration
+- [ ] inbuilt backend
 - [ ] monitor bezel compensation
 
 ## Credits and Thanks
