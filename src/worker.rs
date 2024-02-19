@@ -280,11 +280,14 @@ impl Worker {
                     .save(&path_image)
                     .map_err(|err| err.to_string())?;
                 // make a friendly name symlink to it
-                unix::fs::symlink(
-                    &path_image,
-                    format!("{}/rwps_{}.png", save_path, &monitor.name),
-                )
-                .map_err(|err| err.to_string())?;
+                // only if in daemon mode or with backend
+                if config.daemon || config.with_backend.is_some() {
+                    unix::fs::symlink(
+                        &path_image,
+                        format!("{}/rwps_{}.png", save_path, &monitor.name),
+                    )
+                    .map_err(|err| err.to_string())?;
+                }
 
                 Ok(ResultPaper {
                     monitor_name: format!("{}", &monitor.name),
