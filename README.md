@@ -26,13 +26,15 @@ paru -S rwpspread
 paru -S rwpspread-git
 ```
 
-[![NixOS](https://img.shields.io/badge/NixOS-via_nixpkgs-grey?style=for-the-badge&logo=nixos&logoColor=white&labelColor=5277C3)](https://search.nixos.org/packages?channel=unstable&show=rwpspread&type=packages&query=rwpspread)
+[![Nix](https://img.shields.io/badge/nix-via%20nixpkgs-grey?style=for-the-badge&logo=Nixos&logoColor=white&labelColor=5277C3)](https://search.nixos.org/packages?channel=unstable&show=rwpspread)
 
 ```bash
-# On NixOS
-nix-env -iA nixos.rwpspread
-# On Non NixOS
-nix-env -iA nixpkgs.rwpspread
+# try it out
+nix run nixpkgs#rwpspread
+# or add to any user/system package list as
+pkgs.rwpspread
+# master
+take `rwpspread` from this repos flake directly.
 ```
 
 ## Building
