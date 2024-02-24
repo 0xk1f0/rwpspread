@@ -3,7 +3,8 @@ name = "rwpspread"
 version = "0.2.1-1"
 edition = "2021"
 authors = ["0xk1f0"]
-description = "README.md"
+description = "Multi-Monitor Wallpaper Utility"
+readme = "README.md"
 repository = "https://github.com/0xk1f0/rwpspread"
 license = "GPL-3.0-only"
 
