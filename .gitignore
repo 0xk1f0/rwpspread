@@ -1,3 +1,5 @@
+# cargo build files
 /target
+
+# output files
 *.png
-*.jpg
