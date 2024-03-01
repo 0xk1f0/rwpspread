@@ -23,6 +23,19 @@ pub enum Backend {
     Swaybg,
 }
 
+impl std::fmt::Display for Backend {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Swaybg => {
+                write!(f, "swaybg")
+            }
+            Self::Wpaperd => {
+                write!(f, "wpaperd")
+            }
+        }
+    }
+}
+
 /// Multi-Monitor Wallpaper Utility
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

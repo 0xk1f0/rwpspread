@@ -1,9 +1,10 @@
+mod cli;
 mod integrations;
-mod parser;
 mod wayland;
 mod worker;
 
-use parser::Config;
+use cli::Config;
+use integrations::helpers;
 use std::process;
 use wayland::MonitorConfig;
 use worker::Worker;
@@ -11,6 +12,16 @@ use worker::Worker;
 fn run() -> Result<(), String> {
     // create new config
     let worker_config = Config::new().map_err(|err| err.to_string())?;
+
+    // check for installed
+    if worker_config.with_backend.as_ref().is_some()
+        && !helpers::is_installed(&worker_config.with_backend.as_ref().unwrap().to_string())
+    {
+        return Err(format!(
+            "{} is not installed",
+            &worker_config.with_backend.as_ref().unwrap().to_string()
+        ));
+    }
 
     // connect to wayland
     let mut mon_conn = MonitorConfig::new().map_err(|err| err.to_string())?;

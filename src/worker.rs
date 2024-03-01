@@ -1,9 +1,9 @@
+use crate::cli::{Alignment, Backend, Config};
+use crate::integrations::helpers;
 use crate::integrations::palette::Palette;
 use crate::integrations::swaybg;
 use crate::integrations::swaylock;
-use crate::integrations::wpaperd;
 use crate::integrations::wpaperd::Wpaperd;
-use crate::parser::{Alignment, Backend, Config};
 use crate::wayland::Monitor;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
@@ -100,17 +100,21 @@ impl Worker {
                             .map_err(|err| err.to_string())?;
 
                         // restart
-                        wpaperd::restart().map_err(|err| err.to_string())?;
+                        helpers::force_restart("wpaperd", vec![""])
+                            .map_err(|err| err.to_string())?;
                     }
 
                     // only start if we're not running already
-                    wpaperd::soft_restart().map_err(|err| err.to_string())?;
+                    helpers::soft_restart("wpaperd", vec![""]).map_err(|err| err.to_string())?;
                 }
                 Backend::Swaybg => {
                     // start or restart the swaybg instance
                     // considering present caches
                     if config.force_resplit || !caches_present {
-                        swaybg::run(&self.result_papers, true).map_err(|err| err.to_string())?;
+                        let swaybg_args =
+                            swaybg::new(&self.result_papers).map_err(|err| err.to_string())?;
+                        helpers::force_restart("swaybg", swaybg_args)
+                            .map_err(|err| err.to_string())?;
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
                         for monitor in &self.monitors {
@@ -122,7 +126,10 @@ impl Worker {
                                 ),
                             })
                         }
-                        swaybg::run(&self.result_papers, false).map_err(|err| err.to_string())?;
+                        let swaybg_args =
+                            swaybg::new(&self.result_papers).map_err(|err| err.to_string())?;
+                        helpers::soft_restart("swaybg", swaybg_args)
+                            .map_err(|err| err.to_string())?;
                     }
                 }
             }

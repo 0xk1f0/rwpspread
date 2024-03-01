@@ -2,7 +2,6 @@ use crate::worker::ResultPaper;
 use std::env;
 use std::fs::File;
 use std::io::Write;
-use std::process;
 use toml;
 
 pub struct Wpaperd {
@@ -13,29 +12,14 @@ pub struct Wpaperd {
 
 impl Wpaperd {
     pub fn new(initial_path: String, config_hash: String) -> Result<Self, String> {
-        // Check if wpaperd is available
-        match process::Command::new("which")
-            .arg("wpaperd")
-            .stdout(process::Stdio::null())
-            .stderr(process::Stdio::null())
-            .status()
-        {
-            Ok(status) => {
-                if status.success() {
-                    Ok(Self {
-                        initial_path,
-                        config_hash,
-                        config_path: format!(
-                            "{}/.config/wpaperd/wallpaper.toml",
-                            env::var("HOME").unwrap()
-                        ),
-                    })
-                } else {
-                    Err("wpaperd not installed".to_string())
-                }
-            }
-            Err(e) => Err(e.to_string()),
-        }
+        Ok(Self {
+            initial_path,
+            config_hash,
+            config_path: format!(
+                "{}/.config/wpaperd/wallpaper.toml",
+                env::var("HOME").unwrap()
+            ),
+        })
     }
 
     // build new wpaperd config to file
@@ -106,55 +90,4 @@ impl Wpaperd {
 
         false
     }
-}
-
-// check if running, if not run
-pub fn restart() -> Result<(), String> {
-    // Check if there is a running wpaperd process
-    match process::Command::new("pidof")
-        .args(&["wpaperd"])
-        .stdout(process::Stdio::null())
-        .status()
-    {
-        Ok(status) => {
-            if status.success() {
-                // kill it with fire
-                process::Command::new("killall")
-                    .args(&["-9", "wpaperd"])
-                    .stdout(process::Stdio::null())
-                    .output()
-                    .map_err(|err| err.to_string())?;
-            }
-        }
-        Err(e) => return Err(e.to_string()),
-    }
-
-    // Spawn new wpaperd instance
-    process::Command::new("wpaperd")
-        .spawn()
-        .map_err(|err| err.to_string())?;
-
-    Ok(())
-}
-
-// only start if we need to
-pub fn soft_restart() -> Result<(), String> {
-    // Check if there is a running wpaperd process
-    match process::Command::new("pidof")
-        .args(&["wpaperd"])
-        .stdout(process::Stdio::null())
-        .status()
-    {
-        Ok(status) => {
-            if !status.success() {
-                // Spawn new wpaperd instance
-                process::Command::new("wpaperd")
-                    .spawn()
-                    .map_err(|err| err.to_string())?;
-            }
-        }
-        Err(e) => return Err(e.to_string()),
-    }
-
-    Ok(())
 }

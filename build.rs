@@ -4,7 +4,7 @@ use clap_mangen::Man;
 use std::fs::File;
 use std::io::Error;
 
-include!("src/parser.rs");
+include!("src/cli.rs");
 
 fn completions(outdir: &Path) -> Result<(), Error> {
     let mut app = Args::command();
