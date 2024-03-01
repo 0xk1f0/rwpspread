@@ -100,12 +100,13 @@ impl Worker {
                             .map_err(|err| err.to_string())?;
 
                         // restart
-                        helpers::force_restart("wpaperd", vec![""])
+                        helpers::force_restart("wpaperd", vec!["--no-daemon"])
                             .map_err(|err| err.to_string())?;
                     }
 
                     // only start if we're not running already
-                    helpers::soft_restart("wpaperd", vec![""]).map_err(|err| err.to_string())?;
+                    helpers::soft_restart("wpaperd", vec!["--no-daemon"])
+                        .map_err(|err| err.to_string())?;
                 }
                 Backend::Swaybg => {
                     // start or restart the swaybg instance

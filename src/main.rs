@@ -13,8 +13,8 @@ fn run() -> Result<(), String> {
     // create new config
     let worker_config = Config::new().map_err(|err| err.to_string())?;
 
-    // check for installed
-    if worker_config.with_backend.as_ref().is_some()
+    // check for backends if applicable
+    if worker_config.with_backend.is_some()
         && !helpers::is_installed(&worker_config.with_backend.as_ref().unwrap().to_string())
     {
         return Err(format!(

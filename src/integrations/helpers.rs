@@ -60,7 +60,7 @@ pub fn is_installed(program: &str) -> bool {
         .stderr(process::Stdio::null())
         .status()
     {
-        Ok(_) => true,
+        Ok(status) => status.success(),
         Err(_) => false,
     }
 }
