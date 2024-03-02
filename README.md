@@ -10,9 +10,12 @@ Wallpaper Utility written in Rust
 
 - Spans an input wallpaper across all monitors
 - Works alongside any [`wlroots`](https://gitlab.freedesktop.org/wlroots/wlroots) based compositor f.E. [`Hyprland`](https://hyprland.org/)
+- Automatically re-splits when monitors are hotplugged
 - Color-Palette generation
-- [`wpaperd`](https://github.com/danyspin97/wpaperd) wallpaper backend integration
-- [`swaybg`](https://github.com/swaywm/swaybg) wallpaper backend integration
+- Various wallpaper setter backends
+  - [`wpaperd`](https://github.com/danyspin97/wpaperd)
+  - [`swaybg`](https://github.com/swaywm/swaybg)
+  - [`hyprpaper`](https://github.com/hyprwm/hyprpaper)
 - [`swaylock`](https://github.com/swaywm/swaylock) integration
 
 ## Installing
@@ -193,3 +196,4 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [wpaperd](https://github.com/danyspin97/wpaperd) - Excellent Wallpaper Daemon
 - [swaylock](https://github.com/swaywm/swaylock) - Screen Locking Utility
 - [swaybg](https://github.com/swaywm/swaybg) - Wallpaper Utility
+- [hyprpaper](https://github.com/hyprwm/hyprpaper) - Hypr Wallpaper Daemon
