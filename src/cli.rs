@@ -21,6 +21,7 @@ pub enum Alignment {
 pub enum Backend {
     Wpaperd,
     Swaybg,
+    Hyprpaper,
 }
 
 impl std::fmt::Display for Backend {
@@ -31,6 +32,9 @@ impl std::fmt::Display for Backend {
             }
             Self::Wpaperd => {
                 write!(f, "wpaperd")
+            }
+            Self::Hyprpaper => {
+                write!(f, "hyprpaper")
             }
         }
     }

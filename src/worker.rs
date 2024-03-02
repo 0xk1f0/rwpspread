@@ -1,5 +1,6 @@
 use crate::cli::{Alignment, Backend, Config};
 use crate::integrations::helpers;
+use crate::integrations::hyprpaper;
 use crate::integrations::palette::Palette;
 use crate::integrations::swaybg;
 use crate::integrations::swaylock;
@@ -131,6 +132,26 @@ impl Worker {
                             swaybg::new(&self.result_papers).map_err(|err| err.to_string())?;
                         helpers::soft_restart("swaybg", swaybg_args)
                             .map_err(|err| err.to_string())?;
+                    }
+                }
+                Backend::Hyprpaper => {
+                    // first soft restart
+                    helpers::soft_restart("hyprpaper", Vec::new())
+                        .map_err(|err| err.to_string())?;
+                    if config.force_resplit || !caches_present {
+                        hyprpaper::push(&self.result_papers).map_err(|err| err.to_string())?;
+                    } else {
+                        // hyprpaper also loads dynamically, so we need to manually assemble
+                        for monitor in &self.monitors {
+                            self.result_papers.push(ResultPaper {
+                                monitor_name: monitor.name.clone(),
+                                full_path: format!(
+                                    "{}/rwps_{}_{}.png",
+                                    &self.save_location, &self.hash, monitor.name
+                                ),
+                            })
+                        }
+                        hyprpaper::push(&self.result_papers).map_err(|err| err.to_string())?;
                     }
                 }
             }

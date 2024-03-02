@@ -42,11 +42,11 @@ _rwpspread() {
                     return 0
                     ;;
                 --backend)
-                    COMPREPLY=($(compgen -W "wpaperd swaybg" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "wpaperd swaybg hyprpaper" -- "${cur}"))
                     return 0
                     ;;
                 -b)
-                    COMPREPLY=($(compgen -W "wpaperd swaybg" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "wpaperd swaybg hyprpaper" -- "${cur}"))
                     return 0
                     ;;
                 *)
