@@ -16,7 +16,9 @@ Wallpaper Utility written in Rust
   - [`wpaperd`](https://github.com/danyspin97/wpaperd)
   - [`swaybg`](https://github.com/swaywm/swaybg)
   - [`hyprpaper`](https://github.com/hyprwm/hyprpaper)
-- [`swaylock`](https://github.com/swaywm/swaylock) integration
+- Configuration generation for lockers
+  - [`swaylock`](https://github.com/swaywm/swaylock)
+  - [`hyprlock`](https://github.com/hyprwm/hyprlock)
 
 ## Installing
 
@@ -58,11 +60,13 @@ Usage: rwpspread [OPTIONS] --image <IMAGE>
 
 Options:
   -i, --image <IMAGE>      Image file path
+  -o, --output <OUTPUT>    Output directory path
   -a, --align <ALIGN>      Do not downscale the base image, align the layout instead [possible values: tl, tr, tc, bl, br, bc, rc, lc, c]
-  -b, --backend <BACKEND>  Wallpaper setter backend [possible values: wpaperd, swaybg]
-  -d, --daemon             Enable daemon mode, will watch and resplit on output changes
+  -b, --backend <BACKEND>  Wallpaper setter backend [possible values: wpaperd, swaybg, hyprpaper]
+  -d, --daemon             Enable daemon mode and resplit on output changes
   -p, --palette            Generate a color palette from input image
-  -s, --swaylock           Use swaylock integration
+  -s, --swaylock           Enable swaylock integration
+      --hyprlock           Enable hyprlock integration
   -f, --force-resplit      Force resplit, skips all image cache checks
   -h, --help               Print help
   -V, --version            Print version
@@ -111,6 +115,17 @@ IMAGES=$(cat /home/$USER/.cache/rwpspread/rwps_swaylock.conf)
 swaylock $IMAGES --scaling fill
 ```
 
+## `hyprlock` Integration
+
+Just include `/home/$USER/.cache/rwpspread/rwps_hyprlock.conf` in your normal `hyprlock.conf` like this:
+
+```text
+# include generate rwpspread
+source=/home/$USER/.cache/rwpspread/rwps_hyprlock.conf
+```
+
+This allows you to configure additional `hyprlock` stuff after the import statement.
+
 ## Save Locations
 
 If used just to split images, output images are saved to the current working directory.
@@ -136,6 +151,16 @@ ls /home/$USER/.cache/rwpspread/
 ```
 > [!NOTE]
 > If you are using the `wpaperd` backend, `rwpspread` will use its default config path `/home/$USER/.config/wpaperd/` for the auto-generated configuration.
+
+If you want to customize the output folder. use the `-o` option:
+
+```bash
+# output files in /some/other/dir/
+rwpspread -o /some/other/dir/ -i /some/path/wallpaper.png
+```
+
+> [!NOTE]
+> Be aware that `rwpspread` will take full control of this folder and potentially delete files you may not want to be deleted!
 
 ### Pretty filenames
 
@@ -186,6 +211,7 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] palette generation rework (broken in some cases)
 - [x] `swaybg` integration
 - [x] `hyprpaper` integration
+- [x] `hyprlock` integration
 - [ ] inbuilt backend
 - [ ] monitor bezel compensation
 
@@ -197,3 +223,4 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [swaylock](https://github.com/swaywm/swaylock) - Screen Locking Utility
 - [swaybg](https://github.com/swaywm/swaybg) - Wallpaper Utility
 - [hyprpaper](https://github.com/hyprwm/hyprpaper) - Hypr Wallpaper Daemon
+- [hyprpaper](https://github.com/hyprwm/hyprlock) - Hypr Screen Locker
