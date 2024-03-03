@@ -4,7 +4,7 @@
 .SH NAME
 rwpspread \- Multi\-Monitor Wallpaper Utility
 .SH SYNOPSIS
-\fBrwpspread\fR <\fB\-i\fR|\fB\-\-image\fR> [\fB\-o\fR|\fB\-\-output\fR] [\fB\-a\fR|\fB\-\-align\fR] [\fB\-b\fR|\fB\-\-backend\fR] [\fB\-d\fR|\fB\-\-daemon\fR] [\fB\-p\fR|\fB\-\-palette\fR] [\fB\-s\fR|\fB\-\-swaylock\fR] [\fB\-f\fR|\fB\-\-force\-resplit\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] 
+\fBrwpspread\fR <\fB\-i\fR|\fB\-\-image\fR> [\fB\-o\fR|\fB\-\-output\fR] [\fB\-a\fR|\fB\-\-align\fR] [\fB\-b\fR|\fB\-\-backend\fR] [\fB\-d\fR|\fB\-\-daemon\fR] [\fB\-p\fR|\fB\-\-palette\fR] [\fB\-s\fR|\fB\-\-swaylock\fR] [\fB\-\-hyprlock\fR] [\fB\-f\fR|\fB\-\-force\-resplit\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] 
 .SH DESCRIPTION
 Multi\-Monitor Wallpaper Utility
 .SH OPTIONS
@@ -30,13 +30,16 @@ Wallpaper setter backend
 [\fIpossible values: \fRwpaperd, swaybg, hyprpaper]
 .TP
 \fB\-d\fR, \fB\-\-daemon\fR
-Enable daemon mode, will watch and resplit on output changes
+Enable daemon mode and resplit on output changes
 .TP
 \fB\-p\fR, \fB\-\-palette\fR
 Generate a color palette from input image
 .TP
 \fB\-s\fR, \fB\-\-swaylock\fR
-Use swaylock integration
+Enable swaylock integration
+.TP
+\fB\-\-hyprlock\fR
+Enable hyprlock integration
 .TP
 \fB\-f\fR, \fB\-\-force\-resplit\fR
 Force resplit, skips all image cache checks

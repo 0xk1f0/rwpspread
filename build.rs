@@ -24,7 +24,7 @@ fn manpage(outdir: &Path) -> Result<(), Error> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("cargo:rerun-if-changed=src/parser.rs");
+    println!("cargo:rerun-if-changed=src/cli.rs");
 
     std::fs::create_dir_all(Path::new("completions"))?;
     completions(Path::new("completions"))?;

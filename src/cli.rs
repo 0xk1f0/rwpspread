@@ -60,7 +60,7 @@ struct Args {
     #[arg(short, long, value_enum)]
     backend: Option<Backend>,
 
-    /// Enable daemon mode, will watch and resplit on output changes
+    /// Enable daemon mode and resplit on output changes
     #[arg(short, long)]
     daemon: bool,
 
@@ -68,9 +68,13 @@ struct Args {
     #[arg(short, long)]
     palette: bool,
 
-    /// Use swaylock integration
+    /// Enable swaylock integration
     #[arg(short, long)]
     swaylock: bool,
+
+    /// Enable hyprlock integration
+    #[arg(long)]
+    hyprlock: bool,
 
     /// Force resplit, skips all image cache checks
     #[arg(short, long)]
@@ -83,8 +87,9 @@ pub struct Config {
     pub outdir_path: Option<String>,
     pub backend: Option<Backend>,
     pub daemon: bool,
-    pub with_swaylock: bool,
-    pub with_palette: bool,
+    pub palette: bool,
+    pub swaylock: bool,
+    pub hyprlock: bool,
     pub force_resplit: bool,
     pub align: Option<Alignment>,
     version: String,
@@ -120,8 +125,9 @@ impl Config {
             align: args.align,
             backend: args.backend,
             daemon: args.daemon,
-            with_swaylock: args.swaylock,
-            with_palette: args.palette,
+            palette: args.palette,
+            swaylock: args.swaylock,
+            hyprlock: args.hyprlock,
             force_resplit: args.force_resplit,
             version,
         })
@@ -152,7 +158,9 @@ impl Config {
         let path_buffer = Path::new(path);
         if fs::metadata(path_buffer).is_ok() {
             // evaluate and extend
-            let corrected_buffer = Config::extend_path(path_buffer);
+            // also always canonicalize path so it is absolute
+            let corrected_buffer = fs::canonicalize(Config::extend_path(path_buffer))
+                .map_err(|_| "could not extend path")?;
             // Check if the path points to a directory
             if file && fs::metadata(&corrected_buffer).unwrap().is_file() {
                 // valid file

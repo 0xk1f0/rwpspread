@@ -23,12 +23,13 @@ _rwpspread() {
 '--align=[Do not downscale the base image, align the layout instead]:ALIGN:(tl tr tc bl br bc rc lc c)' \
 '-b+[Wallpaper setter backend]:BACKEND:(wpaperd swaybg hyprpaper)' \
 '--backend=[Wallpaper setter backend]:BACKEND:(wpaperd swaybg hyprpaper)' \
-'-d[Enable daemon mode, will watch and resplit on output changes]' \
-'--daemon[Enable daemon mode, will watch and resplit on output changes]' \
+'-d[Enable daemon mode and resplit on output changes]' \
+'--daemon[Enable daemon mode and resplit on output changes]' \
 '-p[Generate a color palette from input image]' \
 '--palette[Generate a color palette from input image]' \
-'-s[Use swaylock integration]' \
-'--swaylock[Use swaylock integration]' \
+'-s[Enable swaylock integration]' \
+'--swaylock[Enable swaylock integration]' \
+'--hyprlock[Enable hyprlock integration]' \
 '-f[Force resplit, skips all image cache checks]' \
 '--force-resplit[Force resplit, skips all image cache checks]' \
 '-h[Print help]' \

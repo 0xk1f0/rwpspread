@@ -19,7 +19,7 @@ _rwpspread() {
 
     case "${cmd}" in
         rwpspread)
-            opts="-i -o -a -b -d -p -s -f -h -V --image --output --align --backend --daemon --palette --swaylock --force-resplit --help --version"
+            opts="-i -o -a -b -d -p -s -f -h -V --image --output --align --backend --daemon --palette --swaylock --hyprlock --force-resplit --help --version"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

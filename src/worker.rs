@@ -1,10 +1,10 @@
 use crate::cli::{Alignment, Backend, Config};
-use crate::integrations::helpers;
 use crate::integrations::hyprpaper;
 use crate::integrations::palette::Palette;
 use crate::integrations::swaybg;
 use crate::integrations::swaylock;
 use crate::integrations::wpaperd::Wpaperd;
+use crate::integrations::{helpers, hyprlock};
 use crate::wayland::Monitor;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
@@ -160,7 +160,7 @@ impl Worker {
         }
 
         // check for palette bool
-        if config.with_palette && !caches_present || config.force_resplit {
+        if config.palette && !caches_present || config.force_resplit {
             let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
             color_palette
                 .generate_mostused(&self.save_location)
@@ -168,8 +168,14 @@ impl Worker {
         }
 
         // check if we need to generate for swaylock
-        if config.with_swaylock && !caches_present || config.force_resplit {
+        if config.swaylock && !caches_present || config.force_resplit {
             swaylock::generate(&self.result_papers, &self.save_location)
+                .map_err(|err| err.to_string())?;
+        }
+
+        // check if we need to generate for hyprlock
+        if config.hyprlock && !caches_present || config.force_resplit {
+            hyprlock::generate(&self.result_papers, &self.save_location)
                 .map_err(|err| err.to_string())?;
         }
 
@@ -365,7 +371,7 @@ impl Worker {
         let base_format = format!("{}/rwps_", &self.save_location);
 
         // path vector
-        let mut path_list: Vec<(bool, String)> = Vec::with_capacity(3);
+        let mut path_list: Vec<(bool, String)> = Vec::new();
 
         // check for every monitor
         for monitor in &self.monitors {
@@ -375,16 +381,14 @@ impl Worker {
             ));
         }
 
-        path_list.push((
-            config.with_swaylock,
-            format!("{}swaylock.conf", base_format),
-        ));
-        path_list.push((config.with_palette, format!("{}colors.json", base_format)));
+        path_list.push((config.swaylock, format!("{}swaylock.conf", base_format)));
+        path_list.push((config.hyprlock, format!("{}hyprlock.conf", base_format)));
+        path_list.push((config.palette, format!("{}colors.json", base_format)));
 
         // check if cache exists
         for path in path_list {
             if path.0 && !Path::new(&path.1).exists() {
-                // we're something, regenerate
+                // we're missing something, regenerate
                 return false;
             }
         }
