@@ -223,4 +223,4 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [swaylock](https://github.com/swaywm/swaylock) - Screen Locking Utility
 - [swaybg](https://github.com/swaywm/swaybg) - Wallpaper Utility
 - [hyprpaper](https://github.com/hyprwm/hyprpaper) - Hypr Wallpaper Daemon
-- [hyprpaper](https://github.com/hyprwm/hyprlock) - Hypr Screen Locker
+- [hyprlock](https://github.com/hyprwm/hyprlock) - Hypr Screen Locker
