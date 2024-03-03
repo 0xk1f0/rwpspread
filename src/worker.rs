@@ -48,7 +48,9 @@ impl Worker {
         self.monitors = mon_vec;
 
         // set cache location
-        if config.daemon || config.with_backend.is_some() {
+        if config.outdir_path.is_some() {
+            self.save_location = config.outdir_path.as_ref().unwrap().to_owned();
+        } else if config.daemon || config.backend.is_some() {
             self.save_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
             self.ensure_save_location(&self.save_location)
                 .map_err(|e| e)?;
@@ -78,9 +80,9 @@ impl Worker {
         }
 
         // check if we need to generate wpaperd config
-        if config.with_backend.is_some() {
+        if config.backend.is_some() {
             // recheck what integration we're working with
-            match config.with_backend.as_ref().unwrap() {
+            match config.backend.as_ref().unwrap() {
                 Backend::Wpaperd => {
                     // create new wpaperd instance
                     let wpaperd = Wpaperd::new(
@@ -310,7 +312,7 @@ impl Worker {
                     .map_err(|err| err.to_string())?;
                 // make a friendly name symlink to it
                 // only if in daemon mode or with backend
-                if config.daemon || config.with_backend.is_some() {
+                if config.daemon || config.backend.is_some() {
                     unix::fs::symlink(
                         &path_image,
                         format!("{}/rwps_{}.png", save_path, &monitor.name),

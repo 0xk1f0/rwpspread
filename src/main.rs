@@ -14,12 +14,12 @@ fn run() -> Result<(), String> {
     let worker_config = Config::new().map_err(|err| err.to_string())?;
 
     // check for backends if applicable
-    if worker_config.with_backend.is_some()
-        && !helpers::is_installed(&worker_config.with_backend.as_ref().unwrap().to_string())
+    if worker_config.backend.is_some()
+        && !helpers::is_installed(&worker_config.backend.as_ref().unwrap().to_string())
     {
         return Err(format!(
             "{} is not installed",
-            &worker_config.with_backend.as_ref().unwrap().to_string()
+            &worker_config.backend.as_ref().unwrap().to_string()
         ));
     }
 

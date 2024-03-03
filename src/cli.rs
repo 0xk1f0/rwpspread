@@ -48,6 +48,10 @@ struct Args {
     #[arg(short, long)]
     image: String,
 
+    /// Output directory path
+    #[arg(short, long)]
+    output: Option<String>,
+
     /// Do not downscale the base image, align the layout instead
     #[arg(short, long, value_enum)]
     align: Option<Alignment>,
@@ -76,10 +80,11 @@ struct Args {
 #[derive(Hash)]
 pub struct Config {
     pub image_path: PathBuf,
-    pub with_backend: Option<Backend>,
+    pub outdir_path: Option<String>,
+    pub backend: Option<Backend>,
+    pub daemon: bool,
     pub with_swaylock: bool,
     pub with_palette: bool,
-    pub daemon: bool,
     pub force_resplit: bool,
     pub align: Option<Alignment>,
     version: String,
@@ -90,26 +95,34 @@ impl Config {
         // handle args
         let args = Args::parse();
 
-        // check if path is valid
-        if !fs::metadata(Path::new(&args.image)).is_ok() {
-            Err("Invalid Path")?
-        }
+        // get valid input path
+        let image_path = Config::to_valid_path(&args.image, true).map_err(|err| err)?;
 
-        // create new path for image
-        let in_path = Config::check_path(Path::new(&args.image));
+        // get valid output directory
+        let outdir_path: Option<String>;
+        if args.output.is_some() {
+            // convert to string since we expect one
+            let raw_path =
+                Config::to_valid_path(&args.output.unwrap(), false).map_err(|err| err)?;
+            outdir_path = Some(raw_path.to_string_lossy().trim_end_matches('/').to_string());
+        } else {
+            // no explicit path specified
+            outdir_path = None
+        }
 
         // get own version
         let version: String = String::from(env!("CARGO_PKG_VERSION"));
 
         // construct
         Ok(Self {
-            image_path: in_path,
-            with_backend: args.backend,
+            image_path,
+            outdir_path,
+            align: args.align,
+            backend: args.backend,
+            daemon: args.daemon,
             with_swaylock: args.swaylock,
             with_palette: args.palette,
-            daemon: args.daemon,
             force_resplit: args.force_resplit,
-            align: args.align,
             version,
         })
     }
@@ -124,7 +137,7 @@ impl Config {
     }
 
     // path checker when we need to extend from symlink
-    fn check_path(path: &Path) -> PathBuf {
+    fn extend_path(path: &Path) -> PathBuf {
         if Config::is_symlink(path) {
             let parent = path.parent().unwrap_or_else(|| Path::new(""));
             let target = fs::read_link(path).unwrap();
@@ -132,5 +145,29 @@ impl Config {
         } else {
             path.to_path_buf()
         }
+    }
+
+    // check if path exists correctly and return if true
+    fn to_valid_path(path: &String, file: bool) -> Result<PathBuf, String> {
+        let path_buffer = Path::new(path);
+        if fs::metadata(path_buffer).is_ok() {
+            // evaluate and extend
+            let corrected_buffer = Config::extend_path(path_buffer);
+            // Check if the path points to a directory
+            if file && fs::metadata(&corrected_buffer).unwrap().is_file() {
+                // valid file
+                return Ok(corrected_buffer);
+            }
+            if !file && fs::metadata(&corrected_buffer).unwrap().is_dir() {
+                // valid directory
+                return Ok(corrected_buffer);
+            }
+        }
+        // no metadata, file or dir, consider invalid
+        Err(format!(
+            "\"{}\": invalid {}",
+            path,
+            if file { "file" } else { "directory" }
+        ))
     }
 }

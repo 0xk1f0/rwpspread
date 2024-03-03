@@ -1,4 +1,5 @@
 complete -c rwpspread -s i -l image -d 'Image file path' -r
+complete -c rwpspread -s o -l output -d 'Output directory path' -r
 complete -c rwpspread -s a -l align -d 'Do not downscale the base image, align the layout instead' -r -f -a "{tl	'',tr	'',tc	'',bl	'',br	'',bc	'',rc	'',lc	'',c	''}"
 complete -c rwpspread -s b -l backend -d 'Wallpaper setter backend' -r -f -a "{wpaperd	'',swaybg	'',hyprpaper	''}"
 complete -c rwpspread -s d -l daemon -d 'Enable daemon mode, will watch and resplit on output changes'
