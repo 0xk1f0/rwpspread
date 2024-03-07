@@ -1,4 +1,4 @@
-use std::{process,env};
+use std::{env, process};
 
 // force restart a program
 pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
