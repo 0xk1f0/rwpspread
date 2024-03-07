@@ -1,4 +1,4 @@
-use std::process;
+use std::{process,env};
 
 // force restart a program
 pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
@@ -52,15 +52,15 @@ pub fn soft_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
     Ok(())
 }
 
-// check if a program is available using which
+// check if a program is available
 pub fn is_installed(program: &str) -> bool {
-    match process::Command::new("which")
-        .arg(program)
-        .stdout(process::Stdio::null())
-        .stderr(process::Stdio::null())
-        .status()
-    {
-        Ok(status) => status.success(),
-        Err(_) => false,
+    if let Some(path) = env::var_os("PATH") {
+        for path in env::split_paths(&path) {
+            let full_path = path.join(program);
+            if full_path.exists() {
+                return true;
+            }
+        }
     }
+    false
 }
