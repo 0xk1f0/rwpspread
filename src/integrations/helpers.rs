@@ -3,17 +3,17 @@ use std::{env, process};
 // force restart a program
 pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
     match process::Command::new("pidof")
-        .args(&[program])
+        .arg(program)
         .stdout(process::Stdio::null())
         .status()
     {
         Ok(status) => {
             if status.success() {
-                process::Command::new("killall")
-                    .args(&["-9", program])
+                process::Command::new("pkill")
+                    .arg(program)
                     .stdout(process::Stdio::null())
                     .output()
-                    .map_err(|_| format!("failed to kill: {}", program))?;
+                    .map_err(|_| format!("pkill failed: {}", program))?;
             }
         }
         Err(_) => return Err("pidof failed".to_string()),
@@ -32,7 +32,7 @@ pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> 
 // soft restart a program
 pub fn soft_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
     match process::Command::new("pidof")
-        .args(&[program])
+        .arg(program)
         .stdout(process::Stdio::null())
         .status()
     {
