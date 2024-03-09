@@ -13,10 +13,10 @@ pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> 
                     .args(&["-9", program])
                     .stdout(process::Stdio::null())
                     .output()
-                    .map_err(|err| err.to_string())?;
+                    .map_err(|_| format!("failed to kill: {}", program))?;
             }
         }
-        Err(e) => return Err(e.to_string()),
+        Err(_) => return Err("pidof failed".to_string()),
     }
 
     process::Command::new(program)
@@ -24,7 +24,7 @@ pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> 
         .stdout(process::Stdio::null())
         .stderr(process::Stdio::null())
         .spawn()
-        .map_err(|err| err.to_string())?;
+        .map_err(|_| format!("failed to spawn: {}", program))?;
 
     Ok(())
 }
@@ -43,10 +43,10 @@ pub fn soft_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
                     .stdout(process::Stdio::null())
                     .stderr(process::Stdio::null())
                     .spawn()
-                    .map_err(|err| err.to_string())?;
+                    .map_err(|_| format!("failed to spawn: {}", program))?;
             }
         }
-        Err(e) => return Err(e.to_string()),
+        Err(_) => return Err("pidof failed".to_string()),
     }
 
     Ok(())

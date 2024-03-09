@@ -76,7 +76,7 @@ impl Worker {
             // we need to resplit
             self.result_papers = self
                 .perform_split(img, config, &self.save_location)
-                .map_err(|err| err.to_string())?;
+                .map_err(|err| err)?;
         }
 
         // check if we need to generate wpaperd config
@@ -89,7 +89,7 @@ impl Worker {
                         config.image_path.to_string_lossy().to_string(),
                         self.hash.clone(),
                     )
-                    .map_err(|err| err.to_string())?;
+                    .map_err(|err| err)?;
 
                     //check wpaper config hash
                     let wpaperd_present = wpaperd.check_existing();
@@ -98,27 +98,21 @@ impl Worker {
                     // also always rebuild when force resplit was set
                     if config.force_resplit || !wpaperd_present {
                         // yes we do
-                        wpaperd
-                            .build(&self.result_papers)
-                            .map_err(|err| err.to_string())?;
-
+                        wpaperd.build(&self.result_papers).map_err(|err| err)?;
                         // restart
                         helpers::force_restart("wpaperd", vec!["--no-daemon"])
-                            .map_err(|err| err.to_string())?;
+                            .map_err(|err| err)?;
                     }
 
                     // only start if we're not running already
-                    helpers::soft_restart("wpaperd", vec!["--no-daemon"])
-                        .map_err(|err| err.to_string())?;
+                    helpers::soft_restart("wpaperd", vec!["--no-daemon"]).map_err(|err| err)?;
                 }
                 Backend::Swaybg => {
                     // start or restart the swaybg instance
                     // considering present caches
                     if config.force_resplit || !caches_present {
-                        let swaybg_args =
-                            swaybg::new(&self.result_papers).map_err(|err| err.to_string())?;
-                        helpers::force_restart("swaybg", swaybg_args)
-                            .map_err(|err| err.to_string())?;
+                        let swaybg_args = swaybg::new(&self.result_papers).map_err(|err| err)?;
+                        helpers::force_restart("swaybg", swaybg_args).map_err(|err| err)?;
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
                         for monitor in &self.monitors {
@@ -130,18 +124,15 @@ impl Worker {
                                 ),
                             })
                         }
-                        let swaybg_args =
-                            swaybg::new(&self.result_papers).map_err(|err| err.to_string())?;
-                        helpers::soft_restart("swaybg", swaybg_args)
-                            .map_err(|err| err.to_string())?;
+                        let swaybg_args = swaybg::new(&self.result_papers).map_err(|err| err)?;
+                        helpers::soft_restart("swaybg", swaybg_args).map_err(|err| err)?;
                     }
                 }
                 Backend::Hyprpaper => {
                     // first soft restart
-                    helpers::soft_restart("hyprpaper", Vec::new())
-                        .map_err(|err| err.to_string())?;
+                    helpers::soft_restart("hyprpaper", Vec::new()).map_err(|err| err)?;
                     if config.force_resplit || !caches_present {
-                        hyprpaper::push(&self.result_papers).map_err(|err| err.to_string())?;
+                        hyprpaper::push(&self.result_papers).map_err(|err| err)?;
                     } else {
                         // hyprpaper also loads dynamically, so we need to manually assemble
                         for monitor in &self.monitors {
@@ -153,7 +144,7 @@ impl Worker {
                                 ),
                             })
                         }
-                        hyprpaper::push(&self.result_papers).map_err(|err| err.to_string())?;
+                        hyprpaper::push(&self.result_papers).map_err(|err| err)?;
                     }
                 }
             }
@@ -161,22 +152,20 @@ impl Worker {
 
         // check for palette bool
         if config.palette && !caches_present || config.force_resplit {
-            let color_palette = Palette::new(&config.image_path).map_err(|err| err.to_string())?;
+            let color_palette = Palette::new(&config.image_path).map_err(|err| err)?;
             color_palette
                 .generate_mostused(&self.save_location)
-                .map_err(|err| err.to_string())?;
+                .map_err(|err| err)?;
         }
 
         // check if we need to generate for swaylock
         if config.swaylock && !caches_present || config.force_resplit {
-            swaylock::generate(&self.result_papers, &self.save_location)
-                .map_err(|err| err.to_string())?;
+            swaylock::generate(&self.result_papers, &self.save_location).map_err(|err| err)?;
         }
 
         // check if we need to generate for hyprlock
         if config.hyprlock && !caches_present || config.force_resplit {
-            hyprlock::generate(&self.result_papers, &self.save_location)
-                .map_err(|err| err.to_string())?;
+            hyprlock::generate(&self.result_papers, &self.save_location).map_err(|err| err)?;
         }
 
         // return
