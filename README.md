@@ -96,6 +96,11 @@ rwpspread -b wpaperd -i /some/path/wallpaper.png
 rwpspread -di /some/path/wallpaper.png
 ```
 
+> [!NOTE]  
+> `rwpspread` will try to force close any backend instances already running, this may fail in some cases and prevent it from setting any wallpapers at all. See Issue https://github.com/0xk1f0/rwpspread/issues/100
+> 
+> Make sure `rwpspread` is the first to start any `swaybg`, `hyprpaper` or `wpaperd` process, although the two latter ones may not be affected.
+
 ## `swaylock` Integration
 
 A drop-in string for swaylock will be put in `/home/$USER/.cache/rwpspread/rwps_swaylock.conf` which can look something like:
