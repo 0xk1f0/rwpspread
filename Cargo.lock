@@ -1142,7 +1142,7 @@ dependencies = [
 
 [[package]]
 name = "rwpspread"
-version = "0.2.3-2"
+version = "0.2.4-1"
 dependencies = [
  "clap",
  "clap_complete",
