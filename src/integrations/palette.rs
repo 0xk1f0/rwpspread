@@ -90,7 +90,7 @@ impl Palette {
         let mut steps_taken: u8 = 0;
         while luminance >= max_lumin
             || luminance <= min_lumin
-            && !(last_color.0 == u8::MAX && last_color.1 == u8::MAX && last_color.2 == u8::MAX)
+                && !(last_color.0 == u8::MAX && last_color.1 == u8::MAX && last_color.2 == u8::MAX)
         {
             steps_taken += 1;
             luminance = self.relative_luminance((

@@ -15,8 +15,8 @@ _rwpspread() {
 
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" \
-'-i+[Image file path]:IMAGE: ' \
-'--image=[Image file path]:IMAGE: ' \
+'-i+[Image file or directory path]:IMAGE: ' \
+'--image=[Image file or directory path]:IMAGE: ' \
 '-o+[Output directory path]:OUTPUT: ' \
 '--output=[Output directory path]:OUTPUT: ' \
 '-a+[Do not downscale the base image, align the layout instead]:ALIGN:(tl tr tc bl br bc rc lc c)' \

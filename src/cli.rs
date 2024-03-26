@@ -44,7 +44,7 @@ impl std::fmt::Display for Backend {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Image file path
+    /// Image file or directory path
     #[arg(short, long)]
     image: String,
 
@@ -83,7 +83,7 @@ struct Args {
 
 #[derive(Hash)]
 pub struct Config {
-    pub image_path: PathBuf,
+    pub input_path: PathBuf,
     pub outdir_path: Option<String>,
     pub backend: Option<Backend>,
     pub daemon: bool,
@@ -101,14 +101,14 @@ impl Config {
         let args = Args::parse();
 
         // get valid input path
-        let image_path = Config::to_valid_path(&args.image, true).map_err(|err| err)?;
+        let input_path = Config::to_valid_path(&args.image, false, false).map_err(|err| err)?;
 
         // get valid output directory
         let outdir_path: Option<String>;
         if args.output.is_some() {
             // convert to string since we expect one
             let raw_path =
-                Config::to_valid_path(&args.output.unwrap(), false).map_err(|err| err)?;
+                Config::to_valid_path(&args.output.unwrap(), false, true).map_err(|err| err)?;
             outdir_path = Some(raw_path.to_string_lossy().trim_end_matches('/').to_string());
         } else {
             // no explicit path specified
@@ -120,7 +120,7 @@ impl Config {
 
         // construct
         Ok(Self {
-            image_path,
+            input_path,
             outdir_path,
             align: args.align,
             backend: args.backend,
@@ -154,19 +154,18 @@ impl Config {
     }
 
     // check if path exists correctly and return if true
-    fn to_valid_path(path: &String, file: bool) -> Result<PathBuf, String> {
+    fn to_valid_path(path: &String, file: bool, dir: bool) -> Result<PathBuf, String> {
         let path_buffer = Path::new(path);
         if fs::metadata(path_buffer).is_ok() {
             // evaluate and extend
             // also always canonicalize path so it is absolute
             let corrected_buffer = fs::canonicalize(Config::extend_path(path_buffer))
                 .map_err(|_| "could not extend path")?;
-            // Check if the path points to a directory
-            if file && fs::metadata(&corrected_buffer).unwrap().is_file() {
+            if (file || (!dir && !file)) && fs::metadata(&corrected_buffer).unwrap().is_file() {
                 // valid file
                 return Ok(corrected_buffer);
             }
-            if !file && fs::metadata(&corrected_buffer).unwrap().is_dir() {
+            if (dir || (!dir && !file)) && fs::metadata(&corrected_buffer).unwrap().is_dir() {
                 // valid directory
                 return Ok(corrected_buffer);
             }
@@ -175,7 +174,13 @@ impl Config {
         Err(format!(
             "\"{}\": invalid {}",
             path,
-            if file { "file" } else { "directory" }
+            if file {
+                "file"
+            } else if dir {
+                "directory"
+            } else {
+                "file or directory"
+            }
         ))
     }
 }

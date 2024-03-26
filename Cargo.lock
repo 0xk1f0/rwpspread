@@ -1155,6 +1155,7 @@ dependencies = [
  "clap_mangen",
  "glob",
  "image",
+ "rand",
  "rayon",
  "serde",
  "serde_json",

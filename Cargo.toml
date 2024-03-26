@@ -12,6 +12,7 @@ license = "GPL-3.0-only"
 clap = { version = "4.5.3", features = ["derive"] }
 glob = "0.3.1"
 image = "0.25.0"
+rand = { version = "0.8.5", default-features = false, features = ["small_rng", "getrandom"] }
 rayon = "1.10.0"
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"

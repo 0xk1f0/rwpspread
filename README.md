@@ -59,7 +59,7 @@ Multi-Monitor Wallpaper Utility
 Usage: rwpspread [OPTIONS] --image <IMAGE>
 
 Options:
-  -i, --image <IMAGE>      Image file path
+  -i, --image <IMAGE>      Image file or directory path
   -o, --output <OUTPUT>    Output directory path
   -a, --align <ALIGN>      Do not downscale the base image, align the layout instead [possible values: tl, tr, tc, bl, br, bc, rc, lc, c]
   -b, --backend <BACKEND>  Wallpaper setter backend [possible values: wpaperd, swaybg, hyprpaper]
@@ -80,7 +80,13 @@ Options:
 # if running a wlroots based compositor
 rwpspread -i /some/path/wallpaper.png
 
-# to align the layout if the input images
+# you can also specify a directory
+# as input and rwpspread will choose
+# an image from it randomly
+# supported formats: jpg, jpeg, png
+rwpspread -i /some/wallpaper/dir/
+
+# to align the layout if the input image
 # is big enough, instead of resizing
 # for example, to align it top-right
 rwpspread -a tr -i /some/path/wallpaper.png

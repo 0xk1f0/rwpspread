@@ -8,6 +8,9 @@ use crate::integrations::{helpers, hyprlock};
 use crate::wayland::Monitor;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
+use rand::rngs::SmallRng;
+use rand::seq::SliceRandom;
+use rand::SeedableRng;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::cmp;
 use std::collections::hash_map;
@@ -15,7 +18,7 @@ use std::env;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::os::unix;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub struct ResultPaper {
     pub monitor_name: String,
@@ -41,8 +44,21 @@ impl Worker {
 
     // split main image into two seperate, utilizes scaling
     pub fn run(&mut self, config: &Config, mon_vec: Vec<Monitor>) -> Result<(), String> {
+        // check input image type
+        let target_image: PathBuf;
+        // unwrap is safe here since we checked the path previously
+        if fs::metadata(&config.input_path).unwrap().is_dir() {
+            // image is random from directory
+            target_image = self
+                .select_random_image(&config.input_path)
+                .map_err(|e| e)?;
+        } else {
+            // image is actual input
+            target_image = config.input_path.to_owned();
+        }
+
         // open original input image
-        let img = image::open(&config.image_path).map_err(|_| "failed to open image")?;
+        let img = image::open(&target_image).map_err(|_| "failed to open image")?;
 
         // set monitors
         self.monitors = mon_vec;
@@ -71,7 +87,7 @@ impl Worker {
         // do we need to resplit
         if config.force_resplit || !caches_present {
             // cleanup caches first
-            self.cleanup_cache();
+            self.cleanup_cache().map_err(|err| err)?;
 
             // we need to resplit
             self.result_papers = self
@@ -86,7 +102,7 @@ impl Worker {
                 Backend::Wpaperd => {
                     // create new wpaperd instance
                     let wpaperd = Wpaperd::new(
-                        config.image_path.to_string_lossy().to_string(),
+                        target_image.to_string_lossy().to_string(),
                         self.hash.clone(),
                     )
                     .map_err(|err| err)?;
@@ -152,7 +168,7 @@ impl Worker {
 
         // check for palette bool
         if config.palette && !caches_present || config.force_resplit {
-            let color_palette = Palette::new(&config.image_path).map_err(|err| err)?;
+            let color_palette = Palette::new(&target_image).map_err(|err| err)?;
             color_palette
                 .generate_mostused(&self.save_location)
                 .map_err(|err| err)?;
@@ -337,6 +353,28 @@ impl Worker {
         }
     }
 
+    fn select_random_image(&self, path: &PathBuf) -> Result<PathBuf, String> {
+        // iterate over valid filetypes and push to vec
+        let mut paths: Vec<PathBuf> = Vec::new();
+        for ext in &["png", "jpg", "jpeg"] {
+            let pattern = format!("{}/*.{}", path.to_string_lossy(), ext);
+            for entry in glob(&pattern).expect("Failed to read glob pattern") {
+                if let Ok(path) = entry {
+                    paths.push(path);
+                }
+            }
+        }
+        // check if we found something
+        if paths.is_empty() {
+            return Err("Images directory empty".to_string());
+        }
+        // return random
+        Ok(paths
+            .choose(&mut SmallRng::from_entropy())
+            .unwrap()
+            .to_path_buf())
+    }
+
     fn ensure_save_location(&self, path: &str) -> Result<(), String> {
         // try to create, notify if fail
         fs::create_dir_all(path).map_err(|_| "Failed to create Cache Directory")?;
@@ -344,15 +382,19 @@ impl Worker {
         Ok(())
     }
 
-    fn cleanup_cache(&self) {
+    fn cleanup_cache(&self) -> Result<(), String> {
         // wildcard search for our
         // images and delete them
-        for entry in glob(&format!("{}/rwps_*", &self.save_location)).unwrap() {
+        for entry in glob(&format!("{}/rwps_*", &self.save_location))
+            .map_err(|_| "Failed to iterate directory")?
+        {
             if let Ok(path) = entry {
                 // yeet any file that we cached
                 fs::remove_file(path).unwrap();
             }
         }
+
+        Ok(())
     }
 
     fn check_caches(&self, config: &Config) -> bool {
