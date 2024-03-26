@@ -83,22 +83,28 @@ impl Palette {
         max_lumin: f64,
     ) -> (u8, u8, u8) {
         let mut luminance = self.relative_luminance(last_color);
-        let mut steps_taken: u8 = 1;
         // step up the color until the target luminance range is met
-        while luminance > max_lumin || luminance < min_lumin {
-            luminance = self.relative_luminance((
-                last_color.0 + steps_taken,
-                last_color.1 + steps_taken,
-                last_color.2 + steps_taken,
-            ));
+        // this seems quite messy but has to be saturating add because
+        // we have to iterate the other colors further until all have reached
+        // 255, which is the brightest we can go for each channel
+        let mut steps_taken: u8 = 0;
+        while luminance >= max_lumin
+            || luminance <= min_lumin
+            && !(last_color.0 == u8::MAX && last_color.1 == u8::MAX && last_color.2 == u8::MAX)
+        {
             steps_taken += 1;
+            luminance = self.relative_luminance((
+                last_color.0.saturating_add(steps_taken),
+                last_color.1.saturating_add(steps_taken),
+                last_color.2.saturating_add(steps_taken),
+            ));
         }
 
         // return the modified color as a result
         (
-            last_color.0 + steps_taken,
-            last_color.1 + steps_taken,
-            last_color.2 + steps_taken,
+            last_color.0.saturating_add(steps_taken),
+            last_color.1.saturating_add(steps_taken),
+            last_color.2.saturating_add(steps_taken),
         )
     }
 
