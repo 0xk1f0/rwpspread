@@ -8,9 +8,7 @@ use crate::integrations::{helpers, hyprlock};
 use crate::wayland::Monitor;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
-use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
-use rand::SeedableRng;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::cmp;
 use std::collections::hash_map;
@@ -369,10 +367,7 @@ impl Worker {
             return Err("Images directory empty".to_string());
         }
         // return random
-        Ok(paths
-            .choose(&mut SmallRng::from_entropy())
-            .unwrap()
-            .to_path_buf())
+        Ok(paths.choose(&mut rand::thread_rng()).unwrap().to_path_buf())
     }
 
     fn ensure_save_location(&self, path: &str) -> Result<(), String> {
