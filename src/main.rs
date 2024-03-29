@@ -56,7 +56,7 @@ fn run() -> Result<(), String> {
 fn main() {
     // run with config
     if let Err(err) = run() {
-        eprintln!("{}: {}", "rwpspread", err);
+        eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
         process::exit(1);
     }
 }
