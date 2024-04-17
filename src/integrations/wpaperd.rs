@@ -1,5 +1,4 @@
 use crate::worker::ResultPaper;
-use std::env;
 use std::fs::File;
 use std::io::Write;
 use toml;
@@ -7,18 +6,19 @@ use toml;
 pub struct Wpaperd {
     pub initial_path: String,
     pub config_hash: String,
-    config_path: String,
+    pub config_path: String,
 }
 
 impl Wpaperd {
-    pub fn new(initial_path: String, config_hash: String) -> Result<Self, String> {
+    pub fn new(
+        initial_path: String,
+        config_hash: String,
+        config_path: String,
+    ) -> Result<Self, String> {
         Ok(Self {
             initial_path,
             config_hash,
-            config_path: format!(
-                "{}/.config/wpaperd/wallpaper.toml",
-                env::var("HOME").unwrap()
-            ),
+            config_path,
         })
     }
 
@@ -26,16 +26,16 @@ impl Wpaperd {
     pub fn build(&self, wallpapers: &Vec<ResultPaper>) -> Result<(), String> {
         // Create a new config file
         let mut config_file =
-            File::create(&self.config_path).map_err(|_| "unable to open config")?;
+            File::create(&self.config_path).map_err(|_| "unable to open wpaperd config")?;
 
         // Open the file
-        let read_file =
-            std::fs::read_to_string(&self.config_path).map_err(|_| "unable to read config")?;
+        let read_file = std::fs::read_to_string(&self.config_path)
+            .map_err(|_| "unable to read wpaperd config")?;
 
         // Parse the string into a TOML value
         let mut values = read_file
             .parse::<toml::Value>()
-            .map_err(|_| "unable to parse config")?;
+            .map_err(|_| "unable to parse wpaperd config")?;
 
         // Add new output sections
         for fragment in wallpapers {
@@ -63,9 +63,14 @@ impl Wpaperd {
             )
             .unwrap();
 
-        // input image path for default statement
+        // add default statement for image center
         config_file
-            .write(format!("[default]\npath = \"{}\"\n\n", self.initial_path).as_bytes())
+            .write(format!("[default]\nmode = \"center\"\n\n").as_bytes())
+            .unwrap();
+
+        // input image path for any statement
+        config_file
+            .write(format!("[any]\npath = \"{}\"\n\n", self.initial_path).as_bytes())
             .unwrap();
 
         // write actual config

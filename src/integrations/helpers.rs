@@ -1,5 +1,24 @@
 use std::{env, process};
 
+// run a one-shot command
+pub fn run_oneshot(program: &str, arguments: Vec<&str>) -> Result<(), String> {
+    match process::Command::new(program)
+        .args(arguments)
+        .stdout(process::Stdio::null())
+        .stderr(process::Stdio::null())
+        .output()
+    {
+        Ok(out) => {
+            if out.status.success() {
+                Ok(())
+            } else {
+                Err(format!("{} returned non-null", program))
+            }
+        }
+        Err(_) => return Err(format!("failed to run {}", program))
+    }
+}
+
 // force restart a program
 pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
     match process::Command::new("pidof")

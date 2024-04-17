@@ -98,10 +98,16 @@ impl Worker {
             // recheck what integration we're working with
             match config.backend.as_ref().unwrap() {
                 Backend::Wpaperd => {
+                    // set and ensure config location
+                    let config_location = format!("{}/.config/wpaperd", env::var("HOME").unwrap());
+                    self.ensure_save_location(&config_location)
+                        .map_err(|err| err)?;
+
                     // create new wpaperd instance
                     let wpaperd = Wpaperd::new(
                         target_image.to_string_lossy().to_string(),
                         self.hash.clone(),
+                        config_location + "/config.toml",
                     )
                     .map_err(|err| err)?;
 
@@ -114,12 +120,16 @@ impl Worker {
                         // yes we do
                         wpaperd.build(&self.result_papers).map_err(|err| err)?;
                         // restart
-                        helpers::force_restart("wpaperd", vec!["--no-daemon"])
+                        helpers::force_restart("wpaperd", vec!["-v"])
                             .map_err(|err| err)?;
+                    } else {
+                        // only start if we're not running already
+                        helpers::soft_restart("wpaperd", vec!["-v"]).map_err(|err| err)?;
                     }
-
-                    // only start if we're not running already
-                    helpers::soft_restart("wpaperd", vec!["--no-daemon"]).map_err(|err| err)?;
+                    // "bump wpaperctl"
+                    // @TODO: ugly workaround, but wpaperd >=1.0 doesn't start otherwise
+                    helpers::run_oneshot("sleep", vec!["0.5"]).map_err(|err| err)?;
+                    helpers::run_oneshot("wpaperctl", vec!["all-wallpapers"]).map_err(|err| err)?;
                 }
                 Backend::Swaybg => {
                     // start or restart the swaybg instance
