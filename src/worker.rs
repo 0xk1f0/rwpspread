@@ -111,7 +111,7 @@ impl Worker {
                     )
                     .map_err(|err| err)?;
 
-                    //check wpaper config hash
+                    // check wpaper config hash
                     let wpaperd_present = wpaperd.check_existing();
 
                     // do we need to rebuild config
@@ -120,8 +120,7 @@ impl Worker {
                         // yes we do
                         wpaperd.build(&self.result_papers).map_err(|err| err)?;
                         // restart
-                        helpers::force_restart("wpaperd", vec!["-v"])
-                            .map_err(|err| err)?;
+                        helpers::force_restart("wpaperd", vec!["-v"]).map_err(|err| err)?;
                     } else {
                         // only start if we're not running already
                         helpers::soft_restart("wpaperd", vec!["-v"]).map_err(|err| err)?;

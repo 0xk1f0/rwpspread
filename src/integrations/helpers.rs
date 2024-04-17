@@ -15,7 +15,7 @@ pub fn run_oneshot(program: &str, arguments: Vec<&str>) -> Result<(), String> {
                 Err(format!("{} returned non-null", program))
             }
         }
-        Err(_) => return Err(format!("failed to run {}", program))
+        Err(_) => return Err(format!("failed to run {}", program)),
     }
 }
 
