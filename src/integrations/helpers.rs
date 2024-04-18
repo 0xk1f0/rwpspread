@@ -1,6 +1,7 @@
 use std::{env, process};
 
 // run a one-shot command
+#[allow(dead_code)]
 pub fn run_oneshot(program: &str, arguments: Vec<&str>) -> Result<(), String> {
     match process::Command::new(program)
         .args(arguments)
