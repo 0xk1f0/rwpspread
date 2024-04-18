@@ -125,10 +125,6 @@ impl Worker {
                         // only start if we're not running already
                         helpers::soft_restart("wpaperd", vec!["-v"]).map_err(|err| err)?;
                     }
-                    // "bump wpaperctl"
-                    // @TODO: ugly workaround, but wpaperd >=1.0 doesn't start otherwise
-                    helpers::run_oneshot("sleep", vec!["0.5"]).map_err(|err| err)?;
-                    helpers::run_oneshot("wpaperctl", vec!["all-wallpapers"]).map_err(|err| err)?;
                 }
                 Backend::Swaybg => {
                     // start or restart the swaybg instance
