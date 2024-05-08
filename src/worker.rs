@@ -120,10 +120,10 @@ impl Worker {
                         // yes we do
                         wpaperd.build(&self.result_papers).map_err(|err| err)?;
                         // restart
-                        helpers::force_restart("wpaperd", vec!["-v"]).map_err(|err| err)?;
+                        helpers::force_restart("wpaperd", vec![]).map_err(|err| err)?;
                     } else {
                         // only start if we're not running already
-                        helpers::soft_restart("wpaperd", vec!["-v"]).map_err(|err| err)?;
+                        helpers::soft_restart("wpaperd", vec![]).map_err(|err| err)?;
                     }
                 }
                 Backend::Swaybg => {
@@ -149,7 +149,7 @@ impl Worker {
                 }
                 Backend::Hyprpaper => {
                     // first soft restart
-                    helpers::soft_restart("hyprpaper", Vec::new()).map_err(|err| err)?;
+                    helpers::soft_restart("hyprpaper", vec![]).map_err(|err| err)?;
                     if config.force_resplit || !caches_present {
                         hyprpaper::push(&self.result_papers).map_err(|err| err)?;
                     } else {
