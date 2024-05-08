@@ -1,7 +1,6 @@
 use clap::CommandFactory;
 use clap_complete::{generate_to, Shell};
 use clap_mangen::Man;
-use std::fs::File;
 use std::io::Error;
 
 include!("src/cli.rs");
@@ -17,7 +16,7 @@ fn completions(outdir: &Path) -> Result<(), Error> {
 
 fn manpage(outdir: &Path) -> Result<(), Error> {
     let app = Args::command();
-    let mut file = File::create(Path::new(&outdir).join("rwpspread.1"))?;
+    let mut file = fs::File::create(Path::new(&outdir).join("rwpspread.1"))?;
     Man::new(app).render(&mut file)?;
 
     Ok(())
@@ -26,9 +25,12 @@ fn manpage(outdir: &Path) -> Result<(), Error> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=src/cli.rs");
 
-    std::fs::create_dir_all(Path::new("completions"))?;
-    completions(Path::new("completions"))?;
-    manpage(Path::new("man"))?;
+    let outdir = std::env::var("OUT_DIR").unwrap();
+    let dest = Path::new(&outdir).ancestors().nth(3).unwrap();
+    std::fs::create_dir_all(&dest.join("completions"))?;
+    std::fs::create_dir_all(&dest.join("man"))?;
+    completions(&dest.join("completions"))?;
+    manpage(&dest.join("man"))?;
 
     Ok(())
 }
