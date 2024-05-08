@@ -1,10 +1,7 @@
 use crate::cli::{Alignment, Backend, Config, Locker};
-use crate::integrations::hyprpaper;
 use crate::integrations::palette::Palette;
-use crate::integrations::swaybg;
-use crate::integrations::swaylock;
 use crate::integrations::wpaperd::Wpaperd;
-use crate::integrations::{helpers, hyprlock};
+use crate::integrations::{helpers, hyprlock, hyprpaper, swaybg, swaylock};
 use crate::wayland::Monitor;
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
@@ -42,6 +39,11 @@ impl Worker {
 
     // split main image into two seperate, utilizes scaling
     pub fn run(&mut self, config: &Config, mon_vec: Vec<Monitor>) -> Result<(), String> {
+        // pre run script check
+        if config.pre_path.is_some() {
+            helpers::run_oneshot(&config.pre_path.as_ref().unwrap()).map_err(|err| err)?;
+        }
+
         // check input image type
         let target_image: PathBuf;
         // unwrap is safe here since we checked the path previously
@@ -49,7 +51,7 @@ impl Worker {
             // image is random from directory
             target_image = self
                 .select_random_image(&config.input_path)
-                .map_err(|e| e)?;
+                .map_err(|err| err)?;
         } else {
             // image is actual input
             target_image = config.input_path.to_owned();
@@ -67,7 +69,7 @@ impl Worker {
         } else if config.daemon || config.backend.is_some() {
             self.save_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
             self.ensure_save_location(&self.save_location)
-                .map_err(|e| e)?;
+                .map_err(|err| err)?;
         } else {
             self.save_location = env::var("PWD").unwrap();
         }
@@ -193,6 +195,11 @@ impl Worker {
             color_palette
                 .generate_mostused(&self.save_location)
                 .map_err(|err| err)?;
+        }
+
+        // post run script check
+        if config.post_path.is_some() {
+            helpers::run_oneshot(&config.post_path.as_ref().unwrap()).map_err(|err| err)?;
         }
 
         // return

@@ -2,20 +2,13 @@ use std::{env, process};
 
 // run a one-shot command
 #[allow(dead_code)]
-pub fn run_oneshot(program: &str, arguments: Vec<&str>) -> Result<(), String> {
+pub fn run_oneshot(program: &str) -> Result<(), String> {
     match process::Command::new(program)
-        .args(arguments)
         .stdout(process::Stdio::null())
         .stderr(process::Stdio::null())
         .output()
     {
-        Ok(out) => {
-            if out.status.success() {
-                Ok(())
-            } else {
-                Err(format!("{} returned non-null", program))
-            }
-        }
+        Ok(_) => Ok(()),
         Err(_) => return Err(format!("failed to run {}", program)),
     }
 }

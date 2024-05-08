@@ -84,6 +84,14 @@ struct Args {
     #[arg(short, long, value_enum)]
     locker: Option<Locker>,
 
+    /// Script to execute before splitting
+    #[arg(long)]
+    pre: Option<String>,
+
+    /// Script to execute after splitting
+    #[arg(long)]
+    post: Option<String>,
+
     /// Enable daemon mode and resplit on output changes
     #[arg(short, long)]
     daemon: bool,
@@ -107,6 +115,8 @@ pub struct Config {
     pub palette: bool,
     pub force_resplit: bool,
     pub align: Option<Alignment>,
+    pub pre_path: Option<String>,
+    pub post_path: Option<String>,
     version: String,
 }
 
@@ -130,6 +140,30 @@ impl Config {
             outdir_path = None
         }
 
+        // check for scripts
+        let pre_path: Option<String>;
+        if args.pre.is_some() {
+            pre_path = Some(
+                Config::to_valid_path(&args.pre.unwrap(), true, false)
+                    .map_err(|err| err)?
+                    .to_string_lossy()
+                    .to_string(),
+            );
+        } else {
+            pre_path = None;
+        }
+        let post_path: Option<String>;
+        if args.post.is_some() {
+            post_path = Some(
+                Config::to_valid_path(&args.post.unwrap(), true, false)
+                    .map_err(|err| err)?
+                    .to_string_lossy()
+                    .to_string(),
+            );
+        } else {
+            post_path = None;
+        }
+
         // get own version
         let version: String = String::from(env!("CARGO_PKG_VERSION"));
 
@@ -143,6 +177,8 @@ impl Config {
             daemon: args.daemon,
             palette: args.palette,
             force_resplit: args.force_resplit,
+            pre_path,
+            post_path,
             version,
         })
     }

@@ -38,28 +38,28 @@ pub fn push(papers: &Vec<ResultPaper>) -> Result<(), String> {
     let mut buffer = [0; 1024];
     socket
         .write_all(b"unload all")
-        .map_err(|e| format!("hyprpaper: {}", e))?;
+        .map_err(|err| format!("hyprpaper: {}", err))?;
     socket
         .read(&mut buffer)
-        .map_err(|e| format!("hyprpaper: {}", e))?;
+        .map_err(|err| format!("hyprpaper: {}", err))?;
 
     if String::from_utf8_lossy(&buffer).to_string().contains("ok") {
         for paper in papers {
             socket
                 .write_all(format!("preload {}", paper.full_path).as_bytes())
-                .map_err(|e| format!("hyprpaper: {}", e))?;
+                .map_err(|err| format!("hyprpaper: {}", err))?;
             socket
                 .read(&mut buffer)
-                .map_err(|e| format!("hyprpaper: {}", e))?;
+                .map_err(|err| format!("hyprpaper: {}", err))?;
             let preload_sum = &buffer[0].saturating_sub(buffer[1]);
             socket
                 .write_all(
                     format!("wallpaper {},{}", paper.monitor_name, paper.full_path).as_bytes(),
                 )
-                .map_err(|e| format!("hyprpaper: {}", e))?;
+                .map_err(|err| format!("hyprpaper: {}", err))?;
             socket
                 .read(&mut buffer)
-                .map_err(|e| format!("hyprpaper: {}", e))?;
+                .map_err(|err| format!("hyprpaper: {}", err))?;
             let wallpaper_sum = &buffer[0].saturating_sub(buffer[1]);
 
             // check for sum, this will ideally be

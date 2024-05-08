@@ -136,6 +136,26 @@ source=/home/$USER/.cache/rwpspread/rwps_hyprlock.conf
 
 This allows you to configure additional `hyprlock` stuff after the import statement.
 
+## Custom Scripts
+
+You can specify custom scripts or programs to execute before and after splitting takes place.
+
+```bash
+# before splitting
+rwpspread --pre /some/pre/script.sh  -di /some/path/wallpaper.png
+# after splitting
+rwpspread --post /some/post/script.sh -di /some/path/wallpaper.png
+# or both
+rwpspread --pre /some/pre/script.sh --post /some/post/script.sh -di /some/path/wallpaper.png
+```
+
+When in `daemon` mode, these script will also execute on re-splits f.E. monitor hotplugs.
+
+> [!NOTE]  
+> `rwpspread` will wait for these scripts to finish executing before continuing its own execution
+> 
+> So make sure you don't supply scripts that block execution indefinitely
+
 ## Save Locations
 
 If used just to split images, output images are saved to the current working directory.
