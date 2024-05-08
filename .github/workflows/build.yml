@@ -1,4 +1,4 @@
-name: Build x86_64
+name: Build
 
 on:
   push:
