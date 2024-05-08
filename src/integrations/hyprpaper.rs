@@ -10,9 +10,13 @@ pub fn push(papers: &Vec<ResultPaper>) -> Result<(), String> {
     let socket_base = env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
         return format!("/run/user/{}", env::var("UID").unwrap());
     });
-    let instance_id = env::var("HYPRLAND_INSTANCE_SIGNATURE")
-        .map_err(|_| "no HYPRLAND_INSTANCE_SIGNATURE set")?;
-    let target_socket = format!("{}/hypr/{}/.hyprpaper.sock", socket_base, instance_id);
+    let instance_id = env::var("HYPRLAND_INSTANCE_SIGNATURE").unwrap_or("".to_string());
+    let target_socket: String;
+    if instance_id.len() > 0 {
+        target_socket = format!("{}/hypr/{}/.hyprpaper.sock", socket_base, instance_id)
+    } else {
+        target_socket = format!("{}/hypr/.hyprpaper.sock", socket_base)
+    }
 
     // block till we can connect
     loop {
