@@ -12,7 +12,8 @@ pub fn generate(papers: &Vec<ResultPaper>, path: &String) -> Result<(), String> 
             paper.monitor_name, paper.full_path
         );
     }
-    fs::write(format!("{}/rwps_hyprlock.conf", path), base_string).map_err(|err| err.to_string())?;
+    fs::write(format!("{}/rwps_hyprlock.conf", path), base_string)
+        .map_err(|err| err.to_string())?;
 
     Ok(())
 }
