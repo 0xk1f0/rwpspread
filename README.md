@@ -1,6 +1,7 @@
 # rwpspread
 
-[![Pipeline](https://github.com/0xk1f0/rwpspread/actions/workflows/build.yml/badge.svg)](https://github.com/0xk1f0/rwpspread/actions/workflows/build.yml)
+[![Pipeline](https://github.com/0xk1f0/rwpspread/actions/workflows/build-x86-64.yml/badge.svg)](https://github.com/0xk1f0/rwpspread/actions/workflows/build-x86-64.yml)
+[![Pipeline](https://github.com/0xk1f0/rwpspread/actions/workflows/build-aarch64.yml/badge.svg)](https://github.com/0xk1f0/rwpspread/actions/workflows/build-aarch64.yml)
 [![AUR](https://img.shields.io/aur/version/rwpspread?label=AUR%20rwpspread)](https://aur.archlinux.org/packages/rwpspread) 
 [![AUR](https://img.shields.io/aur/version/rwpspread-git?label=AUR%20rwpspread-git)](https://aur.archlinux.org/packages/rwpspread-git)
 

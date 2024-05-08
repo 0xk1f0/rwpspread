@@ -1,0 +1,39 @@
+name: Build aarch64
+
+on:
+  push:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build GNU static linked
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          RUSTFLAGS='-C target-feature=-crt-static' cargo build --target=aarch64-unknown-linux-gnu --release --verbose
+      - name: Build musl static linked
+        run: |
+          rustup target add aarch64-unknown-linux-musl
+          cargo build --target=aarch64-unknown-linux-musl --release --verbose
+      - name: Rename binaries
+        run: |
+          mv target/aarch64-unknown-linux-musl/release/rwpspread target/aarch64-unknown-linux-musl/release/rwpspread_musl
+      - name: Generate Checksums
+        run: |
+          sha512sum target/aarch64-unknown-linux-gnu/release/rwpspread > target/aarch64-unknown-linux-gnu/release/rwpspread.sha512sum
+          sha512sum target/aarch64-unknown-linux-musl/release/rwpspread_musl > target/aarch64-unknown-linux-musl/release/rwpspread_musl.sha512sum
+      - name: Upload release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: rwpspread-latest
+          path: |
+            target/aarch64-unknown-linux-gnu/release/rwpspread
+            target/aarch64-unknown-linux-gnu/release/rwpspread.sha512sum
+            target/aarch64-unknown-linux-musl/release/rwpspread_musl
+            target/aarch64-unknown-linux-musl/release/rwpspread_musl.sha512sum
