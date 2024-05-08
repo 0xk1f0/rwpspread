@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 // alignment enumerator
-#[derive(clap::ValueEnum, Debug, Clone, Hash)]
+#[derive(clap::ValueEnum, Clone, Hash)]
 pub enum Alignment {
     Tl, // Top-Left
     Tr, // Top-Right
@@ -16,8 +16,28 @@ pub enum Alignment {
     C,  // Centered
 }
 
+// locker enumerator
+#[derive(clap::ValueEnum, Clone, Hash, PartialEq)]
+pub enum Locker {
+    Swaylock,
+    Hyprlock,
+}
+
+impl std::fmt::Display for Locker {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Swaylock => {
+                write!(f, "swaylock")
+            }
+            Self::Hyprlock => {
+                write!(f, "hyprlock")
+            }
+        }
+    }
+}
+
 // backend enumerator
-#[derive(clap::ValueEnum, Debug, Clone, Hash, PartialEq)]
+#[derive(clap::ValueEnum, Clone, Hash, PartialEq)]
 pub enum Backend {
     Wpaperd,
     Swaybg,
@@ -41,7 +61,7 @@ impl std::fmt::Display for Backend {
 }
 
 /// Multi-Monitor Wallpaper Utility
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
     /// Image file or directory path
@@ -60,6 +80,10 @@ struct Args {
     #[arg(short, long, value_enum)]
     backend: Option<Backend>,
 
+    /// Lockscreen implementation to generate for
+    #[arg(short, long, value_enum)]
+    locker: Option<Locker>,
+
     /// Enable daemon mode and resplit on output changes
     #[arg(short, long)]
     daemon: bool,
@@ -67,14 +91,6 @@ struct Args {
     /// Generate a color palette from input image
     #[arg(short, long)]
     palette: bool,
-
-    /// Enable swaylock integration
-    #[arg(short, long)]
-    swaylock: bool,
-
-    /// Enable hyprlock integration
-    #[arg(long)]
-    hyprlock: bool,
 
     /// Force resplit, skips all image cache checks
     #[arg(short, long)]
@@ -86,10 +102,9 @@ pub struct Config {
     pub input_path: PathBuf,
     pub outdir_path: Option<String>,
     pub backend: Option<Backend>,
+    pub locker: Option<Locker>,
     pub daemon: bool,
     pub palette: bool,
-    pub swaylock: bool,
-    pub hyprlock: bool,
     pub force_resplit: bool,
     pub align: Option<Alignment>,
     version: String,
@@ -124,10 +139,9 @@ impl Config {
             outdir_path,
             align: args.align,
             backend: args.backend,
+            locker: args.locker,
             daemon: args.daemon,
             palette: args.palette,
-            swaylock: args.swaylock,
-            hyprlock: args.hyprlock,
             force_resplit: args.force_resplit,
             version,
         })

@@ -1,4 +1,4 @@
-use crate::cli::{Alignment, Backend, Config};
+use crate::cli::{Alignment, Backend, Config, Locker};
 use crate::integrations::hyprpaper;
 use crate::integrations::palette::Palette;
 use crate::integrations::swaybg;
@@ -93,7 +93,7 @@ impl Worker {
                 .map_err(|err| err)?;
         }
 
-        // check if we need to generate wpaperd config
+        // check if we need to handle a backend
         if config.backend.is_some() {
             // recheck what integration we're working with
             match config.backend.as_ref().unwrap() {
@@ -169,22 +169,30 @@ impl Worker {
             }
         }
 
+        // check if we need to generate a locker config
+        if config.locker.is_some() {
+            match config.locker.as_ref().unwrap() {
+                Locker::Hyprlock => {
+                    if !caches_present || config.force_resplit {
+                        hyprlock::generate(&self.result_papers, &self.save_location)
+                            .map_err(|err| err)?;
+                    }
+                }
+                Locker::Swaylock => {
+                    if !caches_present || config.force_resplit {
+                        swaylock::generate(&self.result_papers, &self.save_location)
+                            .map_err(|err| err)?;
+                    }
+                }
+            }
+        }
+
         // check for palette bool
         if config.palette && !caches_present || config.force_resplit {
             let color_palette = Palette::new(&target_image).map_err(|err| err)?;
             color_palette
                 .generate_mostused(&self.save_location)
                 .map_err(|err| err)?;
-        }
-
-        // check if we need to generate for swaylock
-        if config.swaylock && !caches_present || config.force_resplit {
-            swaylock::generate(&self.result_papers, &self.save_location).map_err(|err| err)?;
-        }
-
-        // check if we need to generate for hyprlock
-        if config.hyprlock && !caches_present || config.force_resplit {
-            hyprlock::generate(&self.result_papers, &self.save_location).map_err(|err| err)?;
         }
 
         // return
@@ -412,8 +420,12 @@ impl Worker {
             ));
         }
 
-        path_list.push((config.swaylock, format!("{}swaylock.conf", base_format)));
-        path_list.push((config.hyprlock, format!("{}hyprlock.conf", base_format)));
+        if config.locker.is_some() {
+            path_list.push((
+                true,
+                format!("{}{}.conf", config.locker.as_ref().unwrap(), base_format),
+            ));
+        }
         path_list.push((config.palette, format!("{}colors.json", base_format)));
 
         // check if cache exists

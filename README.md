@@ -63,10 +63,9 @@ Options:
   -o, --output <OUTPUT>    Output directory path
   -a, --align <ALIGN>      Do not downscale the base image, align the layout instead [possible values: tl, tr, tc, bl, br, bc, rc, lc, c]
   -b, --backend <BACKEND>  Wallpaper setter backend [possible values: wpaperd, swaybg, hyprpaper]
+  -l, --locker <LOCKER>    Lockscreen implementation to generate for [possible values: swaylock, hyprlock]
   -d, --daemon             Enable daemon mode and resplit on output changes
   -p, --palette            Generate a color palette from input image
-  -s, --swaylock           Enable swaylock integration
-      --hyprlock           Enable hyprlock integration
   -f, --force-resplit      Force resplit, skips all image cache checks
   -h, --help               Print help
   -V, --version            Print version
