@@ -6,9 +6,13 @@ use std::thread;
 use std::time::Duration;
 
 pub fn push(papers: &Vec<ResultPaper>) -> Result<(), String> {
+    // set target socket, define fallbacks if env vars are not set
+    let socket_base = env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
+        return format!("/run/user/{}", env::var("UID").unwrap());
+    });
     let instance_id = env::var("HYPRLAND_INSTANCE_SIGNATURE")
-        .map_err(|_| "no HYPRLAND_INSTANCE_SIGNATURE found")?;
-    let target_socket = format!("/tmp/hypr/{}/.hyprpaper.sock", instance_id);
+        .map_err(|_| "no HYPRLAND_INSTANCE_SIGNATURE set")?;
+    let target_socket = format!("{}/hypr/{}/.hyprpaper.sock", socket_base, instance_id);
 
     // block till we can connect
     loop {
