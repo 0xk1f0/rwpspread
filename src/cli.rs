@@ -84,14 +84,6 @@ struct Args {
     #[arg(short, long, value_enum)]
     locker: Option<Locker>,
 
-    /// Script to execute before splitting
-    #[arg(long)]
-    pre: Option<String>,
-
-    /// Script to execute after splitting
-    #[arg(long)]
-    post: Option<String>,
-
     /// Enable daemon mode and resplit on output changes
     #[arg(short, long)]
     daemon: bool,
@@ -99,6 +91,14 @@ struct Args {
     /// Generate a color palette from input image
     #[arg(short, long)]
     palette: bool,
+
+    /// Script to execute before splitting
+    #[arg(long)]
+    pre: Option<String>,
+
+    /// Script to execute after splitting
+    #[arg(long)]
+    post: Option<String>,
 
     /// Force resplit, skips all image cache checks
     #[arg(short, long)]

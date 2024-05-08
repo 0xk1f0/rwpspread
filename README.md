@@ -66,6 +66,8 @@ Options:
   -l, --locker <LOCKER>    Lockscreen implementation to generate for [possible values: swaylock, hyprlock]
   -d, --daemon             Enable daemon mode and resplit on output changes
   -p, --palette            Generate a color palette from input image
+      --pre <PRE>          Script to execute before splitting
+      --post <POST>        Script to execute after splitting
   -f, --force-resplit      Force resplit, skips all image cache checks
   -h, --help               Print help
   -V, --version            Print version
@@ -142,7 +144,7 @@ You can specify custom scripts or programs to execute before and after splitting
 
 ```bash
 # before splitting
-rwpspread --pre /some/pre/script.sh  -di /some/path/wallpaper.png
+rwpspread --pre /some/pre/script.sh -di /some/path/wallpaper.png
 # after splitting
 rwpspread --post /some/post/script.sh -di /some/path/wallpaper.png
 # or both
