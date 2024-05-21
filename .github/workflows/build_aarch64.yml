@@ -15,7 +15,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build GNU static linked
         run: |
-          apt update && apt install -y gcc-aarch64-linux-gnu
+          sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
           rustup target add aarch64-unknown-linux-gnu
           RUSTFLAGS="-C target-feature=+crt-static -C linker=aarch64-linux-gnu-gcc" cargo build --target=aarch64-unknown-linux-gnu --release --verbose
       - name: Generate Checksums
