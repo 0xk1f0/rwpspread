@@ -10,7 +10,6 @@ Wallpaper Utility written in Rust
 ## Features
 
 - Spans an input wallpaper across all monitors
-- Works alongside any [`wlroots`](https://gitlab.freedesktop.org/wlroots/wlroots) based compositor f.E. [`Hyprland`](https://hyprland.org/)
 - Automatically re-splits when monitors are hotplugged
 - Color-Palette generation
 - Various wallpaper setter backends
@@ -53,8 +52,7 @@ cargo build --release
 
 ## Usage
 
-```bash
-❯ rwpspread --help
+```text
 Multi-Monitor Wallpaper Utility
 
 Usage: rwpspread [OPTIONS] --image <IMAGE>
@@ -245,12 +243,11 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [x] `swaybg` integration
 - [x] `hyprpaper` integration
 - [x] `hyprlock` integration
-- [ ] inbuilt backend
 - [ ] monitor bezel compensation
 
 ## Credits and Thanks
 
-- [nu-nu-ko](https://github.com/nu-nu-ko) - Nix Package Maintainer
+- [fsnkty](https://github.com/fsnkty) - Nix Package Maintainer
 - [smithay-client-toolkit](https://github.com/Smithay/client-toolkit) - Rust Interaction with Wayland
 - [wpaperd](https://github.com/danyspin97/wpaperd) - Excellent Wallpaper Daemon
 - [swaylock](https://github.com/swaywm/swaylock) - Screen Locking Utility
