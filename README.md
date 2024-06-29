@@ -31,7 +31,7 @@ paru -S rwpspread
 paru -S rwpspread-git
 ```
 
-[![Nix](https://img.shields.io/badge/nix-via%20nixpkgs-grey?style=for-the-badge&logo=Nixos&logoColor=white&labelColor=5277C3)](https://search.nixos.org/packages?channel=unstable&show=rwpspread)
+[![Nix](https://img.shields.io/badge/nix-via%20nixpkgs-grey?style=for-the-badge&logo=Nixos&logoColor=white&labelColor=5277C3)](https://search.nixos.org/packages?query=rwpspread)
 
 ```bash
 # try it out
