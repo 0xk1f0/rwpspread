@@ -3,8 +3,18 @@ name: Build for aarch64
 on:
   push:
     branches: [ "master" ]
+    paths:
+      - 'src/**'
+      - 'build.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
   pull_request:
     branches: [ "master" ]
+    paths:
+      - 'src/**'
+      - 'build.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
 
 env:
   CARGO_TERM_COLOR: always
