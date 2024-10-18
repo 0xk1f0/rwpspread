@@ -55,10 +55,11 @@ cargo build --release
 ```text
 Multi-Monitor Wallpaper Utility
 
-Usage: rwpspread [OPTIONS] --image <IMAGE>
+Usage: rwpspread [OPTIONS] <--image <IMAGE>|--info>
 
 Options:
   -i, --image <IMAGE>      Image file or directory path
+      --info               Show detectable information
   -o, --output <OUTPUT>    Output directory path
   -a, --align <ALIGN>      Do not downscale the base image, align the layout instead [possible values: tl, tr, tc, bl, br, bc, rc, lc, c]
   -b, --backend <BACKEND>  Wallpaper setter backend [possible values: wpaperd, swaybg, hyprpaper]
