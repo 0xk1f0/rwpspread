@@ -60,13 +60,24 @@ impl std::fmt::Display for Backend {
     }
 }
 
+#[derive(clap::Args)]
+#[group(required = true, multiple = false)]
+pub struct InitGroup {
+    /// Image file or directory path
+    #[arg(short, long)]
+    image: Option<String>,
+
+    /// Show detectable information
+    #[arg(long)]
+    info: bool,
+}
+
 /// Multi-Monitor Wallpaper Utility
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Image file or directory path
-    #[arg(short, long)]
-    image: String,
+    #[clap(flatten)]
+    init_group: InitGroup,
 
     /// Output directory path
     #[arg(short, long)]
@@ -114,6 +125,7 @@ pub struct Config {
     pub daemon: bool,
     pub palette: bool,
     pub force_resplit: bool,
+    pub info: bool,
     pub align: Option<Alignment>,
     pub pre_path: Option<String>,
     pub post_path: Option<String>,
@@ -121,12 +133,18 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new() -> Result<Self, String> {
+    pub fn new() -> Result<Option<Self>, String> {
         // handle args
         let args = Args::parse();
 
+        // check for early exit due to info passage
+        if args.init_group.image.is_none() && args.init_group.info {
+            return Ok(None);
+        }
+
         // get valid input path
-        let input_path = Config::to_valid_path(&args.image, false, false).map_err(|err| err)?;
+        let input_path = Config::to_valid_path(&args.init_group.image.unwrap(), false, false)
+            .map_err(|err| err)?;
 
         // get valid output directory
         let outdir_path: Option<String>;
@@ -168,7 +186,7 @@ impl Config {
         let version: String = String::from(env!("CARGO_PKG_VERSION"));
 
         // construct
-        Ok(Self {
+        Ok(Some(Self {
             input_path,
             outdir_path,
             align: args.align,
@@ -177,10 +195,11 @@ impl Config {
             daemon: args.daemon,
             palette: args.palette,
             force_resplit: args.force_resplit,
+            info: args.init_group.info,
             pre_path,
             post_path,
             version,
-        })
+        }))
     }
 
     // check if target path is a symlink

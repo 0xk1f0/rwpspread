@@ -23,6 +23,9 @@ fn manpage(outdir: &Path) -> Result<(), Error> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("cargo:rustc-env=HYPRPAPER_VERSION={}", ">=0.7.0");
+    println!("cargo:rustc-env=WPAPERD_VERSION={}", ">=1.0.1");
+    println!("cargo:rustc-env=SWAYBG_VERSION={}", ">=1.2.1");
     println!("cargo:rerun-if-changed=src/cli.rs");
 
     let outdir = std::env::var("OUT_DIR").unwrap();

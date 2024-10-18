@@ -7,6 +7,7 @@ use smithay_client_toolkit::{
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
 };
+use std::fmt;
 
 struct ListOutputs {
     registry_state: RegistryState,
@@ -21,6 +22,16 @@ pub struct Monitor {
     pub height: u32,
     pub x: i32,
     pub y: i32,
+}
+
+impl fmt::Display for Monitor {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            formatter,
+            "\x1B[32m{}\x1B[39m: {}x{} at {}:{}",
+            self.name, self.width, self.height, self.x, self.y
+        )
+    }
 }
 
 pub struct MonitorConfig {
