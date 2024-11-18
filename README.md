@@ -1,9 +1,8 @@
 # rwpspread
 
-[![GitHub Release](https://img.shields.io/github/v/release/0xk1f0/rwpspread?color=blue)](https://github.com/0xk1f0/rwpspread/releases/latest) 
-[![Crates.io Release](https://img.shields.io/crates/v/rwpspread?color=orange)](https://crates.io/crates/rwpspread)
-[![AUR](https://img.shields.io/aur/version/rwpspread?label=AUR%20rwpspread)](https://aur.archlinux.org/packages/rwpspread) 
-[![AUR](https://img.shields.io/aur/version/rwpspread-git?label=AUR%20rwpspread-git)](https://aur.archlinux.org/packages/rwpspread-git)
+[![GitHub Release](https://img.shields.io/github/v/release/0xk1f0/rwpspread?style=for-the-badge&color=blue)](https://github.com/0xk1f0/rwpspread/releases/latest) 
+[![Crates.io Release](https://img.shields.io/crates/v/rwpspread?style=for-the-badge&color=orange)](https://crates.io/crates/rwpspread)
+[![AUR](https://img.shields.io/aur/version/rwpspread?style=for-the-badge&color=1793D1)](https://aur.archlinux.org/packages/rwpspread) 
 
 Wallpaper Utility written in Rust
 
@@ -22,7 +21,7 @@ Wallpaper Utility written in Rust
 
 ## Installing
 
-[![Arch Linux](https://img.shields.io/badge/Arch_Linux-via_AUR-grey?style=for-the-badge&logo=arch-linux&logoColor=white&labelColor=1793D1)](https://aur.archlinux.org/packages/rwpspread)
+[![Arch Linux](https://img.shields.io/badge/Arch_Linux-via_AUR-grey?style=for-the-badge&logo=arch-linux&color=1793D1)](https://aur.archlinux.org/packages/rwpspread)
 
 ```bash
 # stable
@@ -31,7 +30,7 @@ paru -S rwpspread
 paru -S rwpspread-git
 ```
 
-[![Nix](https://img.shields.io/badge/nix-via%20nixpkgs-grey?style=for-the-badge&logo=Nixos&logoColor=white&labelColor=5277C3)](https://search.nixos.org/packages?query=rwpspread)
+[![Nix](https://img.shields.io/badge/nix-via%20nixpkgs-grey?style=for-the-badge&logo=Nixos&color=5277C3)](https://search.nixos.org/packages?query=rwpspread)
 
 ```bash
 # try it out
@@ -40,6 +39,13 @@ nix run nixpkgs#rwpspread
 pkgs.rwpspread
 # master
 take `rwpspread` from this repos flake directly.
+```
+
+[![Crates.io](https://img.shields.io/badge/crates.io-via_cargo-grey?style=for-the-badge&logo=rust&color=FFC933)](https://crates.io/crates/rwpspread)
+
+```bash
+# globally
+cargo install rwpspread
 ```
 
 ## Building
