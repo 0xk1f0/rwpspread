@@ -6,7 +6,9 @@ authors = ["0xk1f0"]
 description = "Multi-Monitor Wallpaper Utility"
 readme = "README.md"
 repository = "https://github.com/0xk1f0/rwpspread"
+homepage = "https://github.com/0xk1f0/rwpspread"
 license = "GPL-3.0-only"
+exclude = [".github/", "flake*"]
 
 [dependencies]
 clap = { version = "4.5.21", features = ["derive"] }

@@ -5,6 +5,7 @@ on:
     branches: [ "master" ]
     paths:
       - 'src/**'
+      - '.github/workflows/build_x86.yaml'
       - 'build.rs'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -12,6 +13,7 @@ on:
     branches: [ "master" ]
     paths:
       - 'src/**'
+      - '.github/workflows/build_x86.yaml'
       - 'build.rs'
       - 'Cargo.toml'
       - 'Cargo.lock'
