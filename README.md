@@ -4,7 +4,7 @@
 [![Crates.io Release](https://img.shields.io/crates/v/rwpspread?style=for-the-badge&color=orange)](https://crates.io/crates/rwpspread)
 [![AUR](https://img.shields.io/aur/version/rwpspread?style=for-the-badge&color=1793D1)](https://aur.archlinux.org/packages/rwpspread) 
 
-Wallpaper Utility written in Rust
+Multi-Monitor Wallpaper Spanning Utility
 
 ## Features
 
