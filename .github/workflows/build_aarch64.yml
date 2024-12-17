@@ -32,13 +32,14 @@ jobs:
           sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
           rustup target add aarch64-unknown-linux-gnu
           RUSTFLAGS="-C target-feature=+crt-static -C linker=aarch64-linux-gnu-gcc" cargo build --target=aarch64-unknown-linux-gnu --release --verbose
-      - name: Generate Checksums
+      - name: Move and generate checksums
         run: |
-          sha512sum target/aarch64-unknown-linux-gnu/release/rwpspread > target/aarch64-unknown-linux-gnu/release/rwpspread.sha512sum
+          mv target/aarch64-unknown-linux-gnu/release/rwpspread ./rwpspread-aarch64-unknown-linux-gnu
+          sha512sum ./rwpspread-aarch64-unknown-linux-gnu > ./rwpspread-aarch64-unknown-linux-gnu.sha512sum
       - name: Upload release files
         uses: actions/upload-artifact@v4
         with:
           name: rwpspread-aarch64
           path: |
-            target/aarch64-unknown-linux-gnu/release/rwpspread
-            target/aarch64-unknown-linux-gnu/release/rwpspread.sha512sum
+            rwpspread-aarch64-unknown-linux-gnu
+            rwpspread-aarch64-unknown-linux-gnu.sha512sum
