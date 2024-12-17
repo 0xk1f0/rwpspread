@@ -233,25 +233,6 @@ And try again.
 
 If this doesn't fix your issue, feel free to open a PR and I'll look into it when I find the time.
 
-## Checklist
-
-- [x] splitting for dual screen layout
-- [x] splitting for any screen layout (two or more screens)
-- [x] Hyprland/wlroots Integration
-- [x] wpaperd Integration
-- [x] wallpaper caching (don't resplit if we don't need to)
-- [x] color palette generation from wallpaper
-- [x] watchdog auto-resplit on output change
-- [x] center if wallpaper is big enough
-- [x] `swaylock` integration
-- [x] parallel image processing
-- [x] more alignment options if wallpaper is big enough
-- [x] palette generation rework (broken in some cases)
-- [x] `swaybg` integration
-- [x] `hyprpaper` integration
-- [x] `hyprlock` integration
-- [ ] monitor bezel compensation
-
 ## Credits and Thanks
 
 - [fsnkty](https://github.com/fsnkty) - Nix Package Maintainer
@@ -261,3 +242,4 @@ If this doesn't fix your issue, feel free to open a PR and I'll look into it whe
 - [swaybg](https://github.com/swaywm/swaybg) - Wallpaper Utility
 - [hyprpaper](https://github.com/hyprwm/hyprpaper) - Hypr Wallpaper Daemon
 - [hyprlock](https://github.com/hyprwm/hyprlock) - Hypr Screen Locker
+- [material-colors](https://github.com/Aiving/material-colors) - Material Color Generation

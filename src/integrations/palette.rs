@@ -1,16 +1,26 @@
 use image::{GenericImageView, Rgba};
+use material_colors::theme::Schemes as MaterialSchemes;
+use material_colors::{color::Argb, theme::ThemeBuilder};
 use serde::Serialize;
-use serde_json::{to_writer_pretty, Map, Value};
+use serde_json::{to_writer_pretty as json_to_file, Map, Value};
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 #[derive(Serialize)]
-struct PaletteFormat {
+struct FileFormat {
     wallpaper: String,
     foreground: String,
     background: String,
     colors: Map<String, Value>,
+    material: MaterialPalettes,
+}
+
+#[derive(Serialize)]
+struct MaterialPalettes {
+    dark: Map<String, Value>,
+    light: Map<String, Value>,
 }
 
 #[derive(Serialize)]
@@ -23,6 +33,7 @@ pub struct Palette {
     path: String,
     pixels: Vec<Rgba<u8>>,
     colors: Vec<ColorData>,
+    schemes: Option<MaterialSchemes>,
 }
 
 impl Palette {
@@ -32,6 +43,7 @@ impl Palette {
             path: image_path.to_string_lossy().to_string(),
             pixels,
             colors: Vec::with_capacity(16),
+            schemes: None,
         })
     }
 
@@ -108,7 +120,58 @@ impl Palette {
         )
     }
 
-    pub fn generate_mostused(mut self, save_path: &String) -> Result<(), String> {
+    fn to_json(self, path: String) -> Result<(), String> {
+        // define a map for each color scheme
+        let (mut luminance_colors, mut material_dark_colors, mut material_light_colors) =
+            (Map::new(), Map::new(), Map::new());
+
+        // first extract our own luminance based colors
+        for color in &self.colors {
+            luminance_colors.insert(
+                format!("color{}", color.index),
+                Value::String((*color.color).to_string()),
+            );
+        }
+
+        // extract the color schemes from the material colors generator
+        if let Some(palletes) = self.schemes {
+            for (dark_color, light_color) in
+                palletes.dark.into_iter().zip(palletes.light.into_iter())
+            {
+                material_dark_colors.insert(
+                    format!("color{}", dark_color.0.split("_").collect::<String>()),
+                    Value::String((dark_color.1.to_string()).to_string()),
+                );
+                material_light_colors.insert(
+                    format!("color{}", light_color.0.split("_").collect::<String>()),
+                    Value::String((light_color.1.to_string()).to_string()),
+                );
+            }
+        }
+
+        // pipe everything into the palette format struct
+        let json_output = FileFormat {
+            wallpaper: self.path,
+            foreground: (*self.colors.last().expect("Palette Error").color).to_string(),
+            background: (*self.colors.first().expect("Palette Error").color).to_string(),
+            colors: luminance_colors,
+            material: MaterialPalettes {
+                dark: material_dark_colors,
+                light: material_light_colors,
+            },
+        };
+
+        // write to output file
+        json_to_file(
+            File::create(format!("{}/rwps_colors.json", path)).map_err(|err| err.to_string())?,
+            &json_output,
+        )
+        .map_err(|err| err.to_string())?;
+
+        Ok(())
+    }
+
+    pub fn generate(mut self, save_path: &String) -> Result<(), String> {
         // define 16 luminance sections
         let luminance_boundaries = [
             0.0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.6875,
@@ -124,6 +187,22 @@ impl Palette {
         // sort by color frequency
         let mut count_vec: Vec<(Rgba<u8>, usize)> = color_map.into_iter().collect();
         count_vec.sort_by(|a, b| b.1.cmp(&a.1));
+
+        // extract most used and feed to material generator
+        // only runs if we have a most frequent color
+        if let Some(entry) = count_vec.first() {
+            self.schemes = Some(
+                ThemeBuilder::with_source(
+                    Argb::from_str(&format!(
+                        "#{:02X}{:02X}{:02X}",
+                        entry.0[0], entry.0[1], entry.0[2]
+                    ))
+                    .map_err(|err| err.to_string())?,
+                )
+                .build()
+                .schemes,
+            );
+        };
 
         // append them by checking their luminance
         // and keep track of last color
@@ -164,33 +243,8 @@ impl Palette {
             })
             .count();
 
-        // save to json
+        // process and save to json
         self.to_json(save_path.to_string()).map_err(|err| err)?;
-
-        // done
-        Ok(())
-    }
-
-    fn to_json(self, path: String) -> Result<(), String> {
-        let mut color_map = Map::new();
-
-        for color in &self.colors {
-            color_map.insert(
-                format!("color{}", color.index),
-                Value::String((*color.color).to_string()),
-            );
-        }
-
-        let json_output = PaletteFormat {
-            wallpaper: self.path,
-            foreground: (*self.colors.last().expect("Palette Error").color).to_string(),
-            background: (*self.colors.first().expect("Palette Error").color).to_string(),
-            colors: color_map,
-        };
-
-        let file =
-            File::create(format!("{}/rwps_colors.json", path)).map_err(|err| err.to_string())?;
-        to_writer_pretty(file, &json_output).map_err(|err| err.to_string())?;
 
         Ok(())
     }

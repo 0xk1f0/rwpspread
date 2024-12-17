@@ -193,7 +193,7 @@ impl Worker {
         if config.palette && !caches_present || config.force_resplit {
             let color_palette = Palette::new(&target_image).map_err(|err| err)?;
             color_palette
-                .generate_mostused(&self.save_location)
+                .generate(&self.save_location)
                 .map_err(|err| err)?;
         }
 
