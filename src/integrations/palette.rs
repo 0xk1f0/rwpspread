@@ -38,7 +38,7 @@ pub struct Palette {
 
 impl Palette {
     pub fn new(image_path: &PathBuf) -> Result<Self, String> {
-        let pixels = Palette::extract_rgba_pixels(image_path).map_err(|err| err)?;
+        let pixels = Palette::extract_rgba_pixels(image_path)?;
         Ok(Self {
             path: image_path.to_string_lossy().to_string(),
             pixels,
@@ -244,7 +244,7 @@ impl Palette {
             .count();
 
         // process and save to json
-        self.to_json(save_path.to_string()).map_err(|err| err)?;
+        self.to_json(save_path.to_string())?;
 
         Ok(())
     }

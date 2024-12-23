@@ -11,13 +11,13 @@ use worker::Worker;
 
 fn run() -> Result<String, String> {
     // create new config
-    let worker_config = Config::new().map_err(|err| err)?;
+    let worker_config = Config::new()?;
 
     // connect to wayland
-    let mut mon_conn = MonitorConfig::new().map_err(|err| err)?;
+    let mut mon_conn = MonitorConfig::new()?;
 
     // get monitor info
-    let mon_config = mon_conn.run().map_err(|err| err)?;
+    let mon_config = mon_conn.run()?;
 
     // check for backends if applicable
     if worker_config.is_none() {
@@ -50,18 +50,18 @@ fn run() -> Result<String, String> {
     let mut worker = Worker::new();
 
     // perform split
-    worker.run(&ready_config, mon_config).map_err(|err| err)?;
+    worker.run(&ready_config, mon_config)?;
 
     // check for watchdog bool
     if ready_config.daemon == true {
         loop {
             // roundtrip eventhandler and check result
-            let needs_recalc = mon_conn.refresh().map_err(|err| err)?;
+            let needs_recalc = mon_conn.refresh()?;
             if needs_recalc {
                 // redetect screens
-                let mon_config = mon_conn.run().map_err(|err| err)?;
+                let mon_config = mon_conn.run()?;
                 // rerun splitter
-                worker.run(&ready_config, mon_config).map_err(|err| err)?;
+                worker.run(&ready_config, mon_config)?;
             }
         }
     }

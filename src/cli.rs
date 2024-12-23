@@ -143,15 +143,13 @@ impl Config {
         }
 
         // get valid input path
-        let input_path = Config::to_valid_path(&args.init_group.image.unwrap(), false, false)
-            .map_err(|err| err)?;
+        let input_path = Config::to_valid_path(&args.init_group.image.unwrap(), false, false)?;
 
         // get valid output directory
         let outdir_path: Option<String>;
         if args.output.is_some() {
             // convert to string since we expect one
-            let raw_path =
-                Config::to_valid_path(&args.output.unwrap(), false, true).map_err(|err| err)?;
+            let raw_path = Config::to_valid_path(&args.output.unwrap(), false, true)?;
             outdir_path = Some(raw_path.to_string_lossy().trim_end_matches('/').to_string());
         } else {
             // no explicit path specified
@@ -162,8 +160,7 @@ impl Config {
         let pre_path: Option<String>;
         if args.pre.is_some() {
             pre_path = Some(
-                Config::to_valid_path(&args.pre.unwrap(), true, false)
-                    .map_err(|err| err)?
+                Config::to_valid_path(&args.pre.unwrap(), true, false)?
                     .to_string_lossy()
                     .to_string(),
             );
@@ -173,8 +170,7 @@ impl Config {
         let post_path: Option<String>;
         if args.post.is_some() {
             post_path = Some(
-                Config::to_valid_path(&args.post.unwrap(), true, false)
-                    .map_err(|err| err)?
+                Config::to_valid_path(&args.post.unwrap(), true, false)?
                     .to_string_lossy()
                     .to_string(),
             );

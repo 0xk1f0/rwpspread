@@ -41,7 +41,7 @@ impl Worker {
     pub fn run(&mut self, config: &Config, mon_vec: Vec<Monitor>) -> Result<(), String> {
         // pre run script check
         if config.pre_path.is_some() {
-            helpers::run_oneshot(&config.pre_path.as_ref().unwrap()).map_err(|err| err)?;
+            helpers::run_oneshot(&config.pre_path.as_ref().unwrap())?;
         }
 
         // check input image type
@@ -49,9 +49,7 @@ impl Worker {
         // unwrap is safe here since we checked the path previously
         if fs::metadata(&config.input_path).unwrap().is_dir() {
             // image is random from directory
-            target_image = self
-                .select_random_image(&config.input_path)
-                .map_err(|err| err)?;
+            target_image = self.select_random_image(&config.input_path)?;
         } else {
             // image is actual input
             target_image = config.input_path.to_owned();
@@ -68,8 +66,7 @@ impl Worker {
             self.save_location = config.outdir_path.as_ref().unwrap().to_owned();
         } else if config.daemon || config.backend.is_some() {
             self.save_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
-            self.ensure_save_location(&self.save_location)
-                .map_err(|err| err)?;
+            self.ensure_save_location(&self.save_location)?;
         } else {
             self.save_location = env::var("PWD").unwrap();
         }
@@ -87,12 +84,10 @@ impl Worker {
         // do we need to resplit
         if config.force_resplit || !caches_present {
             // cleanup caches first
-            self.cleanup_cache().map_err(|err| err)?;
+            self.cleanup_cache()?;
 
             // we need to resplit
-            self.result_papers = self
-                .perform_split(img, config, &self.save_location)
-                .map_err(|err| err)?;
+            self.result_papers = self.perform_split(img, config, &self.save_location)?;
         }
 
         // check if we need to handle a backend
@@ -102,16 +97,14 @@ impl Worker {
                 Backend::Wpaperd => {
                     // set and ensure config location
                     let config_location = format!("{}/.config/wpaperd", env::var("HOME").unwrap());
-                    self.ensure_save_location(&config_location)
-                        .map_err(|err| err)?;
+                    self.ensure_save_location(&config_location)?;
 
                     // create new wpaperd instance
                     let wpaperd = Wpaperd::new(
                         target_image.to_string_lossy().to_string(),
                         self.hash.clone(),
                         config_location + "/config.toml",
-                    )
-                    .map_err(|err| err)?;
+                    )?;
 
                     // check wpaper config hash
                     let wpaperd_present = wpaperd.check_existing();
@@ -120,20 +113,20 @@ impl Worker {
                     // also always rebuild when force resplit was set
                     if config.force_resplit || !wpaperd_present {
                         // yes we do
-                        wpaperd.build(&self.result_papers).map_err(|err| err)?;
+                        wpaperd.build(&self.result_papers)?;
                         // restart
-                        helpers::force_restart("wpaperd", vec![]).map_err(|err| err)?;
+                        helpers::force_restart("wpaperd", vec![])?;
                     } else {
                         // only start if we're not running already
-                        helpers::soft_restart("wpaperd", vec![]).map_err(|err| err)?;
+                        helpers::soft_restart("wpaperd", vec![])?;
                     }
                 }
                 Backend::Swaybg => {
                     // start or restart the swaybg instance
                     // considering present caches
                     if config.force_resplit || !caches_present {
-                        let swaybg_args = swaybg::new(&self.result_papers).map_err(|err| err)?;
-                        helpers::force_restart("swaybg", swaybg_args).map_err(|err| err)?;
+                        let swaybg_args = swaybg::new(&self.result_papers)?;
+                        helpers::force_restart("swaybg", swaybg_args)?;
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
                         for monitor in &self.monitors {
@@ -145,15 +138,15 @@ impl Worker {
                                 ),
                             })
                         }
-                        let swaybg_args = swaybg::new(&self.result_papers).map_err(|err| err)?;
-                        helpers::soft_restart("swaybg", swaybg_args).map_err(|err| err)?;
+                        let swaybg_args = swaybg::new(&self.result_papers)?;
+                        helpers::soft_restart("swaybg", swaybg_args)?;
                     }
                 }
                 Backend::Hyprpaper => {
                     // first soft restart
-                    helpers::soft_restart("hyprpaper", vec![]).map_err(|err| err)?;
+                    helpers::soft_restart("hyprpaper", vec![])?;
                     if config.force_resplit || !caches_present {
-                        hyprpaper::push(&self.result_papers).map_err(|err| err)?;
+                        hyprpaper::push(&self.result_papers)?;
                     } else {
                         // hyprpaper also loads dynamically, so we need to manually assemble
                         for monitor in &self.monitors {
@@ -165,7 +158,7 @@ impl Worker {
                                 ),
                             })
                         }
-                        hyprpaper::push(&self.result_papers).map_err(|err| err)?;
+                        hyprpaper::push(&self.result_papers)?;
                     }
                 }
             }
@@ -176,14 +169,12 @@ impl Worker {
             match config.locker.as_ref().unwrap() {
                 Locker::Hyprlock => {
                     if !caches_present || config.force_resplit {
-                        hyprlock::generate(&self.result_papers, &self.save_location)
-                            .map_err(|err| err)?;
+                        hyprlock::generate(&self.result_papers, &self.save_location)?;
                     }
                 }
                 Locker::Swaylock => {
                     if !caches_present || config.force_resplit {
-                        swaylock::generate(&self.result_papers, &self.save_location)
-                            .map_err(|err| err)?;
+                        swaylock::generate(&self.result_papers, &self.save_location)?;
                     }
                 }
             }
@@ -191,15 +182,13 @@ impl Worker {
 
         // check for palette bool
         if config.palette && !caches_present || config.force_resplit {
-            let color_palette = Palette::new(&target_image).map_err(|err| err)?;
-            color_palette
-                .generate(&self.save_location)
-                .map_err(|err| err)?;
+            let color_palette = Palette::new(&target_image)?;
+            color_palette.generate(&self.save_location)?;
         }
 
         // post run script check
         if config.post_path.is_some() {
-            helpers::run_oneshot(&config.post_path.as_ref().unwrap()).map_err(|err| err)?;
+            helpers::run_oneshot(&config.post_path.as_ref().unwrap())?;
         }
 
         // return
