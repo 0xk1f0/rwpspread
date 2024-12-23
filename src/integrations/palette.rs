@@ -139,11 +139,11 @@ impl Palette {
                 palletes.dark.into_iter().zip(palletes.light.into_iter())
             {
                 material_dark_colors.insert(
-                    format!("color{}", dark_color.0.split("_").collect::<String>()),
+                    dark_color.0.split("_").collect::<String>(),
                     Value::String((dark_color.1.to_string()).to_string()),
                 );
                 material_light_colors.insert(
-                    format!("color{}", light_color.0.split("_").collect::<String>()),
+                    light_color.0.split("_").collect::<String>(),
                     Value::String((light_color.1.to_string()).to_string()),
                 );
             }
