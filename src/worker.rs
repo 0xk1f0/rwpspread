@@ -206,7 +206,6 @@ impl Worker {
     ) -> Result<Vec<Monitor>, String> {
         // check for touching displays
         let mut some_touching: bool = true;
-
         // iterate while we have something left to adjust
         while some_touching {
             some_touching = false;
@@ -220,22 +219,22 @@ impl Worker {
                             some_touching = true;
                             match colission {
                                 Direction::Up => {
-                                    if !monitor.collides_at(Direction::Down, node) {
+                                    if !monitor.collides_at(&Direction::Down, node) {
                                         monitor.y += shift_amount;
                                     }
                                 }
                                 Direction::Down => {
-                                    if !monitor.collides_at(Direction::Up, node) {
+                                    if !monitor.collides_at(&Direction::Up, node) {
                                         monitor.y -= shift_amount;
                                     }
                                 }
                                 Direction::Left => {
-                                    if !monitor.collides_at(Direction::Right, node) {
+                                    if !monitor.collides_at(&Direction::Right, node) {
                                         monitor.x += shift_amount;
                                     }
                                 }
                                 Direction::Right => {
-                                    if !monitor.collides_at(Direction::Left, node) {
+                                    if !monitor.collides_at(&Direction::Left, node) {
                                         monitor.x -= shift_amount;
                                     }
                                 }

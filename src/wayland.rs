@@ -32,36 +32,7 @@ pub struct Monitor {
 }
 
 impl Monitor {
-    pub fn collides(&self, neighbor: &Monitor) -> Option<Direction> {
-        if (self.x == neighbor.x + neighbor.width as i32)
-            && (self.y >= neighbor.y && self.y <= neighbor.y + neighbor.height as i32
-                || self.y + self.height as i32 >= neighbor.y
-                    && self.y <= neighbor.y + neighbor.height as i32)
-        {
-            Some(Direction::Left)
-        } else if (self.x + self.width as i32 == neighbor.x)
-            && (self.y >= neighbor.y && self.y <= neighbor.y + neighbor.height as i32
-                || self.y + self.height as i32 >= neighbor.y
-                    && self.y <= neighbor.y + neighbor.height as i32)
-        {
-            Some(Direction::Right)
-        } else if (self.y == neighbor.y + neighbor.height as i32)
-            && (self.x >= neighbor.x && self.x <= neighbor.x + neighbor.width as i32
-                || self.x + self.width as i32 >= neighbor.x
-                    && self.x <= neighbor.x + neighbor.width as i32)
-        {
-            Some(Direction::Up)
-        } else if (self.y + self.height as i32 == neighbor.x)
-            && (self.x >= neighbor.x && self.x <= neighbor.x + neighbor.width as i32
-                || self.x + self.width as i32 >= neighbor.x
-                    && self.x <= neighbor.x + neighbor.width as i32)
-        {
-            Some(Direction::Down)
-        } else {
-            None
-        }
-    }
-    pub fn collides_at(&self, direction: Direction, neighbor: &Monitor) -> bool {
+    pub fn collides_at(&self, direction: &Direction, neighbor: &Monitor) -> bool {
         match direction {
             Direction::Up => {
                 if (self.y == neighbor.y + neighbor.height as i32)
@@ -101,6 +72,22 @@ impl Monitor {
             }
         }
         false
+    }
+    pub fn collides(&self, neighbor: &Monitor) -> Option<&Direction> {
+        [
+            Direction::Up,
+            Direction::Down,
+            Direction::Left,
+            Direction::Right,
+        ]
+        .iter()
+        .find(|&possible_direction| {
+            if self.collides_at(possible_direction, neighbor) {
+                true
+            } else {
+                false
+            }
+        })
     }
 }
 
