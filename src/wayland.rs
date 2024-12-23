@@ -9,19 +9,99 @@ use smithay_client_toolkit::{
 };
 use std::fmt;
 
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
 struct ListOutputs {
     registry_state: RegistryState,
     output_state: OutputState,
     needs_recalc: bool,
 }
 
-#[derive(Hash)]
+#[derive(Hash, Clone)]
 pub struct Monitor {
     pub name: String,
     pub width: u32,
     pub height: u32,
     pub x: i32,
     pub y: i32,
+}
+
+impl Monitor {
+    pub fn collides(&self, neighbor: &Monitor) -> Option<Direction> {
+        if (self.x == neighbor.x + neighbor.width as i32)
+            && (self.y >= neighbor.y && self.y <= neighbor.y + neighbor.height as i32
+                || self.y + self.height as i32 >= neighbor.y
+                    && self.y <= neighbor.y + neighbor.height as i32)
+        {
+            Some(Direction::Left)
+        } else if (self.x + self.width as i32 == neighbor.x)
+            && (self.y >= neighbor.y && self.y <= neighbor.y + neighbor.height as i32
+                || self.y + self.height as i32 >= neighbor.y
+                    && self.y <= neighbor.y + neighbor.height as i32)
+        {
+            Some(Direction::Right)
+        } else if (self.y == neighbor.y + neighbor.height as i32)
+            && (self.x >= neighbor.x && self.x <= neighbor.x + neighbor.width as i32
+                || self.x + self.width as i32 >= neighbor.x
+                    && self.x <= neighbor.x + neighbor.width as i32)
+        {
+            Some(Direction::Up)
+        } else if (self.y + self.height as i32 == neighbor.x)
+            && (self.x >= neighbor.x && self.x <= neighbor.x + neighbor.width as i32
+                || self.x + self.width as i32 >= neighbor.x
+                    && self.x <= neighbor.x + neighbor.width as i32)
+        {
+            Some(Direction::Down)
+        } else {
+            None
+        }
+    }
+    pub fn collides_at(&self, direction: Direction, neighbor: &Monitor) -> bool {
+        match direction {
+            Direction::Up => {
+                if (self.y == neighbor.y + neighbor.height as i32)
+                    && (self.x >= neighbor.x && self.x <= neighbor.x + neighbor.width as i32
+                        || self.x + self.width as i32 >= neighbor.x
+                            && self.x <= neighbor.x + neighbor.width as i32)
+                {
+                    return true;
+                }
+            }
+            Direction::Down => {
+                if (self.y + self.height as i32 == neighbor.x)
+                    && (self.x >= neighbor.x && self.x <= neighbor.x + neighbor.width as i32
+                        || self.x + self.width as i32 >= neighbor.x
+                            && self.x <= neighbor.x + neighbor.width as i32)
+                {
+                    return true;
+                }
+            }
+            Direction::Left => {
+                if (self.x == neighbor.x + neighbor.width as i32)
+                    && (self.y >= neighbor.y && self.y <= neighbor.y + neighbor.height as i32
+                        || self.y + self.height as i32 >= neighbor.y
+                            && self.y <= neighbor.y + neighbor.height as i32)
+                {
+                    return true;
+                }
+            }
+            Direction::Right => {
+                if (self.x + self.width as i32 == neighbor.x)
+                    && (self.y >= neighbor.y && self.y <= neighbor.y + neighbor.height as i32
+                        || self.y + self.height as i32 >= neighbor.y
+                            && self.y <= neighbor.y + neighbor.height as i32)
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
 }
 
 impl fmt::Display for Monitor {

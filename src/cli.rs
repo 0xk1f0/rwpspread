@@ -95,6 +95,10 @@ struct Args {
     #[arg(short, long, value_enum)]
     locker: Option<Locker>,
 
+    /// Compensate for bezel amount in pixels
+    #[arg(short, long, value_enum)]
+    compensate: Option<u32>,
+
     /// Enable daemon mode and resplit on output changes
     #[arg(short, long)]
     daemon: bool,
@@ -122,6 +126,7 @@ pub struct Config {
     pub outdir_path: Option<String>,
     pub backend: Option<Backend>,
     pub locker: Option<Locker>,
+    pub compensate: Option<u32>,
     pub daemon: bool,
     pub palette: bool,
     pub force_resplit: bool,
@@ -188,6 +193,7 @@ impl Config {
             align: args.align,
             backend: args.backend,
             locker: args.locker,
+            compensate: args.compensate,
             daemon: args.daemon,
             palette: args.palette,
             force_resplit: args.force_resplit,

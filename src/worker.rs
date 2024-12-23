@@ -2,7 +2,7 @@ use crate::cli::{Alignment, Backend, Config, Locker};
 use crate::integrations::palette::Palette;
 use crate::integrations::wpaperd::Wpaperd;
 use crate::integrations::{helpers, hyprlock, hyprpaper, swaybg, swaylock};
-use crate::wayland::Monitor;
+use crate::wayland::{Direction, Monitor};
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
 use rand::seq::SliceRandom;
@@ -59,7 +59,11 @@ impl Worker {
         let img = image::open(&target_image).map_err(|_| "failed to open image")?;
 
         // set monitors
-        self.monitors = mon_vec;
+        if let Some(pixels) = config.compensate {
+            self.monitors = self.bezel_compensate(mon_vec, pixels as i32)?;
+        } else {
+            self.monitors = mon_vec;
+        }
 
         // set cache location
         if config.outdir_path.is_some() {
@@ -193,6 +197,55 @@ impl Worker {
 
         // return
         Ok(())
+    }
+
+    fn bezel_compensate(
+        &self,
+        mut input_monitors: Vec<Monitor>,
+        shift_amount: i32,
+    ) -> Result<Vec<Monitor>, String> {
+        // check for touching displays
+        let mut some_touching: bool = true;
+
+        // iterate while we have something left to adjust
+        while some_touching {
+            some_touching = false;
+            // create a copy to use as lookup
+            let lookup_monitors = input_monitors.clone();
+            input_monitors.iter_mut().for_each(|monitor| {
+                lookup_monitors.iter().find(|&node| {
+                    if let Some(colission) = monitor.collides(node) {
+                        some_touching = true;
+                        match colission {
+                            Direction::Up => {
+                                if !monitor.collides_at(Direction::Down, node) {
+                                    monitor.y += shift_amount;
+                                }
+                            }
+                            Direction::Down => {
+                                if !monitor.collides_at(Direction::Up, node) {
+                                    monitor.y -= shift_amount;
+                                }
+                            }
+                            Direction::Left => {
+                                if !monitor.collides_at(Direction::Right, node) {
+                                    monitor.x += shift_amount;
+                                }
+                            }
+                            Direction::Right => {
+                                if !monitor.collides_at(Direction::Left, node) {
+                                    monitor.x -= shift_amount;
+                                }
+                            }
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                });
+            });
+        }
+        Ok(input_monitors)
     }
 
     // do the actual splitting
