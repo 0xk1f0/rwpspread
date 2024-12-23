@@ -21,7 +21,7 @@ rand = { version = "0.8.5", default-features = false, features = [
 ] }
 rayon = "1.10.0"
 serde = { version = "1.0.216", features = ["derive"] }
-serde_json = "1.0.133"
+serde_json = "1.0.134"
 smithay-client-toolkit = { version = "0.19.2", default-features = false, features = [
     "calloop",
 ] }
@@ -30,7 +30,7 @@ material-colors = { version = "0.4.2", default-features = false, features = ["st
 
 [build-dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
-clap_complete = "4.5.38"
+clap_complete = "4.5.40"
 clap_mangen = "0.2.24"
 serde = { version = "1.0.216", features = ["derive"] }
 
