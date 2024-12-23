@@ -212,37 +212,40 @@ impl Worker {
             some_touching = false;
             // create a copy to use as lookup
             let lookup_monitors = input_monitors.clone();
-            input_monitors.iter_mut().for_each(|monitor| {
-                lookup_monitors.iter().find(|&node| {
-                    if let Some(colission) = monitor.collides(node) {
-                        some_touching = true;
-                        match colission {
-                            Direction::Up => {
-                                if !monitor.collides_at(Direction::Down, node) {
-                                    monitor.y += shift_amount;
+            input_monitors.iter_mut().any(|monitor| {
+                lookup_monitors
+                    .iter()
+                    .find(|&node| {
+                        if let Some(colission) = monitor.collides(node) {
+                            some_touching = true;
+                            match colission {
+                                Direction::Up => {
+                                    if !monitor.collides_at(Direction::Down, node) {
+                                        monitor.y += shift_amount;
+                                    }
+                                }
+                                Direction::Down => {
+                                    if !monitor.collides_at(Direction::Up, node) {
+                                        monitor.y -= shift_amount;
+                                    }
+                                }
+                                Direction::Left => {
+                                    if !monitor.collides_at(Direction::Right, node) {
+                                        monitor.x += shift_amount;
+                                    }
+                                }
+                                Direction::Right => {
+                                    if !monitor.collides_at(Direction::Left, node) {
+                                        monitor.x -= shift_amount;
+                                    }
                                 }
                             }
-                            Direction::Down => {
-                                if !monitor.collides_at(Direction::Up, node) {
-                                    monitor.y -= shift_amount;
-                                }
-                            }
-                            Direction::Left => {
-                                if !monitor.collides_at(Direction::Right, node) {
-                                    monitor.x += shift_amount;
-                                }
-                            }
-                            Direction::Right => {
-                                if !monitor.collides_at(Direction::Left, node) {
-                                    monitor.x -= shift_amount;
-                                }
-                            }
+                            true
+                        } else {
+                            false
                         }
-                        true
-                    } else {
-                        false
-                    }
-                });
+                    })
+                    .is_some()
             });
         }
         Ok(input_monitors)
