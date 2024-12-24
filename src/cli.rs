@@ -13,7 +13,7 @@ pub enum Alignment {
     Bc, // Bottom-Centered
     Rc, // Right-Centered
     Lc, // Left-Centered
-    C,  // Centered
+    Ct, // Centered
 }
 
 // locker enumerator
@@ -123,7 +123,7 @@ struct Args {
 #[derive(Hash)]
 pub struct Config {
     pub input_path: PathBuf,
-    pub outdir_path: Option<String>,
+    pub output_path: Option<String>,
     pub backend: Option<Backend>,
     pub locker: Option<Locker>,
     pub compensate: Option<u32>,
@@ -140,7 +140,7 @@ pub struct Config {
 impl Config {
     pub fn new() -> Result<Option<Self>, String> {
         // handle args
-        let args = Args::parse();
+        let mut args = Args::parse();
 
         // check for early exit due to info passage
         if args.init_group.image.is_none() && args.init_group.info {
@@ -151,45 +151,43 @@ impl Config {
         let input_path = Config::to_valid_path(&args.init_group.image.unwrap(), false, false)?;
 
         // get valid output directory
-        let outdir_path: Option<String>;
-        if args.output.is_some() {
+        if let Some(output_path) = args.output {
             // convert to string since we expect one
-            let raw_path = Config::to_valid_path(&args.output.unwrap(), false, true)?;
-            outdir_path = Some(raw_path.to_string_lossy().trim_end_matches('/').to_string());
+            args.output = Some(
+                Config::to_valid_path(&output_path, false, true)?
+                    .to_string_lossy()
+                    .trim_end_matches('/')
+                    .to_string(),
+            );
         } else {
             // no explicit path specified
-            outdir_path = None
+            args.output = None
         }
 
         // check for scripts
-        let pre_path: Option<String>;
-        if args.pre.is_some() {
-            pre_path = Some(
-                Config::to_valid_path(&args.pre.unwrap(), true, false)?
+        if let Some(pre_script_path) = args.pre {
+            args.pre = Some(
+                Config::to_valid_path(&pre_script_path, true, false)?
                     .to_string_lossy()
                     .to_string(),
             );
         } else {
-            pre_path = None;
+            args.pre = None;
         }
-        let post_path: Option<String>;
-        if args.post.is_some() {
-            post_path = Some(
-                Config::to_valid_path(&args.post.unwrap(), true, false)?
+
+        if let Some(post_script_path) = args.post {
+            args.post = Some(
+                Config::to_valid_path(&post_script_path, true, false)?
                     .to_string_lossy()
                     .to_string(),
             );
         } else {
-            post_path = None;
+            args.post = None;
         }
 
-        // get own version
-        let version: String = String::from(env!("CARGO_PKG_VERSION"));
-
-        // construct
         Ok(Some(Self {
             input_path,
-            outdir_path,
+            output_path: args.output,
             align: args.align,
             backend: args.backend,
             locker: args.locker,
@@ -198,12 +196,11 @@ impl Config {
             palette: args.palette,
             force_resplit: args.force_resplit,
             info: args.init_group.info,
-            pre_path,
-            post_path,
-            version,
+            pre_path: args.pre,
+            post_path: args.post,
+            version: String::from(env!("CARGO_PKG_VERSION")),
         }))
     }
-
     // check if target path is a symlink
     fn is_symlink(path: &Path) -> bool {
         if let Ok(metadata) = fs::symlink_metadata(path) {
@@ -212,7 +209,6 @@ impl Config {
             false
         }
     }
-
     // path checker when we need to extend from symlink
     fn extend_path(path: &Path) -> PathBuf {
         if Config::is_symlink(path) {
@@ -223,7 +219,6 @@ impl Config {
             path.to_path_buf()
         }
     }
-
     // check if path exists correctly and return if true
     fn to_valid_path(path: &String, file: bool, dir: bool) -> Result<PathBuf, String> {
         let path_buffer = Path::new(path);

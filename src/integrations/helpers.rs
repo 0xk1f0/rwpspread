@@ -75,5 +75,6 @@ pub fn is_installed(program: &str) -> bool {
             }
         }
     }
+
     false
 }

@@ -21,7 +21,6 @@ impl Wpaperd {
             config_path,
         })
     }
-
     // build new wpaperd config to file
     pub fn build(&self, wallpapers: &Vec<ResultPaper>) -> Result<(), String> {
         // Create a new config file
@@ -81,7 +80,6 @@ impl Wpaperd {
         // return
         Ok(())
     }
-
     // check for existing config
     pub fn check_existing(&self) -> bool {
         // Open the file

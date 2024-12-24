@@ -32,6 +32,7 @@ pub struct Monitor {
 }
 
 impl Monitor {
+    // check monitor collision for specific direction
     pub fn collides_at(&self, direction: &Direction, neighbor: &Monitor) -> bool {
         match direction {
             Direction::Up => {
@@ -71,8 +72,10 @@ impl Monitor {
                 }
             }
         }
+
         false
     }
+    // check monitor collision for all available directions
     pub fn collides(&self, neighbor: &Monitor) -> Option<&Direction> {
         [
             Direction::Up,
@@ -134,6 +137,7 @@ impl MonitorConfig {
             eq: event_queue,
         })
     }
+
     pub fn run(&mut self) -> Result<Vec<Monitor>, String> {
         // Initialize data
         self.eq
@@ -161,6 +165,7 @@ impl MonitorConfig {
 
         Ok(result)
     }
+
     pub fn refresh(&mut self) -> Result<bool, String> {
         // dispatch events
         self.eq
@@ -174,7 +179,6 @@ impl MonitorConfig {
             return Ok(true);
         }
 
-        // nothing to do
         Ok(false)
     }
 }

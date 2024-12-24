@@ -1,7 +1,8 @@
 use crate::cli::{Alignment, Backend, Config, Locker};
-use crate::integrations::palette::Palette;
-use crate::integrations::wpaperd::Wpaperd;
-use crate::integrations::{helpers, hyprlock, hyprpaper, swaybg, swaylock};
+use crate::integrations::{
+    helpers, hyprlock::Hyprlock, hyprpaper::Hyprpaper, palette::Palette, swaybg::Swaybg,
+    swaylock::Swaylock, wpaperd::Wpaperd,
+};
 use crate::wayland::{Direction, Monitor};
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
@@ -23,8 +24,8 @@ pub struct ResultPaper {
 pub struct Worker {
     hash: String,
     monitors: Vec<Monitor>,
-    save_location: String,
-    result_papers: Vec<ResultPaper>,
+    workdir: String,
+    output: Vec<ResultPaper>,
 }
 
 impl Worker {
@@ -32,16 +33,15 @@ impl Worker {
         Self {
             hash: String::new(),
             monitors: Vec::new(),
-            save_location: String::new(),
-            result_papers: Vec::new(),
+            workdir: String::new(),
+            output: Vec::new(),
         }
     }
-
     // split main image into two seperate, utilizes scaling
-    pub fn run(&mut self, config: &Config, mon_vec: Vec<Monitor>) -> Result<(), String> {
+    pub fn run(&mut self, config: &Config, input_monitors: Vec<Monitor>) -> Result<(), String> {
         // pre run script check
-        if config.pre_path.is_some() {
-            helpers::run_oneshot(&config.pre_path.as_ref().unwrap())?;
+        if let Some(pre_script_path) = &config.pre_path {
+            helpers::run_oneshot(pre_script_path)?;
         }
 
         // check input image type
@@ -58,29 +58,29 @@ impl Worker {
         // open original input image
         let img = image::open(&target_image).map_err(|_| "failed to open image")?;
 
-        // set monitors
-        if let Some(pixels) = config.compensate {
-            self.monitors = self.bezel_compensate(mon_vec, pixels as i32)?;
-        } else {
-            self.monitors = mon_vec;
-        }
-
-        // set cache location
-        if config.outdir_path.is_some() {
-            self.save_location = config.outdir_path.as_ref().unwrap().to_owned();
+        // set workdir location
+        if let Some(output_path) = &config.output_path {
+            self.workdir = output_path.to_owned();
         } else if config.daemon || config.backend.is_some() {
-            self.save_location = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
-            self.ensure_save_location(&self.save_location)?;
+            self.workdir = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
+            self.ensure_save_location(&self.workdir)?;
         } else {
-            self.save_location = env::var("PWD").unwrap();
+            self.workdir = env::var("PWD").unwrap();
         }
 
         // calculate hash
         let mut hasher = hash_map::DefaultHasher::new();
         img.as_bytes().hash(&mut hasher);
         config.hash(&mut hasher);
-        self.monitors.hash(&mut hasher);
+        input_monitors.hash(&mut hasher);
         self.hash = format!("{:x}", hasher.finish());
+
+        // set monitors
+        if let Some(pixels) = config.compensate {
+            self.monitors = self.bezel_compensate(input_monitors, pixels as i32)?;
+        } else {
+            self.monitors = input_monitors;
+        }
 
         // check caches first
         let caches_present: bool = self.check_caches(&config);
@@ -91,13 +91,13 @@ impl Worker {
             self.cleanup_cache()?;
 
             // we need to resplit
-            self.result_papers = self.perform_split(img, config, &self.save_location)?;
+            self.output = self.perform_split(img, config, &self.workdir)?;
         }
 
         // check if we need to handle a backend
-        if config.backend.is_some() {
+        if let Some(backend) = &config.backend {
             // recheck what integration we're working with
-            match config.backend.as_ref().unwrap() {
+            match backend {
                 Backend::Wpaperd => {
                     // set and ensure config location
                     let config_location = format!("{}/.config/wpaperd", env::var("HOME").unwrap());
@@ -117,7 +117,7 @@ impl Worker {
                     // also always rebuild when force resplit was set
                     if config.force_resplit || !wpaperd_present {
                         // yes we do
-                        wpaperd.build(&self.result_papers)?;
+                        wpaperd.build(&self.output)?;
                         // restart
                         helpers::force_restart("wpaperd", vec![])?;
                     } else {
@@ -129,20 +129,20 @@ impl Worker {
                     // start or restart the swaybg instance
                     // considering present caches
                     if config.force_resplit || !caches_present {
-                        let swaybg_args = swaybg::new(&self.result_papers)?;
+                        let swaybg_args = Swaybg::new(&self.output)?;
                         helpers::force_restart("swaybg", swaybg_args)?;
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
                         for monitor in &self.monitors {
-                            self.result_papers.push(ResultPaper {
+                            self.output.push(ResultPaper {
                                 monitor_name: monitor.name.clone(),
                                 full_path: format!(
                                     "{}/rwps_{}_{}.png",
-                                    &self.save_location, &self.hash, monitor.name
+                                    &self.workdir, &self.hash, monitor.name
                                 ),
                             })
                         }
-                        let swaybg_args = swaybg::new(&self.result_papers)?;
+                        let swaybg_args = Swaybg::new(&self.output)?;
                         helpers::soft_restart("swaybg", swaybg_args)?;
                     }
                 }
@@ -150,35 +150,35 @@ impl Worker {
                     // first soft restart
                     helpers::soft_restart("hyprpaper", vec![])?;
                     if config.force_resplit || !caches_present {
-                        hyprpaper::push(&self.result_papers)?;
+                        Hyprpaper::push(&self.output)?;
                     } else {
                         // hyprpaper also loads dynamically, so we need to manually assemble
                         for monitor in &self.monitors {
-                            self.result_papers.push(ResultPaper {
+                            self.output.push(ResultPaper {
                                 monitor_name: monitor.name.clone(),
                                 full_path: format!(
                                     "{}/rwps_{}_{}.png",
-                                    &self.save_location, &self.hash, monitor.name
+                                    &self.workdir, &self.hash, monitor.name
                                 ),
                             })
                         }
-                        hyprpaper::push(&self.result_papers)?;
+                        Hyprpaper::push(&self.output)?;
                     }
                 }
             }
         }
 
         // check if we need to generate a locker config
-        if config.locker.is_some() {
-            match config.locker.as_ref().unwrap() {
+        if let Some(locker) = &config.locker {
+            match locker {
                 Locker::Hyprlock => {
                     if !caches_present || config.force_resplit {
-                        hyprlock::generate(&self.result_papers, &self.save_location)?;
+                        Hyprlock::new(&self.output, &self.workdir)?;
                     }
                 }
                 Locker::Swaylock => {
                     if !caches_present || config.force_resplit {
-                        swaylock::generate(&self.result_papers, &self.save_location)?;
+                        Swaylock::new(&self.output, &self.workdir)?;
                     }
                 }
             }
@@ -187,18 +187,17 @@ impl Worker {
         // check for palette bool
         if config.palette && !caches_present || config.force_resplit {
             let color_palette = Palette::new(&target_image)?;
-            color_palette.generate(&self.save_location)?;
+            color_palette.generate(&self.workdir)?;
         }
 
         // post run script check
-        if config.post_path.is_some() {
-            helpers::run_oneshot(&config.post_path.as_ref().unwrap())?;
+        if let Some(post_script_path) = &config.post_path {
+            helpers::run_oneshot(post_script_path)?;
         }
 
-        // return
         Ok(())
     }
-
+    // compensate for bezels in pixel amount
     fn bezel_compensate(
         &self,
         mut input_monitors: Vec<Monitor>,
@@ -206,6 +205,7 @@ impl Worker {
     ) -> Result<Vec<Monitor>, String> {
         // check for touching displays
         let mut some_touching: bool = true;
+
         // iterate while we have something left to adjust
         while some_touching {
             some_touching = false;
@@ -247,15 +247,15 @@ impl Worker {
                     .is_some()
             });
         }
+
         Ok(input_monitors)
     }
-
     // do the actual splitting
     fn perform_split(
         &self,
-        mut img: DynamicImage,
+        mut input_image: DynamicImage,
         config: &Config,
-        save_path: &String,
+        output_path: &String,
     ) -> Result<Vec<ResultPaper>, String> {
         /*
             Calculate Overall Size
@@ -302,11 +302,11 @@ impl Worker {
         */
         let (mut resize_offset_x, mut resize_offset_y) = (0, 0);
         if config.align.is_none()
-            || img.dimensions().0 < max_x + max_negative_x
-            || img.dimensions().1 < max_y + max_negative_y
+            || input_image.dimensions().0 < max_x + max_negative_x
+            || input_image.dimensions().1 < max_y + max_negative_y
         {
             // scale image to fit calculated size
-            img = img.resize_to_fill(
+            input_image = input_image.resize_to_fill(
                 max_x + max_negative_x,
                 max_y + max_negative_y,
                 FilterType::Lanczos3,
@@ -322,35 +322,35 @@ impl Worker {
                 }
                 Alignment::Bl => {
                     resize_offset_x = 0;
-                    resize_offset_y = img.dimensions().1 - (max_y + max_negative_y);
+                    resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
                 }
                 Alignment::Tr => {
-                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x);
+                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
                     resize_offset_y = 0;
                 }
                 Alignment::Br => {
-                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x);
-                    resize_offset_y = img.dimensions().1 - (max_y + max_negative_y);
+                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
+                    resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
                 }
                 Alignment::Tc => {
-                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x) / 2;
+                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x) / 2;
                     resize_offset_y = 0;
                 }
                 Alignment::Bc => {
-                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x) / 2;
-                    resize_offset_y = img.dimensions().1 - (max_y + max_negative_y);
+                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x) / 2;
+                    resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
                 }
                 Alignment::Rc => {
-                    resize_offset_x = img.dimensions().0 - (max_x + max_negative_x);
-                    resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;
+                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
+                    resize_offset_y = (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
                 }
                 Alignment::Lc => {
                     resize_offset_x = 0;
-                    resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;
+                    resize_offset_y = (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
                 }
-                Alignment::C => {
-                    resize_offset_x = (img.dimensions().0 - (max_x + max_negative_x)) / 2;
-                    resize_offset_y = (img.dimensions().1 - (max_y + max_negative_y)) / 2;
+                Alignment::Ct => {
+                    resize_offset_x = (input_image.dimensions().0 - (max_x + max_negative_x)) / 2;
+                    resize_offset_y = (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
                 }
             }
         }
@@ -371,7 +371,7 @@ impl Worker {
                     .map_err(|_| "y adjustment out of range")?;
 
                 // crop to size
-                let cropped_image = img.crop_imm(
+                let cropped_image = input_image.crop_imm(
                     adjusted_x + resize_offset_x,
                     adjusted_y + resize_offset_y,
                     monitor.width,
@@ -379,7 +379,8 @@ impl Worker {
                 );
 
                 // export to file
-                let path_image = format!("{}/rwps_{}_{}.png", save_path, &self.hash, &monitor.name);
+                let path_image =
+                    format!("{}/rwps_{}_{}.png", output_path, &self.hash, &monitor.name);
                 cropped_image
                     .save(&path_image)
                     .map_err(|err| err.to_string())?;
@@ -388,7 +389,7 @@ impl Worker {
                 if config.daemon || config.backend.is_some() {
                     unix::fs::symlink(
                         &path_image,
-                        format!("{}/rwps_{}.png", save_path, &monitor.name),
+                        format!("{}/rwps_{}.png", output_path, &monitor.name),
                     )
                     .map_err(|err| err.to_string())?;
                 }
@@ -444,8 +445,8 @@ impl Worker {
     fn cleanup_cache(&self) -> Result<(), String> {
         // wildcard search for our
         // images and delete them
-        for entry in glob(&format!("{}/rwps_*", &self.save_location))
-            .map_err(|_| "Failed to iterate directory")?
+        for entry in
+            glob(&format!("{}/rwps_*", &self.workdir)).map_err(|_| "Failed to iterate directory")?
         {
             if let Ok(path) = entry {
                 // yeet any file that we cached
@@ -458,7 +459,7 @@ impl Worker {
 
     fn check_caches(&self, config: &Config) -> bool {
         // what we search for
-        let base_format = format!("{}/rwps_", &self.save_location);
+        let base_format = format!("{}/rwps_", &self.workdir);
 
         // path vector
         let mut path_list: Vec<(bool, String)> = Vec::new();
@@ -471,11 +472,8 @@ impl Worker {
             ));
         }
 
-        if config.locker.is_some() {
-            path_list.push((
-                true,
-                format!("{}{}.conf", config.locker.as_ref().unwrap(), base_format),
-            ));
+        if let Some(locker) = &config.locker {
+            path_list.push((true, format!("{}{}.conf", locker, base_format)));
         }
         path_list.push((config.palette, format!("{}colors.json", base_format)));
 
@@ -487,7 +485,6 @@ impl Worker {
             }
         }
 
-        // if we pass, we're good
         true
     }
 }

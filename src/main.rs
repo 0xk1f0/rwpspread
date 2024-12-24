@@ -37,13 +37,10 @@ fn run() -> Result<String, String> {
     let ready_config = worker_config.unwrap();
 
     // check for backends if applicable
-    if ready_config.backend.is_some()
-        && !helpers::is_installed(&ready_config.backend.as_ref().unwrap().to_string())
-    {
-        return Err(format!(
-            "{} is not installed",
-            &ready_config.backend.as_ref().unwrap().to_string()
-        ));
+    if let Some(run_config) = &ready_config.backend {
+        if !helpers::is_installed(&run_config.to_string()) {
+            return Err(format!("{} is not installed", &run_config.to_string()));
+        }
     }
 
     // create new splitter
@@ -66,12 +63,10 @@ fn run() -> Result<String, String> {
         }
     }
 
-    // return
     Ok("".to_string())
 }
 
 fn main() {
-    // run with config
     match run() {
         Ok(ok) => {
             println!("{}", ok);

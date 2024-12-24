@@ -91,8 +91,8 @@ impl Palette {
     fn upshade_for_range(
         &self,
         last_color: (u8, u8, u8),
-        min_lumin: f64,
-        max_lumin: f64,
+        min_luminance: f64,
+        max_luminance: f64,
     ) -> (u8, u8, u8) {
         let mut luminance = self.relative_luminance(last_color);
         // step up the color until the target luminance range is met
@@ -100,8 +100,8 @@ impl Palette {
         // we have to iterate the other colors further until all have reached
         // 255, which is the brightest we can go for each channel
         let mut steps_taken: u8 = 0;
-        while luminance >= max_lumin
-            || luminance <= min_lumin
+        while luminance >= max_luminance
+            || luminance <= min_luminance
                 && !(last_color.0 == u8::MAX && last_color.1 == u8::MAX && last_color.2 == u8::MAX)
         {
             steps_taken += 1;
@@ -120,7 +120,7 @@ impl Palette {
         )
     }
 
-    fn to_json(self, path: String) -> Result<(), String> {
+    fn to_json(self, path: &String) -> Result<(), String> {
         // define a map for each color scheme
         let (mut luminance_colors, mut material_dark_colors, mut material_light_colors) =
             (Map::new(), Map::new(), Map::new());
@@ -171,7 +171,7 @@ impl Palette {
         Ok(())
     }
 
-    pub fn generate(mut self, save_path: &String) -> Result<(), String> {
+    pub fn generate(mut self, output_path: &String) -> Result<(), String> {
         // define 16 luminance sections
         let luminance_boundaries = [
             0.0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.6875,
@@ -244,7 +244,7 @@ impl Palette {
             .count();
 
         // process and save to json
-        self.to_json(save_path.to_string())?;
+        self.to_json(output_path)?;
 
         Ok(())
     }
