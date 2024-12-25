@@ -27,6 +27,7 @@ impl Wpaperd {
         let mut config_file = File::options()
             .read(true)
             .write(true)
+            .create(true)
             .open(&self.config_path)
             .map_err(|_| "wpaperd: cant open config file")?;
 
