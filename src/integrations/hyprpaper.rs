@@ -34,14 +34,14 @@ impl Hyprpaper {
                     break;
                 }
                 Err(_) => {
-                    thread::sleep(Duration::from_millis(500));
+                    thread::sleep(Duration::from_millis(250));
                     retries += 1;
                 }
             }
         }
 
         // check if we hit retry limit
-        if retries == 15 {
+        if retries == 40 {
             return Err("hyprpaper: no socket after 15 tries".to_string());
         }
 
