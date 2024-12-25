@@ -20,7 +20,33 @@ fn run() -> Result<String, String> {
     let mon_config = mon_conn.run()?;
 
     // check for backends if applicable
-    if worker_config.is_none() {
+    if let Some(config) = worker_config {
+        // check for backends if applicable
+        if let Some(run_config) = &config.backend {
+            if !helpers::is_installed(&run_config.to_string()) {
+                return Err(format!("{} is not installed", &run_config.to_string()));
+            }
+        }
+
+        // create and execute worker
+        let mut worker = Worker::new();
+        worker.run(&config, mon_config)?;
+
+        // check for watchdog bool
+        if config.daemon == true {
+            loop {
+                // roundtrip eventhandler and check result
+                let needs_recalc = mon_conn.refresh()?;
+                if needs_recalc {
+                    // redetect screens
+                    let mon_config = mon_conn.run()?;
+                    // rerun splitter
+                    worker.run(&config, mon_config)?;
+                }
+            }
+        }
+    } else {
+        // since no runtime config was found, return info
         let mut result = String::from("Found the following displays:\n");
         for monitor in mon_config {
             result.push_str(&format!("- {}\n", monitor));
@@ -33,34 +59,6 @@ fn run() -> Result<String, String> {
             env!("SWAYBG_VERSION")
         ));
         return Ok(result);
-    }
-    let ready_config = worker_config.unwrap();
-
-    // check for backends if applicable
-    if let Some(run_config) = &ready_config.backend {
-        if !helpers::is_installed(&run_config.to_string()) {
-            return Err(format!("{} is not installed", &run_config.to_string()));
-        }
-    }
-
-    // create new splitter
-    let mut worker = Worker::new();
-
-    // perform split
-    worker.run(&ready_config, mon_config)?;
-
-    // check for watchdog bool
-    if ready_config.daemon == true {
-        loop {
-            // roundtrip eventhandler and check result
-            let needs_recalc = mon_conn.refresh()?;
-            if needs_recalc {
-                // redetect screens
-                let mon_config = mon_conn.run()?;
-                // rerun splitter
-                worker.run(&ready_config, mon_config)?;
-            }
-        }
     }
 
     Ok("".to_string())

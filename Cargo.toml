@@ -12,9 +12,12 @@ exclude = [".github/", "flake*"]
 rust-version = "1.74.0"
 
 [dependencies]
+blake3 = { version = "1.5.5", features = ["rayon"] }
+bincode = "1.3.3"
 clap = { version = "4.5.23", features = ["derive"] }
 glob = "0.3.1"
-image = "0.25.5"
+image = { version = "0.25.5", features = ["default-formats", "rayon"] }
+material-colors = { version = "0.4.2", default-features = false, features = ["std"] }
 rand = { version = "0.8.5", default-features = false, features = [
     "std",
     "std_rng",
@@ -25,8 +28,7 @@ serde_json = "1.0.134"
 smithay-client-toolkit = { version = "0.19.2", default-features = false, features = [
     "calloop",
 ] }
-toml = "0.8.19"
-material-colors = { version = "0.4.2", default-features = false, features = ["std"] }
+toml = { version = "0.8.19", default-features = false, features = ["parse", "display"] }
 
 [build-dependencies]
 clap = { version = "4.5.23", features = ["derive"] }

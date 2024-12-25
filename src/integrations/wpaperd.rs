@@ -1,6 +1,6 @@
 use crate::worker::ResultPaper;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use toml;
 
 pub struct Wpaperd {
@@ -23,32 +23,44 @@ impl Wpaperd {
     }
     // build new wpaperd config to file
     pub fn build(&self, wallpapers: &Vec<ResultPaper>) -> Result<(), String> {
-        // Create a new config file
-        let mut config_file =
-            File::create(&self.config_path).map_err(|_| "unable to open wpaperd config")?;
+        // Open or create a new config file
+        let mut config_file = File::options()
+            .read(true)
+            .write(true)
+            .open(&self.config_path)
+            .map_err(|_| "wpaperd: cant open config file")?;
 
-        // Open the file
-        let read_file = std::fs::read_to_string(&self.config_path)
-            .map_err(|_| "unable to read wpaperd config")?;
+        // Read existing config
+        let mut existing = String::new();
+        config_file
+            .read_to_string(&mut existing)
+            .map_err(|_| "wpaperd: cant read config file")?;
 
         // Parse the string into a TOML value
-        let mut values = read_file
+        let mut values = existing
             .parse::<toml::Value>()
-            .map_err(|_| "unable to parse wpaperd config")?;
+            .map_err(|_| "wpaperd: TOML parse error")?;
 
         // Add new output sections
         for fragment in wallpapers {
             // insert new section
-            values.as_table_mut().unwrap().insert(
-                fragment.monitor_name.to_string(),
-                toml::Value::Table(Default::default()),
-            );
+            values
+                .as_table_mut()
+                .ok_or("wpaperd: TOML write error")?
+                .insert(
+                    fragment.monitor_name.to_string(),
+                    toml::Value::Table(Default::default()),
+                );
             // add path value
-            let path = values.get_mut(fragment.monitor_name.to_string()).unwrap();
-            path.as_table_mut().unwrap().insert(
-                "path".to_string(),
-                toml::Value::String(fragment.full_path.to_string()),
-            );
+            values
+                .get_mut(fragment.monitor_name.to_string())
+                .ok_or("wpaperd: TOML write error")?
+                .as_table_mut()
+                .ok_or("wpaperd: TOML write error")?
+                .insert(
+                    "path".to_string(),
+                    toml::Value::String(fragment.full_path.to_string()),
+                );
         }
 
         // write the hash first
@@ -60,22 +72,26 @@ impl Wpaperd {
                 )
                 .as_bytes(),
             )
-            .unwrap();
+            .map_err(|_| "wpaperd: TOML write error")?;
 
         // add default statement for image center
         config_file
             .write(format!("[default]\nmode = \"center\"\n\n").as_bytes())
-            .unwrap();
+            .map_err(|_| "wpaperd: TOML write error")?;
 
         // input image path for any statement
         config_file
             .write(format!("[any]\npath = \"{}\"\n\n", self.initial_path).as_bytes())
-            .unwrap();
+            .map_err(|_| "wpaperd: TOML write error")?;
 
         // write actual config
         config_file
-            .write_all(toml::to_string_pretty(&values).unwrap().as_bytes())
-            .unwrap();
+            .write_all(
+                toml::to_string_pretty(&values)
+                    .map_err(|_| "wpaperd: TOML conversion error")?
+                    .as_bytes(),
+            )
+            .map_err(|_| "wpaperd: TOML write error")?;
 
         // return
         Ok(())

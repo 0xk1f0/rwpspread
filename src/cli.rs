@@ -1,9 +1,10 @@
 use clap::Parser;
+use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 // alignment enumerator
-#[derive(clap::ValueEnum, Clone, Hash)]
+#[derive(clap::ValueEnum, Clone, Serialize)]
 pub enum Alignment {
     Tl, // Top-Left
     Tr, // Top-Right
@@ -17,7 +18,7 @@ pub enum Alignment {
 }
 
 // locker enumerator
-#[derive(clap::ValueEnum, Clone, Hash, PartialEq)]
+#[derive(clap::ValueEnum, Clone, Serialize, PartialEq)]
 pub enum Locker {
     Swaylock,
     Hyprlock,
@@ -37,7 +38,7 @@ impl std::fmt::Display for Locker {
 }
 
 // backend enumerator
-#[derive(clap::ValueEnum, Clone, Hash, PartialEq)]
+#[derive(clap::ValueEnum, Clone, Serialize, PartialEq)]
 pub enum Backend {
     Wpaperd,
     Swaybg,
@@ -120,7 +121,7 @@ struct Args {
     force_resplit: bool,
 }
 
-#[derive(Hash)]
+#[derive(Serialize)]
 pub struct Config {
     pub input_path: PathBuf,
     pub output_path: Option<String>,
@@ -142,64 +143,63 @@ impl Config {
         // handle args
         let mut args = Args::parse();
 
-        // check for early exit due to info passage
-        if args.init_group.image.is_none() && args.init_group.info {
+        // get valid input path
+        if let Some(image_path) = args.init_group.image {
+            let input_path = Config::to_valid_path(&image_path, false, false)?;
+
+            // get valid output directory
+            if let Some(output_path) = args.output {
+                // convert to string since we expect one
+                args.output = Some(
+                    Config::to_valid_path(&output_path, false, true)?
+                        .to_string_lossy()
+                        .trim_end_matches('/')
+                        .to_string(),
+                );
+            } else {
+                // no explicit path specified
+                args.output = None
+            }
+
+            // check for scripts
+            if let Some(pre_script_path) = args.pre {
+                args.pre = Some(
+                    Config::to_valid_path(&pre_script_path, true, false)?
+                        .to_string_lossy()
+                        .to_string(),
+                );
+            } else {
+                args.pre = None;
+            }
+
+            if let Some(post_script_path) = args.post {
+                args.post = Some(
+                    Config::to_valid_path(&post_script_path, true, false)?
+                        .to_string_lossy()
+                        .to_string(),
+                );
+            } else {
+                args.post = None;
+            }
+
+            Ok(Some(Self {
+                input_path,
+                output_path: args.output,
+                align: args.align,
+                backend: args.backend,
+                locker: args.locker,
+                compensate: args.compensate,
+                daemon: args.daemon,
+                palette: args.palette,
+                force_resplit: args.force_resplit,
+                info: args.init_group.info,
+                pre_path: args.pre,
+                post_path: args.post,
+                version: String::from(env!("CARGO_PKG_VERSION")),
+            }))
+        } else {
             return Ok(None);
         }
-
-        // get valid input path
-        let input_path = Config::to_valid_path(&args.init_group.image.unwrap(), false, false)?;
-
-        // get valid output directory
-        if let Some(output_path) = args.output {
-            // convert to string since we expect one
-            args.output = Some(
-                Config::to_valid_path(&output_path, false, true)?
-                    .to_string_lossy()
-                    .trim_end_matches('/')
-                    .to_string(),
-            );
-        } else {
-            // no explicit path specified
-            args.output = None
-        }
-
-        // check for scripts
-        if let Some(pre_script_path) = args.pre {
-            args.pre = Some(
-                Config::to_valid_path(&pre_script_path, true, false)?
-                    .to_string_lossy()
-                    .to_string(),
-            );
-        } else {
-            args.pre = None;
-        }
-
-        if let Some(post_script_path) = args.post {
-            args.post = Some(
-                Config::to_valid_path(&post_script_path, true, false)?
-                    .to_string_lossy()
-                    .to_string(),
-            );
-        } else {
-            args.post = None;
-        }
-
-        Ok(Some(Self {
-            input_path,
-            output_path: args.output,
-            align: args.align,
-            backend: args.backend,
-            locker: args.locker,
-            compensate: args.compensate,
-            daemon: args.daemon,
-            palette: args.palette,
-            force_resplit: args.force_resplit,
-            info: args.init_group.info,
-            pre_path: args.pre,
-            post_path: args.post,
-            version: String::from(env!("CARGO_PKG_VERSION")),
-        }))
     }
     // check if target path is a symlink
     fn is_symlink(path: &Path) -> bool {
@@ -210,13 +210,13 @@ impl Config {
         }
     }
     // path checker when we need to extend from symlink
-    fn extend_path(path: &Path) -> PathBuf {
+    fn extend_path(path: &Path) -> Result<PathBuf, String> {
         if Config::is_symlink(path) {
             let parent = path.parent().unwrap_or_else(|| Path::new(""));
-            let target = fs::read_link(path).unwrap();
-            parent.join(target)
+            let target = fs::read_link(path).map_err(|_| "could not read symlink")?;
+            Ok(parent.join(target))
         } else {
-            path.to_path_buf()
+            Ok(path.to_path_buf())
         }
     }
     // check if path exists correctly and return if true
@@ -225,13 +225,21 @@ impl Config {
         if fs::metadata(path_buffer).is_ok() {
             // evaluate and extend
             // also always canonicalize path so it is absolute
-            let corrected_buffer = fs::canonicalize(Config::extend_path(path_buffer))
+            let corrected_buffer = fs::canonicalize(Config::extend_path(path_buffer)?)
                 .map_err(|_| "could not extend path")?;
-            if (file || (!dir && !file)) && fs::metadata(&corrected_buffer).unwrap().is_file() {
+            if (file || (!dir && !file))
+                && fs::metadata(&corrected_buffer)
+                    .map_err(|_| "could not get metadata")?
+                    .is_file()
+            {
                 // valid file
                 return Ok(corrected_buffer);
             }
-            if (dir || (!dir && !file)) && fs::metadata(&corrected_buffer).unwrap().is_dir() {
+            if (dir || (!dir && !file))
+                && fs::metadata(&corrected_buffer)
+                    .map_err(|_| "could not get metadata")?
+                    .is_dir()
+            {
                 // valid directory
                 return Ok(corrected_buffer);
             }

@@ -1,3 +1,4 @@
+use serde::Serialize;
 use smithay_client_toolkit::reexports::client::{
     globals::registry_queue_init, protocol::wl_output, Connection, EventQueue, QueueHandle,
 };
@@ -9,6 +10,58 @@ use smithay_client_toolkit::{
 };
 use std::fmt;
 
+struct ListOutputs {
+    registry_state: RegistryState,
+    output_state: OutputState,
+    needs_recalc: bool,
+}
+
+impl OutputHandler for ListOutputs {
+    fn output_state(&mut self) -> &mut OutputState {
+        &mut self.output_state
+    }
+
+    fn new_output(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wl_output::WlOutput,
+    ) {
+        // set recalc to true
+        self.needs_recalc = true
+    }
+
+    fn update_output(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wl_output::WlOutput,
+    ) {
+        // set recalc to true
+        self.needs_recalc = true
+    }
+
+    fn output_destroyed(
+        &mut self,
+        _conn: &Connection,
+        _qh: &QueueHandle<Self>,
+        _output: wl_output::WlOutput,
+    ) {
+        // set recalc to true
+        self.needs_recalc = true
+    }
+}
+
+impl ProvidesRegistryState for ListOutputs {
+    fn registry(&mut self) -> &mut RegistryState {
+        &mut self.registry_state
+    }
+
+    registry_handlers! {
+        OutputState,
+    }
+}
+
 pub enum Direction {
     Up,
     Down,
@@ -16,13 +69,7 @@ pub enum Direction {
     Right,
 }
 
-struct ListOutputs {
-    registry_state: RegistryState,
-    output_state: OutputState,
-    needs_recalc: bool,
-}
-
-#[derive(Hash, Clone)]
+#[derive(Serialize, Clone)]
 pub struct Monitor {
     pub name: String,
     pub width: u32,
@@ -152,15 +199,34 @@ impl MonitorConfig {
         // said outputs using the output delegate.
         for output in self.lo.output_state.outputs() {
             // get info
-            let info = self.lo.output_state.info(&output).unwrap();
-            // push to vector
-            result.push(Monitor {
-                name: info.name.as_ref().unwrap().to_string(),
-                width: info.logical_size.unwrap().0 as u32,
-                height: info.logical_size.unwrap().1 as u32,
-                x: info.logical_position.unwrap().0,
-                y: info.logical_position.unwrap().1,
-            });
+            if let Some(monitor_info) = self.lo.output_state.info(&output) {
+                // check for things we need and push
+                result.push(Monitor {
+                    name: monitor_info
+                        .name
+                        .as_ref()
+                        .ok_or("wayland: compositor reports no monitor names")?
+                        .to_string(),
+                    width: monitor_info
+                        .logical_size
+                        .ok_or("wayland: compositor reports no monitor size")?
+                        .0 as u32,
+                    height: monitor_info
+                        .logical_size
+                        .ok_or("wayland: compositor reports no monitor size")?
+                        .1 as u32,
+                    x: monitor_info
+                        .logical_position
+                        .ok_or("wayland: compositor reports no monitor position")?
+                        .0,
+                    y: monitor_info
+                        .logical_position
+                        .ok_or("wayland: compositor reports no monitor position")?
+                        .1,
+                });
+            } else {
+                return Err("wayland: compositor reports no monitor info".to_string());
+            }
         }
 
         Ok(result)
@@ -180,52 +246,6 @@ impl MonitorConfig {
         }
 
         Ok(false)
-    }
-}
-
-impl OutputHandler for ListOutputs {
-    fn output_state(&mut self) -> &mut OutputState {
-        &mut self.output_state
-    }
-
-    fn new_output(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _output: wl_output::WlOutput,
-    ) {
-        // set recalc to true
-        self.needs_recalc = true
-    }
-
-    fn update_output(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _output: wl_output::WlOutput,
-    ) {
-        // set recalc to true
-        self.needs_recalc = true
-    }
-
-    fn output_destroyed(
-        &mut self,
-        _conn: &Connection,
-        _qh: &QueueHandle<Self>,
-        _output: wl_output::WlOutput,
-    ) {
-        // set recalc to true
-        self.needs_recalc = true
-    }
-}
-
-impl ProvidesRegistryState for ListOutputs {
-    fn registry(&mut self) -> &mut RegistryState {
-        &mut self.registry_state
-    }
-
-    registry_handlers! {
-        OutputState,
     }
 }
 

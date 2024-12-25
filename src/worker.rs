@@ -9,12 +9,10 @@ use image::{imageops::FilterType, DynamicImage, GenericImageView};
 use rand::seq::SliceRandom;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::cmp;
-use std::collections::hash_map;
 use std::env;
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::os::unix;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub struct ResultPaper {
     pub monitor_name: String,
@@ -46,8 +44,10 @@ impl Worker {
 
         // check input image type
         let target_image: PathBuf;
-        // unwrap is safe here since we checked the path previously
-        if fs::metadata(&config.input_path).unwrap().is_dir() {
+        if fs::metadata(&config.input_path)
+            .map_err(|err| err.to_string())?
+            .is_dir()
+        {
             // image is random from directory
             target_image = self.select_random_image(&config.input_path)?;
         } else {
@@ -62,18 +62,14 @@ impl Worker {
         if let Some(output_path) = &config.output_path {
             self.workdir = output_path.to_owned();
         } else if config.daemon || config.backend.is_some() {
-            self.workdir = format!("{}/.cache/rwpspread", env::var("HOME").unwrap());
+            self.workdir = format!(
+                "{}/.cache/rwpspread",
+                env::var("HOME").map_err(|_| "failed read $HOME")?
+            );
             self.ensure_save_location(&self.workdir)?;
         } else {
-            self.workdir = env::var("PWD").unwrap();
+            self.workdir = env::var("PWD").map_err(|_| "failed read $PWD")?;
         }
-
-        // calculate hash
-        let mut hasher = hash_map::DefaultHasher::new();
-        img.as_bytes().hash(&mut hasher);
-        config.hash(&mut hasher);
-        input_monitors.hash(&mut hasher);
-        self.hash = format!("{:x}", hasher.finish());
 
         // set monitors
         if let Some(pixels) = config.compensate {
@@ -82,8 +78,18 @@ impl Worker {
             self.monitors = input_monitors;
         }
 
+        // calculate hash
+        self.hash = self.calculate_blake3_hash(vec![
+            bincode::serialize(&config)
+                .map_err(|_| "serialization error".to_string())?
+                .as_slice(),
+            bincode::serialize(&self.monitors)
+                .map_err(|_| "serialization error".to_string())?
+                .as_slice(),
+        ]);
+
         // check caches first
-        let caches_present: bool = self.check_caches(&config);
+        let caches_present: bool = self.check_caches(&config).map_err(|err| err.to_string())?;
 
         // do we need to resplit
         if config.force_resplit || !caches_present {
@@ -100,7 +106,10 @@ impl Worker {
             match backend {
                 Backend::Wpaperd => {
                     // set and ensure config location
-                    let config_location = format!("{}/.config/wpaperd", env::var("HOME").unwrap());
+                    let config_location = format!(
+                        "{}/.config/wpaperd",
+                        env::var("HOME").map_err(|_| "failed read $HOME")?
+                    );
                     self.ensure_save_location(&config_location)?;
 
                     // create new wpaperd instance
@@ -312,45 +321,49 @@ impl Worker {
                 FilterType::Lanczos3,
             );
         } else {
-            // we can actually try to align the monitor layout since we have
-            // some room to work with
-            // assuming image is bigger than monitor layout
-            match config.align.as_ref().unwrap() {
-                Alignment::Tl => {
-                    resize_offset_x = 0;
-                    resize_offset_y = 0;
-                }
-                Alignment::Bl => {
-                    resize_offset_x = 0;
-                    resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
-                }
-                Alignment::Tr => {
-                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
-                    resize_offset_y = 0;
-                }
-                Alignment::Br => {
-                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
-                    resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
-                }
-                Alignment::Tc => {
-                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x) / 2;
-                    resize_offset_y = 0;
-                }
-                Alignment::Bc => {
-                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x) / 2;
-                    resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
-                }
-                Alignment::Rc => {
-                    resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
-                    resize_offset_y = (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
-                }
-                Alignment::Lc => {
-                    resize_offset_x = 0;
-                    resize_offset_y = (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
-                }
-                Alignment::Ct => {
-                    resize_offset_x = (input_image.dimensions().0 - (max_x + max_negative_x)) / 2;
-                    resize_offset_y = (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
+            // we align the monitor layout since we have some room to work with
+            if let Some(alignment) = &config.align {
+                match alignment {
+                    Alignment::Tl => {
+                        resize_offset_x = 0;
+                        resize_offset_y = 0;
+                    }
+                    Alignment::Bl => {
+                        resize_offset_x = 0;
+                        resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
+                    }
+                    Alignment::Tr => {
+                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
+                        resize_offset_y = 0;
+                    }
+                    Alignment::Br => {
+                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
+                        resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
+                    }
+                    Alignment::Tc => {
+                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x) / 2;
+                        resize_offset_y = 0;
+                    }
+                    Alignment::Bc => {
+                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x) / 2;
+                        resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
+                    }
+                    Alignment::Rc => {
+                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
+                        resize_offset_y =
+                            (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
+                    }
+                    Alignment::Lc => {
+                        resize_offset_x = 0;
+                        resize_offset_y =
+                            (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
+                    }
+                    Alignment::Ct => {
+                        resize_offset_x =
+                            (input_image.dimensions().0 - (max_x + max_negative_x)) / 2;
+                        resize_offset_y =
+                            (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
+                    }
                 }
             }
         }
@@ -380,7 +393,7 @@ impl Worker {
 
                 // export to file
                 let path_image =
-                    format!("{}/rwps_{}_{}.png", output_path, &self.hash, &monitor.name);
+                    format!("{}/rwps_{}_{}.png", output_path, &monitor.name, &self.hash);
                 cropped_image
                     .save(&path_image)
                     .map_err(|err| err.to_string())?;
@@ -416,6 +429,15 @@ impl Worker {
         }
     }
 
+    fn calculate_blake3_hash(&self, input_items: Vec<&[u8]>) -> String {
+        // create a new blake3 instance and hash all input items
+        let mut hasher = blake3::Hasher::new();
+        for item in input_items {
+            hasher.update_rayon(item);
+        }
+        hasher.finalize().to_hex().as_str().to_owned()
+    }
+
     fn select_random_image(&self, path: &PathBuf) -> Result<PathBuf, String> {
         // iterate over valid filetypes and push to vec
         let mut paths: Vec<PathBuf> = Vec::new();
@@ -427,64 +449,65 @@ impl Worker {
                 }
             }
         }
-        // check if we found something
-        if paths.is_empty() {
-            return Err("Images directory empty".to_string());
+        // check if empty, else return
+        if let Some(path) = paths.choose(&mut rand::thread_rng()) {
+            Ok(path.to_owned())
+        } else {
+            Err("Images directory empty".to_string())
         }
-        // return random
-        Ok(paths.choose(&mut rand::thread_rng()).unwrap().to_path_buf())
     }
 
     fn ensure_save_location(&self, path: &str) -> Result<(), String> {
-        // try to create, notify if fail
-        fs::create_dir_all(path).map_err(|_| "Failed to create Cache Directory")?;
-        // else we're good
+        fs::create_dir_all(path).map_err(|_| "failed to create Cache Directory")?;
+
         Ok(())
     }
 
     fn cleanup_cache(&self) -> Result<(), String> {
-        // wildcard search for our
-        // images and delete them
+        // wildcard search for our images and delete them
         for entry in
-            glob(&format!("{}/rwps_*", &self.workdir)).map_err(|_| "Failed to iterate directory")?
+            glob(&format!("{}/rwps_*", &self.workdir)).map_err(|_| "failed to iterate directory")?
         {
             if let Ok(path) = entry {
-                // yeet any file that we cached
-                fs::remove_file(path).unwrap();
+                fs::remove_file(path).map_err(|_| "failed to clear cache")?;
             }
         }
 
         Ok(())
     }
 
-    fn check_caches(&self, config: &Config) -> bool {
-        // what we search for
-        let base_format = format!("{}/rwps_", &self.workdir);
+    fn check_caches(&self, config: &Config) -> Result<bool, String> {
+        // find and assemble all paths with correct prefix
+        let mut found_paths: Vec<String> = Vec::new();
+        for path in glob(&format!("{}/rwps_*", &self.workdir))
+            .map_err(|_| "failed to iterate directory")?
+            .filter_map(Result::ok)
+        {
+            found_paths.push(path.display().to_string());
+        }
 
-        // path vector
-        let mut path_list: Vec<(bool, String)> = Vec::new();
-
-        // check for every monitor
+        // assemble current runtime paths
+        let mut runtime_paths: Vec<String> = Vec::new();
         for monitor in &self.monitors {
-            path_list.push((
-                true,
-                format!("{}{}_{}.png", base_format, &self.hash, monitor.name),
+            runtime_paths.push(format!(
+                "{}/rwps_{}_{}.png",
+                &self.workdir, monitor.name, &self.hash
             ));
         }
-
         if let Some(locker) = &config.locker {
-            path_list.push((true, format!("{}{}.conf", locker, base_format)));
+            runtime_paths.push(format!("{}/rwps_{}.conf", &self.workdir, locker));
         }
-        path_list.push((config.palette, format!("{}colors.json", base_format)));
-
-        // check if cache exists
-        for path in path_list {
-            if path.0 && !Path::new(&path.1).exists() {
-                // we're missing something, regenerate
-                return false;
-            }
+        if config.palette {
+            runtime_paths.push(format!("{}/rwps_colors.json", &self.workdir));
         }
 
-        true
+        // serialize to hashable format
+        let found_hash = bincode::serialize(found_paths.as_slice())
+            .map_err(|_| "serialization error".to_string())?;
+        let runtime_hash = bincode::serialize(runtime_paths.as_slice())
+            .map_err(|_| "serialization error".to_string())?;
+        // calculate hashes and return the compared result
+        Ok(self.calculate_blake3_hash(vec![found_hash.as_slice()])
+            == self.calculate_blake3_hash(vec![runtime_hash.as_slice()]))
     }
 }

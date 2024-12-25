@@ -8,29 +8,41 @@ use std::time::Duration;
 pub struct Hyprpaper;
 impl Hyprpaper {
     pub fn push(papers: &Vec<ResultPaper>) -> Result<(), String> {
-        // set target socket, define fallbacks if env vars are not set
-        let socket_base = env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
-            return format!("/run/user/{}", env::var("UID").unwrap());
-        });
-        let instance_id = env::var("HYPRLAND_INSTANCE_SIGNATURE").unwrap_or("".to_string());
-        let target_socket: String;
+        // find socket base with fallback
+        let socket_base: String;
+        if let Ok(xdg_dir) = env::var("XDG_RUNTIME_DIR") {
+            socket_base = xdg_dir;
+        } else if let Ok(uid) = env::var("UID") {
+            socket_base = format!("/run/user/{}", uid);
+        } else {
+            return Err("hyprpaper: no valid socket path found".to_string());
+        }
 
-        if instance_id.len() > 0 {
+        // set target socket with fallback
+        let target_socket: String;
+        if let Ok(instance_id) = env::var("HYPRLAND_INSTANCE_SIGNATURE") {
             target_socket = format!("{}/hypr/{}/.hyprpaper.sock", socket_base, instance_id)
         } else {
             target_socket = format!("{}/hypr/.hyprpaper.sock", socket_base)
         }
 
-        // block till we can connect
-        loop {
+        // block till we can connect or met retry limit
+        let mut retries = 0;
+        while retries < 15 {
             match UnixStream::connect(&target_socket) {
                 Ok(_) => {
                     break;
                 }
                 Err(_) => {
                     thread::sleep(Duration::from_millis(500));
+                    retries += 1;
                 }
             }
+        }
+
+        // check if we hit retry limit
+        if !retries < 15 {
+            return Err("hyprpaper: no socket after 15 tries".to_string());
         }
 
         // try to connect to socket
@@ -73,7 +85,7 @@ impl Hyprpaper {
                 }
             }
         } else {
-            return Err(String::from_utf8_lossy(&buffer).to_string());
+            return Err("hyprpaper: unexpected socket response".to_string());
         }
 
         Ok(())

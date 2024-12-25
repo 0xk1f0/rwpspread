@@ -208,7 +208,7 @@ In general the split files that `rwpspread` stores are not constant, they change
 
 ```bash
 # actual output file
-rwps_<monitor-name>_<config-hash>.png
+rwps_<config-hash>_<monitor-name>.png
 ```
 
 This can make these file a bit cumbersome to use in external tools or wallpaper setters. This is why rwpspread also creates additional symlinks that have a predictable name, which point to the output file. It is important to note that it will do this only if one of either `-b` or `-d` are specified.
