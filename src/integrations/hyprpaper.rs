@@ -27,67 +27,57 @@ impl Hyprpaper {
         }
 
         // block till we can connect or met retry limit
-        let mut retries = 0;
-        while retries < 40 {
+        for _ in 0..40 {
             match UnixStream::connect(&target_socket) {
-                Ok(_) => {
-                    break;
+                Ok(mut socket) => {
+                    // unload all first
+                    let mut buffer = [0; 1024];
+                    socket
+                        .write_all(b"unload all")
+                        .map_err(|err| format!("hyprpaper: {}", err))?;
+                    socket
+                        .read(&mut buffer)
+                        .map_err(|err| format!("hyprpaper: {}", err))?;
+
+                    if String::from_utf8_lossy(&buffer).to_string().contains("ok") {
+                        for paper in papers {
+                            socket
+                                .write_all(format!("preload {}", paper.full_path).as_bytes())
+                                .map_err(|err| format!("hyprpaper: {}", err))?;
+                            socket
+                                .read(&mut buffer)
+                                .map_err(|err| format!("hyprpaper: {}", err))?;
+                            let preload_sum = &buffer[0].saturating_sub(buffer[1]);
+                            socket
+                                .write_all(
+                                    format!("wallpaper {},{}", paper.monitor_name, paper.full_path)
+                                        .as_bytes(),
+                                )
+                                .map_err(|err| format!("hyprpaper: {}", err))?;
+                            socket
+                                .read(&mut buffer)
+                                .map_err(|err| format!("hyprpaper: {}", err))?;
+                            let wallpaper_sum = &buffer[0].saturating_sub(buffer[1]);
+
+                            // check for sum, this will ideally be
+                            // 111 - 107 ("o" + "k") * 2 which is 8
+                            // since we always expect "ok" on success command
+                            if wallpaper_sum + preload_sum != 8 {
+                                return Err("hyprpaper: preload or set failed".to_string());
+                            }
+                        }
+                    } else {
+                        return Err("hyprpaper: unexpected socket response".to_string());
+                    }
+
+                    return Ok(());
                 }
                 Err(_) => {
                     thread::sleep(Duration::from_millis(250));
-                    retries += 1;
                 }
             }
         }
 
-        // check if we hit retry limit
-        if retries == 40 {
-            return Err(format!("hyprpaper: no connection after {} tries", retries));
-        }
-
-        // try to connect to socket
-        let mut socket =
-            UnixStream::connect(target_socket).map_err(|_| "hyprpaper: cant connect to socket")?;
-
-        // unload all first
-        let mut buffer = [0; 1024];
-        socket
-            .write_all(b"unload all")
-            .map_err(|err| format!("hyprpaper: {}", err))?;
-        socket
-            .read(&mut buffer)
-            .map_err(|err| format!("hyprpaper: {}", err))?;
-
-        if String::from_utf8_lossy(&buffer).to_string().contains("ok") {
-            for paper in papers {
-                socket
-                    .write_all(format!("preload {}", paper.full_path).as_bytes())
-                    .map_err(|err| format!("hyprpaper: {}", err))?;
-                socket
-                    .read(&mut buffer)
-                    .map_err(|err| format!("hyprpaper: {}", err))?;
-                let preload_sum = &buffer[0].saturating_sub(buffer[1]);
-                socket
-                    .write_all(
-                        format!("wallpaper {},{}", paper.monitor_name, paper.full_path).as_bytes(),
-                    )
-                    .map_err(|err| format!("hyprpaper: {}", err))?;
-                socket
-                    .read(&mut buffer)
-                    .map_err(|err| format!("hyprpaper: {}", err))?;
-                let wallpaper_sum = &buffer[0].saturating_sub(buffer[1]);
-
-                // check for sum, this will ideally be
-                // 111 - 107 ("o" + "k") * 2 which is 8
-                // since we always expect "ok" on success command
-                if wallpaper_sum + preload_sum != 8 {
-                    return Err("hyprpaper: preload or set failed".to_string());
-                }
-            }
-        } else {
-            return Err("hyprpaper: unexpected socket response".to_string());
-        }
-
-        Ok(())
+        Err("hyprpaper: no connection after 40 tries".to_string())
     }
 }
