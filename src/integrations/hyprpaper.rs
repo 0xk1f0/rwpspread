@@ -28,7 +28,7 @@ impl Hyprpaper {
 
         // block till we can connect or met retry limit
         let mut retries = 0;
-        while retries < 15 {
+        while retries < 40 {
             match UnixStream::connect(&target_socket) {
                 Ok(_) => {
                     break;
