@@ -42,7 +42,7 @@ impl Hyprpaper {
 
         // check if we hit retry limit
         if retries == 40 {
-            return Err("hyprpaper: no socket after 15 tries".to_string());
+            return Err(format!("hyprpaper: no connection after {} tries", retries));
         }
 
         // try to connect to socket
