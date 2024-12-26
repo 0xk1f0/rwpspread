@@ -1,6 +1,6 @@
 [package]
 name = "rwpspread"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 authors = ["0xk1f0"]
 description = "Multi-Monitor Wallpaper Spanning Utility"

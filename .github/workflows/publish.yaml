@@ -18,8 +18,10 @@ jobs:
         run: cargo publish --token ${CRATES_AUTH_TOKEN} 
         env:
           CRATES_AUTH_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-  upload-to-release:
+  build-all-for-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

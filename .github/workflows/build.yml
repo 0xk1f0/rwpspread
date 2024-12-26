@@ -24,6 +24,8 @@ env:
 jobs:
   build-x86:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -52,6 +54,8 @@ jobs:
             rwpspread-x86_64-unknown-linux-musl.sha512sum
   build-aarch64:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
