@@ -66,7 +66,7 @@ impl Worker {
                 "{}/.cache/rwpspread",
                 env::var("HOME").map_err(|_| "failed read $HOME")?
             );
-            self.ensure_save_location(&self.workdir)?;
+            self.ensure_path(&self.workdir)?;
         } else {
             self.workdir = env::var("PWD").map_err(|_| "failed read $PWD")?;
         }
@@ -106,27 +106,20 @@ impl Worker {
             match backend {
                 Backend::Wpaperd => {
                     // set and ensure config location
-                    let config_location = format!(
-                        "{}/.config/wpaperd",
+                    let config_path = format!(
+                        "{}/.config/wpaperd/config.toml",
                         env::var("HOME").map_err(|_| "failed read $HOME")?
                     );
-                    self.ensure_save_location(&config_location)?;
-
-                    // create new wpaperd instance
-                    let wpaperd = Wpaperd::new(
-                        target_image.to_string_lossy().to_string(),
-                        self.hash.clone(),
-                        config_location + "/config.toml",
-                    )?;
+                    self.ensure_path(&config_path)?;
 
                     // check wpaper config hash
-                    let wpaperd_present = wpaperd.check_existing();
+                    let is_cached = Wpaperd::check_existing(&config_path, &self.hash);
 
                     // do we need to rebuild config
                     // also always rebuild when force resplit was set
-                    if config.force_resplit || !wpaperd_present {
+                    if config.force_resplit || !is_cached {
                         // yes we do
-                        wpaperd.build(&self.output)?;
+                        Wpaperd::new(&config_path, &self.hash, &self.output)?;
                         // restart
                         helpers::force_restart("wpaperd", vec![])?;
                     } else {
@@ -457,8 +450,13 @@ impl Worker {
         }
     }
 
-    fn ensure_save_location(&self, path: &str) -> Result<(), String> {
-        fs::create_dir_all(path).map_err(|_| "failed to create Cache Directory")?;
+    fn ensure_path(&self, path: &str) -> Result<(), String> {
+        fs::create_dir_all(
+            &PathBuf::from(path)
+                .parent()
+                .ok_or("failed to determine path parent")?,
+        )
+        .map_err(|_| "failed to create directory path")?;
 
         Ok(())
     }
