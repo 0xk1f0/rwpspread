@@ -4,8 +4,12 @@ mod wayland;
 mod worker;
 
 use cli::Config;
+use inotify::{Inotify, WatchMask};
 use integrations::helpers;
+use std::panic;
 use std::process;
+use std::sync::mpsc::sync_channel;
+use std::thread;
 use wayland::MonitorConfig;
 use worker::Worker;
 
@@ -33,15 +37,70 @@ fn run() -> Result<String, String> {
         worker.run(&config, mon_config)?;
 
         // check for watchdog bool
-        if config.daemon == true {
+        if config.daemon {
+            // interrupt arc for source watch thread
+            let (tx, rx) = sync_channel(2);
+
+            // check if we watch source
+            if config.watch {
+                // make new thread loop for source watch
+                let tx = tx.clone();
+                thread::Builder::new()
+                    .name("source_watch".to_string())
+                    .spawn(move || loop {
+                        let mut buffer = [0; 1024];
+                        let mut inotify = Inotify::init().expect("inotify: failed to initialize");
+                        inotify
+                            .watches()
+                            .add(
+                                &config.raw_input_path,
+                                WatchMask::MODIFY
+                                    | WatchMask::DELETE
+                                    | WatchMask::CREATE
+                                    | WatchMask::MOVE
+                                    | WatchMask::MOVE_SELF
+                                    | WatchMask::DELETE_SELF
+                                    | WatchMask::DONT_FOLLOW,
+                            )
+                            .expect("inotify: failed to add watch");
+
+                        let events = inotify
+                            .read_events_blocking(&mut buffer)
+                            .expect("inotify: failed to read events");
+
+                        if events.count() > 0 {
+                            inotify.close().expect("inotify: failed to close");
+                            tx.send("resplit")
+                                .expect("source_watch: failed to notify resplit");
+                        }
+                    })
+                    .map_err(|_| "failed to start output_watch thread")?;
+            }
+
+            thread::Builder::new()
+                .name("output_watch".to_string())
+                .spawn(move || {
+                    let tx = tx.clone();
+                    loop {
+                        if mon_conn.refresh().expect("wayland: refresh error") {
+                            tx.send("resplit")
+                                .expect("output_watch: failed to notify resplit");
+                        };
+                    }
+                })
+                .map_err(|_| "failed to start output_watch thread")?;
+
             loop {
-                // roundtrip eventhandler and check result
-                let needs_recalc = mon_conn.refresh()?;
-                if needs_recalc {
+                // rerun if config changed or screens changed
+                if let Ok(_) = rx.recv() {
                     // redetect screens
-                    let mon_config = mon_conn.run()?;
+                    let mons = MonitorConfig::new()?.run()?;
                     // rerun splitter
-                    worker.run(&config, mon_config)?;
+                    if let Some(conf) = Config::new()? {
+                        worker.run(&conf, mons)?;
+                    }
+                } else {
+                    return Err("watcher threads panicked".to_string());
                 }
             }
         }
@@ -65,6 +124,17 @@ fn run() -> Result<String, String> {
 }
 
 fn main() {
+    panic::set_hook(Box::new(|panic| {
+        if let Some(s) = panic.payload().downcast_ref::<&str>() {
+            eprintln!("{}: panic: \x1B[91m{s:?}\x1B[39m", "rwpspread");
+        } else if let Some(s) = panic.payload().downcast_ref::<String>() {
+            eprintln!("{}: panic: \x1B[91m{s:?}\x1B[39m", "rwpspread");
+        } else {
+            eprintln!("{}: panic: \x1B[91m{}\x1B[39m", "rwpspread", "panicked");
+        }
+        process::exit(1);
+    }));
+
     match run() {
         Ok(ok) => {
             println!("{}", ok);
