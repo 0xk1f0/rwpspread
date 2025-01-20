@@ -1,15 +1,16 @@
 mod cli;
 mod integrations;
+mod watch;
 mod wayland;
 mod worker;
 
 use cli::Config;
-use inotify::{Inotify, WatchMask};
 use integrations::helpers;
 use std::panic;
 use std::process;
 use std::sync::mpsc::sync_channel;
 use std::thread;
+use watch::Watcher;
 use wayland::MonitorConfig;
 use worker::Worker;
 
@@ -48,30 +49,16 @@ fn run() -> Result<String, String> {
                 thread::Builder::new()
                     .name("source_watch".to_string())
                     .spawn(move || loop {
-                        let mut buffer = [0; 1024];
-                        let mut inotify = Inotify::init().expect("inotify: failed to initialize");
-                        inotify
-                            .watches()
-                            .add(
-                                &config.raw_input_path,
-                                WatchMask::MODIFY
-                                    | WatchMask::DELETE
-                                    | WatchMask::CREATE
-                                    | WatchMask::MOVE
-                                    | WatchMask::MOVE_SELF
-                                    | WatchMask::DELETE_SELF
-                                    | WatchMask::DONT_FOLLOW,
-                            )
-                            .expect("inotify: failed to add watch");
-
-                        let events = inotify
-                            .read_events_blocking(&mut buffer)
-                            .expect("inotify: failed to read events");
-
-                        if events.count() > 0 {
-                            inotify.close().expect("inotify: failed to close");
-                            tx.send("resplit")
-                                .expect("source_watch: failed to notify resplit");
+                        match Watcher::source(&config.raw_input_path) {
+                            Ok(resplit) => {
+                                if resplit {
+                                    tx.send("resplit")
+                                        .expect("source_watch: failed to notify resplit");
+                                }
+                            }
+                            Err(e) => {
+                                panic!("{e}")
+                            }
                         }
                     })
                     .map_err(|_| "failed to start output_watch thread")?;
@@ -79,13 +66,17 @@ fn run() -> Result<String, String> {
 
             thread::Builder::new()
                 .name("output_watch".to_string())
-                .spawn(move || {
-                    let tx = tx.clone();
-                    loop {
-                        if mon_conn.refresh().expect("wayland: refresh error") {
-                            tx.send("resplit")
-                                .expect("output_watch: failed to notify resplit");
-                        };
+                .spawn(move || loop {
+                    match mon_conn.refresh() {
+                        Ok(resplit) => {
+                            if resplit {
+                                tx.send("resplit")
+                                    .expect("output_watch: failed to notify resplit");
+                            }
+                        }
+                        Err(e) => {
+                            panic!("{e}")
+                        }
                     }
                 })
                 .map_err(|_| "failed to start output_watch thread")?;
