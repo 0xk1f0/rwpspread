@@ -1,7 +1,7 @@
 use clap::Parser;
 use serde::Serialize;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 // alignment enumerator
 #[derive(clap::ValueEnum, Clone, Serialize)]
@@ -212,54 +212,34 @@ impl Config {
             return Ok(None);
         }
     }
-    // check if target path is a symlink
-    fn is_symlink(path: &Path) -> bool {
-        if let Ok(metadata) = fs::symlink_metadata(path) {
-            metadata.file_type().is_symlink()
-        } else {
-            false
-        }
-    }
-    // path checker when we need to extend from symlink
-    fn extend_path(path: &Path) -> Result<(PathBuf, PathBuf), String> {
-        if Config::is_symlink(path) {
-            let parent = path.parent().unwrap_or_else(|| Path::new(""));
-            let target = fs::read_link(path).map_err(|_| "could not read symlink")?;
-            Ok((path.to_path_buf(), parent.join(target)))
-        } else {
-            Ok((path.to_path_buf(), path.to_path_buf()))
-        }
-    }
     // check if path exists correctly and return if true
     fn to_valid_paths(path: &String, file: bool, dir: bool) -> Result<(PathBuf, PathBuf), String> {
-        let path_buffer = Path::new(path);
-        if fs::metadata(path_buffer).is_ok() {
-            // evaluate and extend
-            // also always canonicalize path so it is absolute
-            let buffers = Config::extend_path(path_buffer)?;
-            let corrected_buffer =
-                fs::canonicalize(buffers.1).map_err(|_| "could not extend path")?;
+        let raw_path = PathBuf::from(path);
+        if fs::metadata(&raw_path).is_ok() {
+            // canonicalize path so it is absolute
+            let abs_path =
+                fs::canonicalize(&raw_path).map_err(|_| "could not canonicalize path")?;
             if (file || (!dir && !file))
-                && fs::metadata(&corrected_buffer)
+                && fs::metadata(&abs_path)
                     .map_err(|_| "could not get metadata")?
                     .is_file()
             {
                 // valid file
-                return Ok((buffers.0, corrected_buffer));
+                return Ok((raw_path, abs_path));
             }
             if (dir || (!dir && !file))
-                && fs::metadata(&corrected_buffer)
+                && fs::metadata(&abs_path)
                     .map_err(|_| "could not get metadata")?
                     .is_dir()
             {
                 // valid directory
-                return Ok((buffers.0, corrected_buffer));
+                return Ok((raw_path, abs_path));
             }
         }
         // no metadata, file or dir, consider invalid
         Err(format!(
             "\"{}\": invalid {}",
-            path,
+            raw_path.display(),
             if file {
                 "file"
             } else if dir {

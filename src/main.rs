@@ -39,7 +39,7 @@ fn run() -> Result<String, String> {
 
         // check for watchdog bool
         if config.daemon {
-            // interrupt arc for source watch thread
+            // interrupt channel for threads
             let (tx, rx) = sync_channel(2);
 
             // check if we watch source
@@ -64,6 +64,7 @@ fn run() -> Result<String, String> {
                     .map_err(|_| "failed to start output_watch thread")?;
             }
 
+            // watch for output changes in new thread
             thread::Builder::new()
                 .name("output_watch".to_string())
                 .spawn(move || loop {

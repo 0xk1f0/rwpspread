@@ -2,6 +2,7 @@ use clap::CommandFactory;
 use clap_complete::{generate_to, Shell};
 use clap_mangen::Man;
 use std::io::Error;
+use std::path::Path;
 
 include!("src/cli.rs");
 
