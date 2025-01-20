@@ -1,7 +1,6 @@
 use std::{env, process};
 
 // run a one-shot command
-#[allow(dead_code)]
 pub fn run_oneshot(program: &str) -> Result<(), String> {
     match process::Command::new(program)
         .stdout(process::Stdio::null())
@@ -13,8 +12,8 @@ pub fn run_oneshot(program: &str) -> Result<(), String> {
     }
 }
 
-// force restart a program
-pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
+// check if a process pid exists
+pub fn pid_exists(program: &str) -> Result<bool, String> {
     match process::Command::new("pidof")
         .arg(program)
         .stdout(process::Stdio::null())
@@ -22,14 +21,23 @@ pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> 
     {
         Ok(status) => {
             if status.success() {
-                process::Command::new("pkill")
-                    .arg(program)
-                    .stdout(process::Stdio::null())
-                    .output()
-                    .map_err(|_| format!("pkill failed: {}", program))?;
+                return Ok(true);
+            } else {
+                return Ok(false);
             }
         }
         Err(_) => return Err("pidof failed".to_string()),
+    }
+}
+
+// force restart a program
+pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
+    if pid_exists(program).map_err(|e| e)? {
+        process::Command::new("pkill")
+            .arg(program)
+            .stdout(process::Stdio::null())
+            .output()
+            .map_err(|_| format!("pkill failed: {}", program))?;
     }
 
     process::Command::new(program)
@@ -44,22 +52,13 @@ pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> 
 
 // soft restart a program
 pub fn soft_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
-    match process::Command::new("pidof")
-        .arg(program)
-        .stdout(process::Stdio::null())
-        .status()
-    {
-        Ok(status) => {
-            if !status.success() {
-                process::Command::new(program)
-                    .args(arguments)
-                    .stdout(process::Stdio::null())
-                    .stderr(process::Stdio::null())
-                    .spawn()
-                    .map_err(|_| format!("failed to spawn: {}", program))?;
-            }
-        }
-        Err(_) => return Err("pidof failed".to_string()),
+    if !pid_exists(program).map_err(|e| e)? {
+        process::Command::new(program)
+            .args(arguments)
+            .stdout(process::Stdio::null())
+            .stderr(process::Stdio::null())
+            .spawn()
+            .map_err(|_| format!("failed to spawn: {}", program))?;
     }
 
     Ok(())
