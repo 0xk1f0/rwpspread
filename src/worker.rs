@@ -1,7 +1,8 @@
 use crate::cli::{Alignment, Backend, Config, Locker};
+use crate::helpers::Helpers;
 use crate::integrations::{
-    helpers, hyprlock::Hyprlock, hyprpaper::Hyprpaper, palette::Palette, swaybg::Swaybg,
-    swaylock::Swaylock, wpaperd::Wpaperd,
+    hyprlock::Hyprlock, hyprpaper::Hyprpaper, palette::Palette, swaybg::Swaybg, swaylock::Swaylock,
+    wpaperd::Wpaperd,
 };
 use crate::wayland::{Direction, Monitor};
 use glob::glob;
@@ -39,7 +40,7 @@ impl Worker {
     pub fn run(&mut self, config: &Config, input_monitors: Vec<Monitor>) -> Result<(), String> {
         // pre run script check
         if let Some(pre_script_path) = &config.pre_path {
-            helpers::run_oneshot(pre_script_path)?;
+            Helpers::run_oneshot(pre_script_path)?;
         }
 
         // check input image type
@@ -121,10 +122,10 @@ impl Worker {
                         // yes we do
                         Wpaperd::new(&config_path, &self.hash, &self.output)?;
                         // restart
-                        helpers::force_restart("wpaperd", vec![])?;
+                        Helpers::force_restart("wpaperd", vec![])?;
                     } else {
                         // only start if we're not running already
-                        helpers::soft_restart("wpaperd", vec![])?;
+                        Helpers::soft_restart("wpaperd", vec![])?;
                     }
                 }
                 Backend::Swaybg => {
@@ -132,7 +133,7 @@ impl Worker {
                     // considering present caches
                     if config.force_resplit || !caches_present {
                         let swaybg_args = Swaybg::new(&self.output)?;
-                        helpers::force_restart("swaybg", swaybg_args)?;
+                        Helpers::force_restart("swaybg", swaybg_args)?;
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
                         for monitor in &self.monitors {
@@ -145,12 +146,12 @@ impl Worker {
                             })
                         }
                         let swaybg_args = Swaybg::new(&self.output)?;
-                        helpers::soft_restart("swaybg", swaybg_args)?;
+                        Helpers::soft_restart("swaybg", swaybg_args)?;
                     }
                 }
                 Backend::Hyprpaper => {
                     // first soft restart
-                    helpers::soft_restart("hyprpaper", vec![])?;
+                    Helpers::soft_restart("hyprpaper", vec![])?;
                     if config.force_resplit || !caches_present {
                         Hyprpaper::push(&self.output)?;
                     } else {
@@ -194,7 +195,7 @@ impl Worker {
 
         // post run script check
         if let Some(post_script_path) = &config.post_path {
-            helpers::run_oneshot(post_script_path)?;
+            Helpers::run_oneshot(post_script_path)?;
         }
 
         Ok(())

@@ -151,13 +151,13 @@ impl fmt::Display for Monitor {
     }
 }
 
-pub struct MonitorConfig {
+pub struct Wayland {
     lo: ListOutputs,
     eq: EventQueue<ListOutputs>,
 }
 
-impl MonitorConfig {
-    pub fn new() -> Result<Self, String> {
+impl Wayland {
+    pub fn connect() -> Result<Self, String> {
         // Try to connect to the Wayland server.
         let conn = Connection::connect_to_env().map_err(|_| "wayland connection error")?;
 
@@ -185,7 +185,7 @@ impl MonitorConfig {
         })
     }
 
-    pub fn run(&mut self) -> Result<Vec<Monitor>, String> {
+    pub fn get_monitors(&mut self) -> Result<Vec<Monitor>, String> {
         // Initialize data
         self.eq
             .roundtrip(&mut self.lo)

@@ -1,41 +1,42 @@
 mod cli;
+mod helpers;
 mod integrations;
 mod watch;
 mod wayland;
 mod worker;
 
 use cli::Config;
-use integrations::helpers;
+use helpers::Helpers;
 use std::panic;
 use std::process;
 use std::sync::mpsc::sync_channel;
 use std::thread;
 use watch::Watcher;
-use wayland::MonitorConfig;
+use wayland::Wayland;
 use worker::Worker;
 
 fn run() -> Result<String, String> {
     // create new config
     let worker_config = Config::new()?;
 
-    // connect to wayland
-    let mut mon_conn = MonitorConfig::new()?;
+    // create new monitor config
+    let mut wayland_connection = Wayland::connect()?;
 
-    // get monitor info
-    let mon_config = mon_conn.run()?;
+    // get monitors
+    let monitors = wayland_connection.get_monitors()?;
 
     // check for backends if applicable
     if let Some(config) = worker_config {
         // check for backends if applicable
         if let Some(run_config) = &config.backend {
-            if !helpers::is_installed(&run_config.to_string()) {
+            if !Helpers::is_installed(&run_config.to_string()) {
                 return Err(format!("{} is not installed", &run_config.to_string()));
             }
         }
 
         // create and execute worker
         let mut worker = Worker::new();
-        worker.run(&config, mon_config)?;
+        worker.run(&config, monitors)?;
 
         // check for watchdog bool
         if config.daemon {
@@ -71,7 +72,7 @@ fn run() -> Result<String, String> {
             thread::Builder::new()
                 .name("output_watch".to_string())
                 .spawn(move || loop {
-                    match mon_conn.refresh() {
+                    match wayland_connection.refresh() {
                         Ok(resplit) => {
                             if resplit {
                                 if let Err(err) = tx.send("resplit") {
@@ -92,10 +93,10 @@ fn run() -> Result<String, String> {
                 // rerun if config changed or screens changed
                 if let Ok(_) = rx.recv() {
                     // redetect screens
-                    let mons = MonitorConfig::new()?.run()?;
+                    let monitors = Wayland::connect()?.get_monitors()?;
                     // rerun splitter
-                    if let Some(conf) = Config::new()? {
-                        worker.run(&conf, mons)?;
+                    if let Some(config) = Config::new()? {
+                        worker.run(&config, monitors)?;
                     }
                 } else {
                     return Err("watcher threads panicked".to_string());
@@ -105,7 +106,7 @@ fn run() -> Result<String, String> {
     } else {
         // since no runtime config was found, return info
         let mut result = String::from("Found the following displays:\n");
-        for monitor in mon_config {
+        for monitor in monitors {
             result.push_str(&format!("- {}\n", monitor));
         }
         result.push_str("Supported versions:\n");
