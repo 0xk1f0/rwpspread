@@ -52,12 +52,16 @@ fn run() -> Result<String, String> {
                         match Watcher::source(&config.raw_input_path) {
                             Ok(resplit) => {
                                 if resplit {
-                                    if let Err(_) = tx.send("resplit") {
+                                    if let Err(err) = tx.send("resplit") {
+                                        eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
                                         break;
                                     }
                                 }
                             }
-                            Err(_) => break,
+                            Err(err) => {
+                                eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
+                                break;
+                            }
                         }
                     })
                     .map_err(|_| "failed to start output_watch thread")?;
@@ -70,12 +74,16 @@ fn run() -> Result<String, String> {
                     match mon_conn.refresh() {
                         Ok(resplit) => {
                             if resplit {
-                                if let Err(_) = tx.send("resplit") {
+                                if let Err(err) = tx.send("resplit") {
+                                    eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
                                     break;
                                 }
                             }
                         }
-                        Err(_) => break,
+                        Err(err) => {
+                            eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
+                            break;
+                        }
                     }
                 })
                 .map_err(|_| "failed to start output_watch thread")?;
