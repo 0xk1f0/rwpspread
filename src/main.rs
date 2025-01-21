@@ -41,7 +41,7 @@ fn run() -> Result<String, String> {
         // check for watchdog bool
         if config.daemon {
             // interrupt channel for threads
-            let (tx, rx) = sync_channel(2);
+            let (tx, rx) = sync_channel(0);
 
             // check if we watch source
             if config.watch {
