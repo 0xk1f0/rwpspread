@@ -30,7 +30,7 @@ impl Hyprpaper {
         for _ in 0..40 {
             match UnixStream::connect(&target_socket) {
                 Ok(mut socket) => {
-                    // unload all first
+                    // unload all first and check for success
                     let mut buffer = [0; 1024];
                     socket
                         .write_all(b"unload all")
@@ -38,36 +38,48 @@ impl Hyprpaper {
                     socket
                         .read(&mut buffer)
                         .map_err(|err| format!("hyprpaper: {}", err))?;
+                    if !String::from_utf8_lossy(&buffer)
+                        .to_string()
+                        .to_lowercase()
+                        .contains("ok")
+                    {
+                        return Err("hyprpaper: unload failed".to_string());
+                    }
 
-                    if String::from_utf8_lossy(&buffer).to_string().contains("ok") {
-                        for paper in papers {
-                            socket
-                                .write_all(format!("preload {}", paper.full_path).as_bytes())
-                                .map_err(|err| format!("hyprpaper: {}", err))?;
-                            socket
-                                .read(&mut buffer)
-                                .map_err(|err| format!("hyprpaper: {}", err))?;
-                            let preload_sum = &buffer[0].saturating_sub(buffer[1]);
-                            socket
-                                .write_all(
-                                    format!("wallpaper {},{}", paper.monitor_name, paper.full_path)
-                                        .as_bytes(),
-                                )
-                                .map_err(|err| format!("hyprpaper: {}", err))?;
-                            socket
-                                .read(&mut buffer)
-                                .map_err(|err| format!("hyprpaper: {}", err))?;
-                            let wallpaper_sum = &buffer[0].saturating_sub(buffer[1]);
-
-                            // check for sum, this will ideally be
-                            // 111 - 107 ("o" + "k") * 2 which is 8
-                            // since we always expect "ok" on success command
-                            if wallpaper_sum + preload_sum != 8 {
-                                return Err("hyprpaper: preload or set failed".to_string());
-                            }
+                    // execute call for every monitor wallpaper
+                    for paper in papers {
+                        // preload wallpaper and check for success
+                        socket
+                            .write_all(format!("preload {}", paper.full_path).as_bytes())
+                            .map_err(|err| format!("hyprpaper: {}", err))?;
+                        socket
+                            .read(&mut buffer)
+                            .map_err(|err| format!("hyprpaper: {}", err))?;
+                        if !String::from_utf8_lossy(&buffer)
+                            .to_string()
+                            .to_lowercase()
+                            .contains("ok")
+                        {
+                            return Err("hyprpaper: preload failed".to_string());
                         }
-                    } else {
-                        return Err("hyprpaper: unexpected socket response".to_string());
+
+                        // set wallpaper and check for success
+                        socket
+                            .write_all(
+                                format!("wallpaper {},{}", paper.monitor_name, paper.full_path)
+                                    .as_bytes(),
+                            )
+                            .map_err(|err| format!("hyprpaper: {}", err))?;
+                        socket
+                            .read(&mut buffer)
+                            .map_err(|err| format!("hyprpaper: {}", err))?;
+                        if !String::from_utf8_lossy(&buffer)
+                            .to_string()
+                            .to_lowercase()
+                            .contains("ok")
+                        {
+                            return Err("hyprpaper: set failed".to_string());
+                        }
                     }
 
                     return Ok(());
@@ -78,6 +90,6 @@ impl Hyprpaper {
             }
         }
 
-        Err("hyprpaper: no connection after 40 tries".to_string())
+        Err("hyprpaper: connection timeout reached".to_string())
     }
 }
