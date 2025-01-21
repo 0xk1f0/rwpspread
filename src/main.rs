@@ -52,13 +52,12 @@ fn run() -> Result<String, String> {
                         match Watcher::source(&config.raw_input_path) {
                             Ok(resplit) => {
                                 if resplit {
-                                    tx.send("resplit")
-                                        .expect("source_watch: failed to notify resplit");
+                                    if let Err(_) = tx.send("resplit") {
+                                        break;
+                                    }
                                 }
                             }
-                            Err(e) => {
-                                panic!("{e}")
-                            }
+                            Err(_) => break,
                         }
                     })
                     .map_err(|_| "failed to start output_watch thread")?;
@@ -71,13 +70,12 @@ fn run() -> Result<String, String> {
                     match mon_conn.refresh() {
                         Ok(resplit) => {
                             if resplit {
-                                tx.send("resplit")
-                                    .expect("output_watch: failed to notify resplit");
+                                if let Err(_) = tx.send("resplit") {
+                                    break;
+                                }
                             }
                         }
-                        Err(e) => {
-                            panic!("{e}")
-                        }
+                        Err(_) => break,
                     }
                 })
                 .map_err(|_| "failed to start output_watch thread")?;
