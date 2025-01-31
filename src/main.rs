@@ -10,7 +10,6 @@ use helpers::Helpers;
 use std::panic;
 use std::process;
 use std::sync::mpsc::sync_channel;
-use std::thread;
 use watch::Watcher;
 use wayland::Wayland;
 use worker::Worker;
@@ -19,11 +18,8 @@ fn run() -> Result<String, String> {
     // create new config
     let worker_config = Config::new()?;
 
-    // create new monitor config
-    let mut wayland_connection = Wayland::connect()?;
-
     // get monitors
-    let monitors = wayland_connection.get_monitors()?;
+    let monitors = Wayland::connect()?.get_monitors()?;
 
     // check for backends if applicable
     if let Some(config) = worker_config {
@@ -40,54 +36,15 @@ fn run() -> Result<String, String> {
 
         // check for watchdog bool
         if config.daemon {
-            // interrupt channel for threads
             let (tx, rx) = sync_channel(0);
 
-            // check if we watch source
-            if config.watch {
-                // make new thread loop for source watch
-                let tx = tx.clone();
-                thread::Builder::new()
-                    .name("source_watch".to_string())
-                    .spawn(move || loop {
-                        match Watcher::source(&config.raw_input_path) {
-                            Ok(resplit) => {
-                                if resplit {
-                                    if let Err(err) = tx.send("resplit") {
-                                        eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
-                                        break;
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
-                                break;
-                            }
-                        }
-                    })
-                    .map_err(|_| "failed to start output_watch thread")?;
-            }
+            // watch outputs
+            Watcher::output_watch(Wayland::connect()?, tx.clone())?;
 
-            // watch for output changes in new thread
-            thread::Builder::new()
-                .name("output_watch".to_string())
-                .spawn(move || loop {
-                    match wayland_connection.refresh() {
-                        Ok(resplit) => {
-                            if resplit {
-                                if let Err(err) = tx.send("resplit") {
-                                    eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
-                                    break;
-                                }
-                            }
-                        }
-                        Err(err) => {
-                            eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
-                            break;
-                        }
-                    }
-                })
-                .map_err(|_| "failed to start output_watch thread")?;
+            // watch file if desired
+            if config.watch {
+                Watcher::source_watch(config.raw_input_path.clone(), tx.clone())?;
+            }
 
             loop {
                 // rerun if config changed or screens changed
