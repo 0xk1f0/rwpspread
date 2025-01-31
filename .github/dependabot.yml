@@ -1,7 +1,6 @@
 version: 2
 updates:
   - package-ecosystem: "cargo"
-    versioning-strategy: "increase"
     directory: "/"
     schedule:
       interval: "weekly"
