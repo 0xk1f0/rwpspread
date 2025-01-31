@@ -7,7 +7,7 @@ use crate::integrations::{
 use crate::wayland::{Direction, Monitor};
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::cmp;
 use std::env;
@@ -444,7 +444,7 @@ impl Worker {
             }
         }
         // check if empty, else return
-        if let Some(path) = paths.choose(&mut rand::thread_rng()) {
+        if let Some(path) = paths.choose(&mut rand::rng()) {
             Ok(path.to_owned())
         } else {
             Err("Images directory empty".to_string())
