@@ -6,10 +6,9 @@ mod wayland;
 mod worker;
 
 use cli::Config;
+use crossbeam_channel::{bounded, select};
 use helpers::Helpers;
-use std::panic;
 use std::process;
-use std::sync::mpsc::sync_channel;
 use watch::Watcher;
 use wayland::Wayland;
 use worker::Worker;
@@ -36,27 +35,33 @@ fn run() -> Result<String, String> {
 
         // check for watchdog bool
         if config.daemon {
-            let (tx, rx) = sync_channel(0);
+            let (tx_monitors, rx_monitors) = bounded::<&str>(1);
+            let (tx_file, rx_file) = bounded::<&str>(1);
 
             // watch outputs
-            Watcher::output_watch(Wayland::connect()?, tx.clone())?;
+            Watcher::monitors(Wayland::connect()?, tx_monitors.clone())?;
 
             // watch file if desired
             if config.watch {
-                Watcher::source_watch(config.raw_input_path.clone(), tx.clone())?;
+                Watcher::file(config.raw_input_path.clone(), tx_file.clone())?;
             }
 
             loop {
-                // rerun if config changed or screens changed
-                if let Ok(_) = rx.recv() {
-                    // redetect screens
-                    let monitors = Wayland::connect()?.get_monitors()?;
-                    // rerun splitter
-                    if let Some(config) = Config::new()? {
-                        worker.run(&config, monitors)?;
+                select! {
+                    recv(rx_monitors) -> _ => {
+                        if let Some(config) = Config::new()? {
+                            worker.run(&config, Wayland::connect()?.get_monitors()?)?;
+                        }
+                        // restart thread
+                        Watcher::monitors(Wayland::connect()?, tx_monitors.clone())?;
                     }
-                } else {
-                    return Err("watcher threads panicked".to_string());
+                    recv(rx_file) -> _ => {
+                        if let Some(config) = Config::new()? {
+                            worker.run(&config, Wayland::connect()?.get_monitors()?)?;
+                        }
+                        // restart file watch thread
+                        Watcher::file(config.raw_input_path.clone(), tx_file.clone())?;
+                    }
                 }
             }
         }
@@ -80,17 +85,6 @@ fn run() -> Result<String, String> {
 }
 
 fn main() {
-    panic::set_hook(Box::new(|panic| {
-        if let Some(s) = panic.payload().downcast_ref::<&str>() {
-            eprintln!("{}: panic: \x1B[91m{s:?}\x1B[39m", "rwpspread");
-        } else if let Some(s) = panic.payload().downcast_ref::<String>() {
-            eprintln!("{}: panic: \x1B[91m{s:?}\x1B[39m", "rwpspread");
-        } else {
-            eprintln!("{}: panic: \x1B[91m{}\x1B[39m", "rwpspread", "panicked");
-        }
-        process::exit(1);
-    }));
-
     match run() {
         Ok(ok) => {
             println!("{}", ok);

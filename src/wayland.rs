@@ -159,11 +159,11 @@ pub struct Wayland {
 impl Wayland {
     pub fn connect() -> Result<Self, String> {
         // Try to connect to the Wayland server.
-        let conn = Connection::connect_to_env().map_err(|_| "wayland connection error")?;
+        let conn = Connection::connect_to_env().map_err(|_| "wayland: failed to connect")?;
 
         // Now create an event queue and a handle to the queue so we can create objects.
         let (globals, event_queue) =
-            registry_queue_init(&conn).map_err(|_| "wayland regqueue error")?;
+            registry_queue_init(&conn).map_err(|_| "wayland: failed to init queue")?;
         let qh = event_queue.handle();
 
         // Initialize the registry handling
@@ -189,7 +189,7 @@ impl Wayland {
         // Initialize data
         self.eq
             .roundtrip(&mut self.lo)
-            .map_err(|_| "wayland eventqueue error")?;
+            .map_err(|_| "wayland: roundtrip failed")?;
 
         // new result vector
         let mut result: Vec<Monitor> = Vec::new();
@@ -233,19 +233,18 @@ impl Wayland {
     }
 
     pub fn refresh(&mut self) -> Result<bool, String> {
-        // dispatch events
+        // roundtrip
+        self.eq
+            .roundtrip(&mut self.lo)
+            .map_err(|_| "wayland: roundtrip failed")?;
+        // flush all in queue
+        self.eq.flush().map_err(|_| "wayland: flush failed")?;
+        // then wait for event
         self.eq
             .blocking_dispatch(&mut self.lo)
-            .map_err(|_| "wayland eventqueue error")?;
+            .map_err(|_| "wayland: event dispatch failed")?;
 
-        // check if recalculation boolean was set
-        if self.lo.needs_recalc == true {
-            // reset and recalc
-            self.lo.needs_recalc = false;
-            return Ok(true);
-        }
-
-        Ok(false)
+        Ok(self.lo.needs_recalc)
     }
 }
 

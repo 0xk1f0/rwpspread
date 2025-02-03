@@ -1,61 +1,50 @@
 use crate::Wayland;
+use crossbeam_channel::Sender;
 use inotify::{Inotify, WatchMask};
 use std::path::PathBuf;
-use std::sync::mpsc::SyncSender;
 use std::thread;
 use std::thread::JoinHandle;
 
 pub struct Watcher;
 impl Watcher {
-    pub fn output_watch(
+    pub fn monitors(
         mut wayland: Wayland,
-        tx: SyncSender<&'static str>,
+        tx: Sender<&'static str>,
     ) -> Result<JoinHandle<()>, String> {
         let thread_handle = thread::Builder::new()
-            .name("output_watch".to_string())
-            .spawn(move || loop {
-                match wayland.refresh() {
-                    Ok(resplit) => {
-                        if resplit {
-                            if let Err(err) = tx.send("resplit") {
-                                eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
-                                break;
-                            }
+            .name("rwp_monitors".to_string())
+            .spawn(move || match wayland.refresh() {
+                Ok(resplit) => {
+                    if resplit {
+                        if let Err(err) = tx.send("resplit") {
+                            eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
                         }
                     }
-                    Err(err) => {
-                        eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
-                        break;
-                    }
+                }
+                Err(err) => {
+                    eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
                 }
             })
-            .map_err(|_| "failed to start output_watch thread")?;
+            .map_err(|_| "thread: failed to start rwp_monitors")?;
 
         return Ok(thread_handle);
     }
-    pub fn source_watch(
-        path: PathBuf,
-        tx: SyncSender<&'static str>,
-    ) -> Result<JoinHandle<()>, String> {
+    pub fn file(path: PathBuf, tx: Sender<&'static str>) -> Result<JoinHandle<()>, String> {
         let thread_handle = thread::Builder::new()
-            .name("source_watch".to_string())
-            .spawn(move || loop {
-                match Watcher::source(&path) {
-                    Ok(resplit) => {
-                        if resplit {
-                            if let Err(err) = tx.send("resplit") {
-                                eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
-                                break;
-                            }
+            .name("rwp_file".to_string())
+            .spawn(move || match Watcher::source(&path) {
+                Ok(resplit) => {
+                    if resplit {
+                        if let Err(err) = tx.send("resplit") {
+                            eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
                         }
                     }
-                    Err(err) => {
-                        eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
-                        break;
-                    }
+                }
+                Err(err) => {
+                    eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
                 }
             })
-            .map_err(|_| "failed to start output_watch thread")?;
+            .map_err(|_| "thread: failed to start rwp_file")?;
 
         return Ok(thread_handle);
     }

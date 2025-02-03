@@ -76,6 +76,7 @@ Options:
   -p, --palette                  Generate a color palette from input image
       --pre <PRE>                Script to execute before splitting
       --post <POST>              Script to execute after splitting
+  -w, --watch                    Watch for wallpaper source changes and resplit on changes
   -f, --force-resplit            Force resplit, skips all image cache checks
   -h, --help                     Print help
   -V, --version                  Print version
