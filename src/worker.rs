@@ -427,7 +427,7 @@ impl Worker {
         // create a new blake3 instance and hash all input items
         let mut hasher = blake3::Hasher::new();
         for item in input_items {
-            hasher.update_rayon(item);
+            hasher.update(item);
         }
         hasher.finalize().to_hex().as_str().to_owned()
     }
