@@ -436,7 +436,7 @@ impl Worker {
         // iterate over valid filetypes and push to vec
         let mut paths: Vec<PathBuf> = Vec::new();
         for ext in &["png", "jpg", "jpeg"] {
-            let pattern = format!("{}/*.{}", path.to_string_lossy(), ext);
+            let pattern = format!("{}/*.{}", path.display(), ext);
             for entry in glob(&pattern).expect("Failed to read glob pattern") {
                 if let Ok(path) = entry {
                     paths.push(path);
