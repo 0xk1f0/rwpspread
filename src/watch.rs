@@ -7,16 +7,13 @@ use std::thread::JoinHandle;
 
 pub struct Watcher;
 impl Watcher {
-    pub fn monitors(
-        mut wayland: Wayland,
-        tx: Sender<&'static str>,
-    ) -> Result<JoinHandle<()>, String> {
+    pub fn monitors(mut wayland: Wayland, tx: Sender<bool>) -> Result<JoinHandle<()>, String> {
         let thread_handle = thread::Builder::new()
             .name("rwp_monitors".to_string())
             .spawn(move || match wayland.refresh() {
                 Ok(resplit) => {
                     if resplit {
-                        if let Err(err) = tx.send("resplit") {
+                        if let Err(err) = tx.send(true) {
                             eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
                         }
                     }
@@ -29,13 +26,13 @@ impl Watcher {
 
         return Ok(thread_handle);
     }
-    pub fn file(path: PathBuf, tx: Sender<&'static str>) -> Result<JoinHandle<()>, String> {
+    pub fn file(path: PathBuf, tx: Sender<bool>) -> Result<JoinHandle<()>, String> {
         let thread_handle = thread::Builder::new()
             .name("rwp_file".to_string())
             .spawn(move || match Watcher::source(&path) {
                 Ok(resplit) => {
                     if resplit {
-                        if let Err(err) = tx.send("resplit") {
+                        if let Err(err) = tx.send(true) {
                             eprintln!("{}: \x1B[91m{}\x1B[39m", "rwpspread", err);
                         }
                     }

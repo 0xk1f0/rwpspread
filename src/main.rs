@@ -14,70 +14,79 @@ use wayland::Wayland;
 use worker::Worker;
 
 fn run() -> Result<String, String> {
-    // create new config
-    let worker_config = Config::new()?;
-
-    // get monitors
-    let monitors = Wayland::connect()?.get_monitors()?;
-
     // check for backends if applicable
-    if let Some(config) = worker_config {
+    if let Some(config) = Config::new()? {
         // check for backends if applicable
-        if let Some(run_config) = &config.backend {
-            if !Helpers::is_installed(&run_config.to_string()) {
-                return Err(format!("{} is not installed", &run_config.to_string()));
+        if let Some(backend) = &config.backend {
+            if !Helpers::is_installed(&backend.to_string()) {
+                return Err(format!("{} is not installed", &backend.to_string()));
             }
         }
 
-        // create and execute worker
-        let mut worker = Worker::new();
-        worker.run(&config, monitors)?;
-
-        // check for watchdog bool
         if config.daemon {
-            let (tx_monitors, rx_monitors) = bounded::<&str>(1);
-            let (tx_file, rx_file) = bounded::<&str>(1);
+            // run worker initially
+            Worker::new().run(&config, Wayland::connect()?.get_monitors()?)?;
 
-            // watch outputs
-            Watcher::monitors(Wayland::connect()?, tx_monitors.clone())?;
-
-            // watch file if desired
             if config.watch {
-                Watcher::file(config.raw_input_path.clone(), tx_file.clone())?;
-            }
+                // create two channels for threads
+                let (tx_monitors, rx_monitors) = bounded::<bool>(1);
+                let (tx_file, rx_file) = bounded::<bool>(1);
 
-            loop {
-                select! {
-                    recv(rx_monitors) -> _ => {
-                        if let Some(config) = Config::new()? {
-                            worker.run(&config, Wayland::connect()?.get_monitors()?)?;
+                // start both operations seperately
+                let mut monitors_handle =
+                    Watcher::monitors(Wayland::connect()?, tx_monitors.clone())?;
+                let mut file_handle =
+                    Watcher::file(config.raw_input_path.clone(), tx_file.clone())?;
+
+                loop {
+                    // watch for thread channel events, resplit and restart thread
+                    select! {
+                        recv(rx_monitors) -> _ => {
+                            monitors_handle.join().map_err(|_| "thread: rwp_monitors panicked")?;
+                            if let Some(config) = Config::new()? {
+                                Worker::new().run(&config, Wayland::connect()?.get_monitors()?)?;
+                            }
+                            monitors_handle = Watcher::monitors(Wayland::connect()?, tx_monitors.clone())?;
                         }
-                        // restart thread
-                        Watcher::monitors(Wayland::connect()?, tx_monitors.clone())?;
+                        recv(rx_file) -> _ => {
+                            file_handle.join().map_err(|_| "thread: rwp_file panicked")?;
+                            if let Some(config) = Config::new()? {
+                                Worker::new().run(&config, Wayland::connect()?.get_monitors()?)?;
+                            }
+                            file_handle = Watcher::file(config.raw_input_path.clone(), tx_file.clone())?;
+                        }
                     }
-                    recv(rx_file) -> _ => {
+                }
+            } else {
+                let (tx_monitors, rx_monitors) = bounded::<bool>(1);
+
+                let mut monitors_handle =
+                    Watcher::monitors(Wayland::connect()?, tx_monitors.clone())?;
+
+                loop {
+                    if let Ok(_) = rx_monitors.recv() {
+                        monitors_handle
+                            .join()
+                            .map_err(|_| "thread: rwp_monitors panicked")?;
                         if let Some(config) = Config::new()? {
-                            worker.run(&config, Wayland::connect()?.get_monitors()?)?;
+                            Worker::new().run(&config, Wayland::connect()?.get_monitors()?)?;
                         }
-                        // restart file watch thread
-                        Watcher::file(config.raw_input_path.clone(), tx_file.clone())?;
+                        monitors_handle =
+                            Watcher::monitors(Wayland::connect()?, tx_monitors.clone())?;
                     }
                 }
             }
+        } else {
+            // run worker once
+            Worker::new().run(&config, Wayland::connect()?.get_monitors()?)?;
         }
     } else {
         // since no runtime config was found, return info
-        let mut result = String::from("Found the following displays:\n");
+        let mut result = String::from("Found the following displays:");
+        let monitors = Wayland::connect()?.get_monitors()?;
         for monitor in monitors {
-            result.push_str(&format!("- {}\n", monitor));
+            result.push_str(&format!("\n- {}", monitor));
         }
-        result.push_str("Supported versions:\n");
-        result.push_str(&format!(
-            "- \x1B[32mhyprpaper\x1B[39m: {}\n- \x1B[32mwpaperd\x1B[39m: {}\n- \x1B[32mswaybg\x1B[39m: {}",
-            env!("HYPRPAPER_VERSION"),
-            env!("WPAPERD_VERSION"),
-            env!("SWAYBG_VERSION")
-        ));
         return Ok(result);
     }
 
