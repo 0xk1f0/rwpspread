@@ -39,10 +39,13 @@ clap_mangen = "0.2.26"
 serde = { version = "1.0.218", features = ["derive"] }
 
 [profile.dev]
+codegen-units = 16
 opt-level = 3
+strip = "symbols"
+lto = "thin"
 
 [profile.release]
 codegen-units = 8
 opt-level = 3
-strip = true
-lto = true
+strip = "symbols"
+lto = "fat"
