@@ -5,6 +5,7 @@ use crate::integrations::{
     wpaperd::Wpaperd,
 };
 use crate::wayland::{Direction, Monitor};
+use bincode::{config, serde};
 use glob::glob;
 use image::{imageops::FilterType, DynamicImage, GenericImageView};
 use rand::seq::IndexedRandom;
@@ -81,10 +82,10 @@ impl Worker {
 
         // calculate hash
         self.hash = self.calculate_blake3_hash(vec![
-            bincode::serialize(&config)
+            serde::encode_to_vec(&config, config::standard())
                 .map_err(|_| "serialization error".to_string())?
                 .as_slice(),
-            bincode::serialize(&self.monitors)
+            serde::encode_to_vec(&self.monitors, config::standard())
                 .map_err(|_| "serialization error".to_string())?
                 .as_slice(),
         ]);
@@ -501,9 +502,9 @@ impl Worker {
         }
 
         // serialize to hashable format
-        let found_hash = bincode::serialize(found_paths.as_slice())
+        let found_hash = serde::encode_to_vec(found_paths.as_slice(), config::standard())
             .map_err(|_| "serialization error".to_string())?;
-        let runtime_hash = bincode::serialize(runtime_paths.as_slice())
+        let runtime_hash = serde::encode_to_vec(runtime_paths.as_slice(), config::standard())
             .map_err(|_| "serialization error".to_string())?;
         // calculate hashes and return the compared result
         Ok(self.calculate_blake3_hash(vec![found_hash.as_slice()])
