@@ -2,7 +2,7 @@ use image::{GenericImageView, Rgba};
 use material_colors::theme::Schemes as MaterialSchemes;
 use material_colors::{color::Argb, theme::ThemeBuilder};
 use serde::Serialize;
-use serde_json::{to_writer_pretty as json_to_file, Map, Value};
+use serde_json::{Map, Value, to_writer_pretty as json_to_file};
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::PathBuf;

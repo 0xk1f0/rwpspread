@@ -1,6 +1,6 @@
 use serde::Serialize;
 use smithay_client_toolkit::reexports::client::{
-    globals::registry_queue_init, protocol::wl_output, Connection, EventQueue, QueueHandle,
+    Connection, EventQueue, QueueHandle, globals::registry_queue_init, protocol::wl_output,
 };
 use smithay_client_toolkit::{
     delegate_output, delegate_registry,
@@ -199,33 +199,36 @@ impl Wayland {
         // said outputs using the output delegate.
         for output in self.lo.output_state.outputs() {
             // get info
-            if let Some(monitor_info) = self.lo.output_state.info(&output) {
-                // check for things we need and push
-                result.push(Monitor {
-                    name: monitor_info
-                        .name
-                        .as_ref()
-                        .ok_or("wayland: compositor reports no monitor names")?
-                        .to_string(),
-                    width: monitor_info
-                        .logical_size
-                        .ok_or("wayland: compositor reports no monitor size")?
-                        .0 as u32,
-                    height: monitor_info
-                        .logical_size
-                        .ok_or("wayland: compositor reports no monitor size")?
-                        .1 as u32,
-                    x: monitor_info
-                        .logical_position
-                        .ok_or("wayland: compositor reports no monitor position")?
-                        .0,
-                    y: monitor_info
-                        .logical_position
-                        .ok_or("wayland: compositor reports no monitor position")?
-                        .1,
-                });
-            } else {
-                return Err("wayland: compositor reports no monitor info".to_string());
+            match self.lo.output_state.info(&output) {
+                Some(monitor_info) => {
+                    // check for things we need and push
+                    result.push(Monitor {
+                        name: monitor_info
+                            .name
+                            .as_ref()
+                            .ok_or("wayland: compositor reports no monitor names")?
+                            .to_string(),
+                        width: monitor_info
+                            .logical_size
+                            .ok_or("wayland: compositor reports no monitor size")?
+                            .0 as u32,
+                        height: monitor_info
+                            .logical_size
+                            .ok_or("wayland: compositor reports no monitor size")?
+                            .1 as u32,
+                        x: monitor_info
+                            .logical_position
+                            .ok_or("wayland: compositor reports no monitor position")?
+                            .0,
+                        y: monitor_info
+                            .logical_position
+                            .ok_or("wayland: compositor reports no monitor position")?
+                            .1,
+                    });
+                }
+                _ => {
+                    return Err("wayland: compositor reports no monitor info".to_string());
+                }
             }
         }
 

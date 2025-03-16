@@ -7,7 +7,7 @@ use crate::integrations::{
 use crate::wayland::{Direction, Monitor};
 use bincode::{config, serde};
 use glob::glob;
-use image::{imageops::FilterType, DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView, imageops::FilterType};
 use rand::seq::IndexedRandom;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::cmp;
