@@ -99,7 +99,10 @@ impl Worker {
             self.cleanup_cache()?;
 
             // we need to resplit
-            self.output = self.perform_split(img, config, &self.workdir)?;
+            let raw = self.perform_split(img, config)?;
+
+            // save to path
+            self.output = self.export_images(config, raw, &self.workdir)?;
         }
 
         // check if we need to handle a backend
@@ -259,8 +262,7 @@ impl Worker {
         &self,
         mut input_image: DynamicImage,
         config: &Config,
-        output_path: &String,
-    ) -> Result<Vec<ResultPaper>, String> {
+    ) -> Result<Vec<(&String, DynamicImage)>, String> {
         /*
             Calculate Overall Size
             We can say that max width will be the biggest monitor
@@ -369,48 +371,29 @@ impl Worker {
             account negative offsets
             Doing it in parallel using rayon for speedup
         */
-        let crop_results: Vec<Result<ResultPaper, String>> = self
+        let crop_results: Vec<Result<(&String, DynamicImage), String>> = self
             .monitors
             .par_iter()
-            .map(|monitor| -> Result<ResultPaper, String> {
+            .map(|monitor| -> Result<(&String, DynamicImage), String> {
                 let adjusted_x = u32::try_from(origin_x as i32 + monitor.x)
                     .map_err(|_| "x adjustment out of range")?;
                 let adjusted_y = u32::try_from(origin_y as i32 + monitor.y)
                     .map_err(|_| "y adjustment out of range")?;
-
                 // crop to size
-                let cropped_image = input_image.crop_imm(
-                    adjusted_x + resize_offset_x,
-                    adjusted_y + resize_offset_y,
-                    monitor.width,
-                    monitor.height,
-                );
-
-                // export to file
-                let path_image =
-                    format!("{}/rwps_{}_{}.png", output_path, &monitor.name, &self.hash);
-                cropped_image
-                    .save(&path_image)
-                    .map_err(|err| err.to_string())?;
-                // make a friendly name symlink to it
-                // only if in daemon mode or with backend
-                if config.daemon || config.backend.is_some() {
-                    unix::fs::symlink(
-                        &path_image,
-                        format!("{}/rwps_{}.png", output_path, &monitor.name),
-                    )
-                    .map_err(|err| err.to_string())?;
-                }
-
-                Ok(ResultPaper {
-                    monitor_name: format!("{}", &monitor.name),
-                    full_path: path_image,
-                })
+                Ok((
+                    &monitor.name,
+                    input_image.crop_imm(
+                        adjusted_x + resize_offset_x,
+                        adjusted_y + resize_offset_y,
+                        monitor.width,
+                        monitor.height,
+                    ),
+                ))
             })
             .collect();
 
         // iterate and filter out the Ok() values
-        let output_papers: Vec<ResultPaper> = crop_results
+        let output_papers: Vec<(&String, DynamicImage)> = crop_results
             .into_iter()
             .take_while(|entry| entry.is_ok())
             .filter_map(|result| result.ok())
@@ -422,6 +405,32 @@ impl Worker {
         } else {
             Err("splitting error".to_string())
         }
+    }
+
+    fn export_images(
+        &self,
+        config: &Config,
+        images: Vec<(&String, DynamicImage)>,
+        output_path: &String,
+    ) -> Result<Vec<ResultPaper>, String> {
+        images
+            .iter()
+            .map(|image| {
+                // export to file
+                let path_image = format!("{}/rwps_{}_{}.png", output_path, image.0, &self.hash);
+                image.1.save(&path_image).map_err(|err| err.to_string())?;
+                // make a friendly name symlink to it
+                // only if in daemon mode, backend or locker
+                if config.daemon || config.backend.is_some() || config.locker.is_some() {
+                    unix::fs::symlink(&path_image, format!("{}/rwps_{}.png", output_path, image.0))
+                        .map_err(|err| err.to_string())?;
+                }
+                Ok(ResultPaper {
+                    monitor_name: format!("{}", image.0),
+                    full_path: path_image,
+                })
+            })
+            .collect()
     }
 
     fn calculate_blake3_hash(&self, input_items: Vec<&[u8]>) -> String {
