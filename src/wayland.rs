@@ -139,6 +139,11 @@ impl Monitor {
             }
         })
     }
+    pub fn ppi(&self, diagonal_inches: u32) -> u32 {
+        let diagonal_pixels = ((self.width).pow(2) + (self.height).pow(2)).isqrt() as u64;
+
+        (diagonal_pixels as f64 / (diagonal_inches as f64)).round() as u32
+    }
 }
 
 impl fmt::Display for Monitor {

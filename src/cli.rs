@@ -1,5 +1,6 @@
 use clap::Parser;
 use serde::Serialize;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
@@ -96,9 +97,17 @@ struct Args {
     #[arg(short, long, value_enum)]
     locker: Option<Locker>,
 
-    /// Compensate for bezel amount in pixels
-    #[arg(short, long, value_enum)]
-    compensate: Option<u32>,
+    /// Bezel amount in pixels to compensate for
+    #[arg(long)]
+    bezel: Option<u32>,
+
+    /// List of monitor containing their diagonal in inches [format: "<NAME>:<INCHES>"]
+    #[clap(short, long, value_delimiter = ' ', num_args = 1..)]
+    monitors: Option<Vec<String>>,
+
+    /// Compensate for different ppi values
+    #[arg(long, requires = "monitors")]
+    ppi: bool,
 
     /// Enable daemon mode and resplit on output changes
     #[arg(short, long)]
@@ -132,7 +141,9 @@ pub struct Config {
     pub output_path: Option<String>,
     pub backend: Option<Backend>,
     pub locker: Option<Locker>,
-    pub compensate: Option<u32>,
+    pub bezel: Option<u32>,
+    pub monitors: HashMap<String, u32>,
+    pub ppi: bool,
     pub daemon: bool,
     pub palette: bool,
     pub force_resplit: bool,
@@ -168,6 +179,21 @@ impl Config {
                 args.output = None
             }
 
+            // check for monitor definitions
+            let mut diagonals: HashMap<String, u32> = HashMap::new();
+            if let Some(monitors) = args.monitors {
+                for entity in monitors {
+                    let parts: Vec<&str> = entity.split(":").collect();
+                    if parts.len() == 2 {
+                        let name = parts[0].trim();
+                        let inches_str = parts[1].trim();
+                        if let Ok(inches) = inches_str.parse::<u32>() {
+                            diagonals.insert(name.to_owned(), inches);
+                        }
+                    }
+                }
+            }
+
             // check for scripts
             if let Some(pre_script_path) = args.pre {
                 args.pre = Some(
@@ -194,11 +220,13 @@ impl Config {
             Ok(Some(Self {
                 input_path: input_paths.1,
                 raw_input_path: input_paths.0,
+                monitors: diagonals,
                 output_path: args.output,
                 align: args.align,
                 backend: args.backend,
                 locker: args.locker,
-                compensate: args.compensate,
+                bezel: args.bezel,
+                ppi: args.ppi,
                 daemon: args.daemon,
                 palette: args.palette,
                 force_resplit: args.force_resplit,

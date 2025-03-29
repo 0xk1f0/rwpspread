@@ -11,10 +11,12 @@ use image::{DynamicImage, GenericImageView, imageops::FilterType};
 use rand::seq::IndexedRandom;
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 use std::cmp;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::os::unix;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 pub struct ResultPaper {
     pub monitor_name: String,
@@ -74,7 +76,8 @@ impl Worker {
         }
 
         // set monitors
-        if let Some(pixels) = config.compensate {
+        // compensate for bezels if set
+        if let Some(pixels) = config.bezel {
             self.monitors = self.bezel_compensate(input_monitors, pixels as i32)?;
         } else {
             self.monitors = input_monitors;
@@ -101,8 +104,15 @@ impl Worker {
             // we need to resplit
             let raw = self.perform_split(img, config)?;
 
-            // save to path
-            self.output = self.export_images(config, raw, &self.workdir)?;
+            if config.ppi {
+                // compensate first
+                let compensated = self.ppi_compensate(config, raw)?;
+                // save to path
+                self.output = self.export_images(config, compensated, &self.workdir)?;
+            } else {
+                // save to path
+                self.output = self.export_images(config, raw, &self.workdir)?;
+            }
         }
 
         // check if we need to handle a backend
@@ -262,7 +272,7 @@ impl Worker {
         &self,
         mut input_image: DynamicImage,
         config: &Config,
-    ) -> Result<Vec<(&String, DynamicImage)>, String> {
+    ) -> Result<Arc<Mutex<HashMap<String, DynamicImage>>>, String> {
         /*
             Calculate Overall Size
             We can say that max width will be the biggest monitor
@@ -371,49 +381,98 @@ impl Worker {
             account negative offsets
             Doing it in parallel using rayon for speedup
         */
-        let crop_results: Vec<Result<(&String, DynamicImage), String>> = self
+        let output: Arc<Mutex<HashMap<String, DynamicImage>>> =
+            Arc::new(Mutex::new(HashMap::with_capacity(self.monitors.len())));
+        self.monitors.par_iter().for_each(|monitor| {
+            let adjusted_x = u32::try_from(origin_x as i32 + monitor.x);
+            let adjusted_y = u32::try_from(origin_y as i32 + monitor.y);
+            if let Ok(x) = adjusted_x {
+                if let Ok(y) = adjusted_y {
+                    // crop to size
+                    output.lock().unwrap().insert(
+                        monitor.name.clone(),
+                        input_image.crop_imm(
+                            x + resize_offset_x,
+                            y + resize_offset_y,
+                            monitor.width,
+                            monitor.height,
+                        ),
+                    );
+                }
+            }
+        });
+
+        if output
+            .try_lock()
+            .map_err(|_| "could not aquire lock on split images")?
+            .len()
+            == self.monitors.len()
+        {
+            Ok(output)
+        } else {
+            Err("initial splitting error".to_string())
+        }
+    }
+    // compensate for different monitor ppi values
+    fn ppi_compensate(
+        &self,
+        config: &Config,
+        images: Arc<Mutex<HashMap<String, DynamicImage>>>,
+    ) -> Result<Arc<Mutex<HashMap<String, DynamicImage>>>, String> {
+        let ppi_min = self
             .monitors
             .par_iter()
-            .map(|monitor| -> Result<(&String, DynamicImage), String> {
-                let adjusted_x = u32::try_from(origin_x as i32 + monitor.x)
-                    .map_err(|_| "x adjustment out of range")?;
-                let adjusted_y = u32::try_from(origin_y as i32 + monitor.y)
-                    .map_err(|_| "y adjustment out of range")?;
-                // crop to size
-                Ok((
-                    &monitor.name,
-                    input_image.crop_imm(
-                        adjusted_x + resize_offset_x,
-                        adjusted_y + resize_offset_y,
-                        monitor.width,
-                        monitor.height,
-                    ),
-                ))
+            .map(|monitor| {
+                if let Some(&diagonal_inches) = config.monitors.get(&monitor.name) {
+                    monitor.ppi(diagonal_inches)
+                } else {
+                    0
+                }
             })
-            .collect();
+            .min();
 
-        // iterate and filter out the Ok() values
-        let output_papers: Vec<(&String, DynamicImage)> = crop_results
-            .into_iter()
-            .take_while(|entry| entry.is_ok())
-            .filter_map(|result| result.ok())
-            .collect();
+        if let Some(reference_ppi) = ppi_min {
+            self.monitors.par_iter().for_each(|monitor| {
+                if let Some(&diagonal_inches) = config.monitors.get(&monitor.name) {
+                    if let Some(image) = images.lock().unwrap().get_mut(&monitor.name) {
+                        let scaling_factor =
+                            reference_ppi as f32 / monitor.ppi(diagonal_inches) as f32;
+                        let new_width = (monitor.width as f32 * scaling_factor).round() as u32;
+                        let new_height = (monitor.height as f32 * scaling_factor).round() as u32;
+                        *image = image
+                            .crop_imm(
+                                monitor.width.saturating_sub(new_width) / 2,
+                                monitor.height.saturating_sub(new_height) / 2,
+                                new_width,
+                                new_height,
+                            )
+                            .resize_to_fill(monitor.width, monitor.height, FilterType::Lanczos3)
+                    }
+                }
+            });
+        }
 
-        // if final papers length matches monitor count, we have no error
-        if output_papers.len() == self.monitors.len() {
-            Ok(output_papers)
+        if images
+            .try_lock()
+            .map_err(|_| "could not aquire lock on split images")?
+            .len()
+            == self.monitors.len()
+        {
+            Ok(images)
         } else {
-            Err("splitting error".to_string())
+            Err("ppi compensation error".to_string())
         }
     }
 
     fn export_images(
         &self,
         config: &Config,
-        images: Vec<(&String, DynamicImage)>,
+        images: Arc<Mutex<HashMap<String, DynamicImage>>>,
         output_path: &String,
     ) -> Result<Vec<ResultPaper>, String> {
         images
+            .try_lock()
+            .map_err(|_| "could not aquire lock on split images")?
             .iter()
             .map(|image| {
                 // export to file
