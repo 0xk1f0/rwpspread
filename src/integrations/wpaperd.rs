@@ -1,11 +1,14 @@
-use crate::worker::ResultPaper;
 use std::fs::File;
 use std::io::Write;
 
 pub struct Wpaperd;
 impl Wpaperd {
     // build new wpaperd config to file
-    pub fn new(path: &String, hash: &String, wallpapers: &Vec<ResultPaper>) -> Result<(), String> {
+    pub fn new(
+        path: &String,
+        hash: &String,
+        wallpapers: &Vec<(String, String)>,
+    ) -> Result<(), String> {
         // create a new config file
         let mut config_file = File::create(path).map_err(|_| "wpaperd: cant open config file")?;
 
@@ -20,15 +23,9 @@ impl Wpaperd {
             .map_err(|_| "wpaperd: TOML write error")?;
 
         // add monitor output sections
-        for wallpaper in wallpapers {
+        for paper in wallpapers {
             config_file
-                .write(
-                    format!(
-                        "[{}]\npath = \"{}\"\n\n",
-                        wallpaper.monitor_name, wallpaper.full_path
-                    )
-                    .as_bytes(),
-                )
+                .write(format!("[{}]\npath = \"{}\"\n\n", paper.0, paper.1).as_bytes())
                 .map_err(|_| "wpaperd: TOML write error")?;
         }
 

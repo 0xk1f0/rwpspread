@@ -18,16 +18,11 @@ use std::os::unix;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-pub struct ResultPaper {
-    pub monitor_name: String,
-    pub full_path: String,
-}
-
 pub struct Worker {
     hash: String,
     monitors: Vec<Monitor>,
     workdir: String,
-    output: Vec<ResultPaper>,
+    output: Vec<(String, String)>,
 }
 
 impl Worker {
@@ -149,13 +144,13 @@ impl Worker {
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
                         for monitor in &self.monitors {
-                            self.output.push(ResultPaper {
-                                monitor_name: monitor.name.clone(),
-                                full_path: format!(
+                            self.output.push((
+                                monitor.name.clone(),
+                                format!(
                                     "{}/rwps_{}_{}.png",
                                     &self.workdir, &self.hash, monitor.name
                                 ),
-                            })
+                            ))
                         }
                         let swaybg_args = Swaybg::new(&self.output)?;
                         Helpers::soft_restart("swaybg", swaybg_args)?;
@@ -169,13 +164,13 @@ impl Worker {
                     } else {
                         // hyprpaper also loads dynamically, so we need to manually assemble
                         for monitor in &self.monitors {
-                            self.output.push(ResultPaper {
-                                monitor_name: monitor.name.clone(),
-                                full_path: format!(
+                            self.output.push((
+                                monitor.name.clone(),
+                                format!(
                                     "{}/rwps_{}_{}.png",
                                     &self.workdir, &self.hash, monitor.name
                                 ),
-                            })
+                            ))
                         }
                         Hyprpaper::push(&self.output)?;
                     }
@@ -188,12 +183,12 @@ impl Worker {
             match locker {
                 Locker::Hyprlock => {
                     if !caches_present || config.force_resplit {
-                        Hyprlock::new(&self.output, &self.workdir)?;
+                        Hyprlock::new(&self.workdir, &self.output)?;
                     }
                 }
                 Locker::Swaylock => {
                     if !caches_present || config.force_resplit {
-                        Swaylock::new(&self.output, &self.workdir)?;
+                        Swaylock::new(&self.workdir, &self.output)?;
                     }
                 }
             }
@@ -444,7 +439,7 @@ impl Worker {
         config: &Config,
         images: Arc<Mutex<HashMap<String, DynamicImage>>>,
         output_path: &String,
-    ) -> Result<Vec<ResultPaper>, String> {
+    ) -> Result<Vec<(String, String)>, String> {
         images
             .try_lock()
             .map_err(|_| "could not aquire lock on split images")?
@@ -459,10 +454,7 @@ impl Worker {
                     unix::fs::symlink(&path_image, format!("{}/rwps_{}.png", output_path, image.0))
                         .map_err(|err| err.to_string())?;
                 }
-                Ok(ResultPaper {
-                    monitor_name: format!("{}", image.0),
-                    full_path: path_image,
-                })
+                Ok((image.0.to_owned(), path_image))
             })
             .collect()
     }

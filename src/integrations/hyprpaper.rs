@@ -1,4 +1,3 @@
-use crate::worker::ResultPaper;
 use std::env;
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
@@ -7,7 +6,7 @@ use std::time::Duration;
 
 pub struct Hyprpaper;
 impl Hyprpaper {
-    pub fn push(papers: &Vec<ResultPaper>) -> Result<(), String> {
+    pub fn push(wallpapers: &Vec<(String, String)>) -> Result<(), String> {
         // find socket base with fallback
         let socket_base: String;
         if let Ok(xdg_dir) = env::var("XDG_RUNTIME_DIR") {
@@ -47,10 +46,10 @@ impl Hyprpaper {
                     }
 
                     // execute call for every monitor wallpaper
-                    for paper in papers {
+                    for paper in wallpapers {
                         // preload wallpaper and check for success
                         socket
-                            .write_all(format!("preload {}", paper.full_path).as_bytes())
+                            .write_all(format!("preload {}", paper.1).as_bytes())
                             .map_err(|err| format!("hyprpaper: {}", err))?;
                         socket
                             .read(&mut buffer)
@@ -65,10 +64,7 @@ impl Hyprpaper {
 
                         // set wallpaper and check for success
                         socket
-                            .write_all(
-                                format!("wallpaper {},{}", paper.monitor_name, paper.full_path)
-                                    .as_bytes(),
-                            )
+                            .write_all(format!("wallpaper {},{}", paper.0, paper.1).as_bytes())
                             .map_err(|err| format!("hyprpaper: {}", err))?;
                         socket
                             .read(&mut buffer)

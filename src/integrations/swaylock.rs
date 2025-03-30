@@ -1,13 +1,12 @@
-use crate::worker::ResultPaper;
 use std::fs;
 
 pub struct Swaylock;
 impl Swaylock {
     // generate new file
-    pub fn new(papers: &Vec<ResultPaper>, path: &String) -> Result<(), String> {
+    pub fn new(path: &String, wallpapers: &Vec<(String, String)>) -> Result<(), String> {
         let mut base_string = String::new();
-        for paper in papers {
-            base_string += &format!("-i {}:{} ", paper.monitor_name, paper.full_path);
+        for paper in wallpapers {
+            base_string += &format!("-i {}:{} ", paper.0, paper.1);
         }
         fs::write(format!("{}/rwps_swaylock.conf", path), base_string)
             .map_err(|err| err.to_string())?;

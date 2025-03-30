@@ -1,14 +1,12 @@
-use crate::worker::ResultPaper;
-
 pub struct Swaybg;
 impl Swaybg {
-    pub fn new(papers: &Vec<ResultPaper>) -> Result<Vec<&str>, String> {
+    pub fn new(wallpapers: &Vec<(String, String)>) -> Result<Vec<&str>, String> {
         let mut arguments: Vec<&str> = Vec::new();
-        for paper in papers {
+        for paper in wallpapers {
             arguments.push(&"-o");
-            arguments.push(&paper.monitor_name);
+            arguments.push(&paper.0);
             arguments.push(&"-i");
-            arguments.push(&paper.full_path);
+            arguments.push(&paper.1);
         }
 
         Ok(arguments)
