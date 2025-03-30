@@ -65,21 +65,23 @@ Multi-Monitor Wallpaper Spanning Utility
 Usage: rwpspread [OPTIONS] <--image <IMAGE>|--info>
 
 Options:
-  -i, --image <IMAGE>            Image file or directory path
-      --info                     Show detectable information
-  -o, --output <OUTPUT>          Output directory path
-  -a, --align <ALIGN>            Do not downscale the base image, align the layout instead [possible values: tl, tr, tc, bl, br, bc, rc, lc, ct]
-  -b, --backend <BACKEND>        Wallpaper setter backend [possible values: wpaperd, swaybg, hyprpaper]
-  -l, --locker <LOCKER>          Lockscreen implementation to generate for [possible values: swaylock, hyprlock]
-  -c, --compensate <COMPENSATE>  Compensate for bezel amount in pixels
-  -d, --daemon                   Enable daemon mode and resplit on output changes
-  -p, --palette                  Generate a color palette from input image
-      --pre <PRE>                Script to execute before splitting
-      --post <POST>              Script to execute after splitting
-  -w, --watch                    Watch for wallpaper source changes and resplit on changes
-  -f, --force-resplit            Force resplit, skips all image cache checks
-  -h, --help                     Print help
-  -V, --version                  Print version
+  -i, --image <IMAGE>           Image file or directory path
+      --info                    Show detectable information
+  -o, --output <OUTPUT>         Output directory path
+  -a, --align <ALIGN>           Do not downscale the base image, align the layout instead [possible values: tl, tr, tc, bl, br, bc, rc, lc, ct]
+  -b, --backend <BACKEND>       Wallpaper setter backend [possible values: wpaperd, swaybg, hyprpaper]
+  -l, --locker <LOCKER>         Lockscreen implementation to generate for [possible values: swaylock, hyprlock]
+      --bezel <BEZEL>           Bezel amount in pixels to compensate for
+  -m, --monitors <MONITORS>...  List of monitor containing their diagonal in inches [format: "<NAME>:<INCHES>"]
+      --ppi                     Compensate for different ppi values
+  -d, --daemon                  Enable daemon mode and resplit on output changes
+  -p, --palette                 Generate a color palette from input image
+      --pre <PRE>               Script to execute before splitting
+      --post <POST>             Script to execute after splitting
+  -w, --watch                   Watch for wallpaper source changes and resplit on changes
+  -f, --force-resplit           Force resplit, skips all image cache checks
+  -h, --help                    Print help
+  -V, --version                 Print version
 ```
 
 ## Examples

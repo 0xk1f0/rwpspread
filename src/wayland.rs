@@ -74,6 +74,8 @@ pub struct Monitor {
     pub name: String,
     pub width: u32,
     pub height: u32,
+    pub initial_width: u32,
+    pub initial_height: u32,
     pub x: i32,
     pub y: i32,
 }
@@ -92,28 +94,25 @@ impl Monitor {
                 }
             }
             Direction::Down => {
-                if (self.y + self.height as i32 == neighbor.x)
-                    && (self.x >= neighbor.x && self.x <= neighbor.x + neighbor.width as i32
-                        || self.x + self.width as i32 >= neighbor.x
-                            && self.x <= neighbor.x + neighbor.width as i32)
+                if (self.y + self.height as i32 == neighbor.y)
+                    && ((self.x >= neighbor.x || self.x + self.width as i32 >= neighbor.x)
+                        && self.x <= neighbor.x + neighbor.width as i32)
                 {
                     return true;
                 }
             }
             Direction::Left => {
                 if (self.x == neighbor.x + neighbor.width as i32)
-                    && (self.y >= neighbor.y && self.y <= neighbor.y + neighbor.height as i32
-                        || self.y + self.height as i32 >= neighbor.y
-                            && self.y <= neighbor.y + neighbor.height as i32)
+                    && ((self.y >= neighbor.y || self.y + self.height as i32 >= neighbor.y)
+                        && self.y <= neighbor.y + neighbor.height as i32)
                 {
                     return true;
                 }
             }
             Direction::Right => {
                 if (self.x + self.width as i32 == neighbor.x)
-                    && (self.y >= neighbor.y && self.y <= neighbor.y + neighbor.height as i32
-                        || self.y + self.height as i32 >= neighbor.y
-                            && self.y <= neighbor.y + neighbor.height as i32)
+                    && ((self.y >= neighbor.y || self.y + self.height as i32 >= neighbor.y)
+                        && self.y <= neighbor.y + neighbor.height as i32)
                 {
                     return true;
                 }
@@ -143,6 +142,10 @@ impl Monitor {
         let diagonal_pixels = ((self.width).pow(2) + (self.height).pow(2)).isqrt() as u64;
 
         (diagonal_pixels as f64 / (diagonal_inches as f64)).round() as u32
+    }
+    pub fn scale(&mut self, scale_factor: f32) {
+        self.width = (self.width as f32 * scale_factor).round() as u32;
+        self.height = (self.height as f32 * scale_factor).round() as u32;
     }
 }
 
@@ -211,23 +214,31 @@ impl Wayland {
                         name: monitor_info
                             .name
                             .as_ref()
-                            .ok_or("wayland: compositor reports no monitor names")?
+                            .ok_or("wayland: compositor reports no monitor name")?
                             .to_string(),
+                        initial_width: monitor_info
+                            .logical_size
+                            .ok_or("wayland: compositor reports no monitor width")?
+                            .0 as u32,
+                        initial_height: monitor_info
+                            .logical_size
+                            .ok_or("wayland: compositor reports no monitor height")?
+                            .1 as u32,
                         width: monitor_info
                             .logical_size
-                            .ok_or("wayland: compositor reports no monitor size")?
+                            .ok_or("wayland: compositor reports no monitor width")?
                             .0 as u32,
                         height: monitor_info
                             .logical_size
-                            .ok_or("wayland: compositor reports no monitor size")?
+                            .ok_or("wayland: compositor reports no monitor height")?
                             .1 as u32,
                         x: monitor_info
                             .logical_position
-                            .ok_or("wayland: compositor reports no monitor position")?
+                            .ok_or("wayland: compositor reports no monitor x")?
                             .0,
                         y: monitor_info
                             .logical_position
-                            .ok_or("wayland: compositor reports no monitor position")?
+                            .ok_or("wayland: compositor reports no monitor y")?
                             .1,
                     });
                 }

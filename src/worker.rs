@@ -76,11 +76,16 @@ impl Worker {
         }
 
         // set monitors
+        self.monitors = input_monitors;
+
+        // compensate if set
+        if config.ppi {
+            self.ppi_compensate(config)?;
+        }
+
         // compensate for bezels if set
         if let Some(pixels) = config.bezel {
-            self.monitors = self.bezel_compensate(input_monitors, pixels as i32)?;
-        } else {
-            self.monitors = input_monitors;
+            self.bezel_compensate(pixels as i32)?;
         }
 
         // calculate hash
@@ -104,15 +109,8 @@ impl Worker {
             // we need to resplit
             let raw = self.perform_split(img, config)?;
 
-            if config.ppi {
-                // compensate first
-                let compensated = self.ppi_compensate(config, raw)?;
-                // save to path
-                self.output = self.export_images(config, compensated, &self.workdir)?;
-            } else {
-                // save to path
-                self.output = self.export_images(config, raw, &self.workdir)?;
-            }
+            // save to path
+            self.output = self.export_images(config, raw, &self.workdir)?;
         }
 
         // check if we need to handle a backend
@@ -215,11 +213,7 @@ impl Worker {
         Ok(())
     }
     // compensate for bezels in pixel amount
-    fn bezel_compensate(
-        &self,
-        mut input_monitors: Vec<Monitor>,
-        shift_amount: i32,
-    ) -> Result<Vec<Monitor>, String> {
+    fn bezel_compensate(&mut self, shift_amount: i32) -> Result<(), String> {
         // check for touching displays
         let mut some_touching: bool = true;
 
@@ -227,8 +221,8 @@ impl Worker {
         while some_touching {
             some_touching = false;
             // create a copy to use as lookup
-            let lookup_monitors = input_monitors.clone();
-            input_monitors.iter_mut().any(|monitor| {
+            let lookup_monitors = self.monitors.clone();
+            self.monitors.iter_mut().any(|monitor| {
                 lookup_monitors
                     .iter()
                     .find(|&node| {
@@ -265,7 +259,7 @@ impl Worker {
             });
         }
 
-        Ok(input_monitors)
+        Ok(())
     }
     // do the actual splitting
     fn perform_split(
@@ -391,12 +385,18 @@ impl Worker {
                     // crop to size
                     output.lock().unwrap().insert(
                         monitor.name.clone(),
-                        input_image.crop_imm(
-                            x + resize_offset_x,
-                            y + resize_offset_y,
-                            monitor.width,
-                            monitor.height,
-                        ),
+                        input_image
+                            .crop_imm(
+                                x + resize_offset_x,
+                                y + resize_offset_y,
+                                monitor.width,
+                                monitor.height,
+                            )
+                            .resize_to_fill(
+                                monitor.initial_width,
+                                monitor.initial_height,
+                                FilterType::Lanczos3,
+                            ),
                     );
                 }
             }
@@ -414,11 +414,7 @@ impl Worker {
         }
     }
     // compensate for different monitor ppi values
-    fn ppi_compensate(
-        &self,
-        config: &Config,
-        images: Arc<Mutex<HashMap<String, DynamicImage>>>,
-    ) -> Result<Arc<Mutex<HashMap<String, DynamicImage>>>, String> {
+    fn ppi_compensate(&mut self, config: &Config) -> Result<(), String> {
         let ppi_min = self
             .monitors
             .par_iter()
@@ -432,36 +428,15 @@ impl Worker {
             .min();
 
         if let Some(reference_ppi) = ppi_min {
-            self.monitors.par_iter().for_each(|monitor| {
+            self.monitors.iter_mut().for_each(|monitor| {
                 if let Some(&diagonal_inches) = config.monitors.get(&monitor.name) {
-                    if let Some(image) = images.lock().unwrap().get_mut(&monitor.name) {
-                        let scaling_factor =
-                            reference_ppi as f32 / monitor.ppi(diagonal_inches) as f32;
-                        let new_width = (monitor.width as f32 * scaling_factor).round() as u32;
-                        let new_height = (monitor.height as f32 * scaling_factor).round() as u32;
-                        *image = image
-                            .crop_imm(
-                                monitor.width.saturating_sub(new_width) / 2,
-                                monitor.height.saturating_sub(new_height) / 2,
-                                new_width,
-                                new_height,
-                            )
-                            .resize_to_fill(monitor.width, monitor.height, FilterType::Lanczos3)
-                    }
+                    let factor = reference_ppi as f32 / monitor.ppi(diagonal_inches) as f32;
+                    monitor.scale(factor);
                 }
             });
         }
 
-        if images
-            .try_lock()
-            .map_err(|_| "could not aquire lock on split images")?
-            .len()
-            == self.monitors.len()
-        {
-            Ok(images)
-        } else {
-            Err("ppi compensation error".to_string())
-        }
+        Ok(())
     }
 
     fn export_images(
