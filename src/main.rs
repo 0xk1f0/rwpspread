@@ -84,8 +84,8 @@ fn run() -> Result<String, String> {
         // since no runtime config was found, return info
         let mut result = String::from("Found the following displays:");
         let monitors = Wayland::connect()?.get_monitors()?;
-        for monitor in monitors {
-            result.push_str(&format!("\n- {}", monitor));
+        for (name, _) in monitors {
+            result.push_str(&format!("\n- {}", name));
         }
         return Ok(result);
     }

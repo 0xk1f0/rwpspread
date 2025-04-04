@@ -20,8 +20,8 @@ use std::sync::{Arc, Mutex};
 
 pub struct Worker {
     hash: String,
-    monitors: Vec<Monitor>,
     workdir: String,
+    monitors: HashMap<String, Monitor>,
     output: Vec<(String, String)>,
 }
 
@@ -29,13 +29,17 @@ impl Worker {
     pub fn new() -> Self {
         Self {
             hash: String::new(),
-            monitors: Vec::new(),
             workdir: String::new(),
+            monitors: HashMap::new(),
             output: Vec::new(),
         }
     }
     // split main image into two seperate, utilizes scaling
-    pub fn run(&mut self, config: &Config, input_monitors: Vec<Monitor>) -> Result<(), String> {
+    pub fn run(
+        &mut self,
+        config: &Config,
+        input_monitors: HashMap<String, Monitor>,
+    ) -> Result<(), String> {
         // pre run script check
         if let Some(pre_script_path) = &config.pre_path {
             Helpers::run_oneshot(pre_script_path)?;
@@ -143,13 +147,10 @@ impl Worker {
                         Helpers::force_restart("swaybg", swaybg_args)?;
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
-                        for monitor in &self.monitors {
+                        for (name, _) in &self.monitors {
                             self.output.push((
-                                monitor.name.clone(),
-                                format!(
-                                    "{}/rwps_{}_{}.png",
-                                    &self.workdir, &self.hash, monitor.name
-                                ),
+                                name.clone(),
+                                format!("{}/rwps_{}_{}.png", &self.workdir, &self.hash, name),
                             ))
                         }
                         let swaybg_args = Swaybg::new(&self.output)?;
@@ -165,11 +166,8 @@ impl Worker {
                         // hyprpaper also loads dynamically, so we need to manually assemble
                         for monitor in &self.monitors {
                             self.output.push((
-                                monitor.name.clone(),
-                                format!(
-                                    "{}/rwps_{}_{}.png",
-                                    &self.workdir, &self.hash, monitor.name
-                                ),
+                                monitor.0.clone(),
+                                format!("{}/rwps_{}_{}.png", &self.workdir, &self.hash, monitor.0),
                             ))
                         }
                         Hyprpaper::push(&self.output)?;
@@ -217,30 +215,30 @@ impl Worker {
             some_touching = false;
             // create a copy to use as lookup
             let lookup_monitors = self.monitors.clone();
-            self.monitors.iter_mut().any(|monitor| {
+            self.monitors.values_mut().any(|monitor| {
                 lookup_monitors
-                    .iter()
-                    .find(|&node| {
-                        if let Some(colission) = monitor.collides(node) {
+                    .values()
+                    .find(|&neighbor| {
+                        if let Some(colission) = monitor.collides(neighbor) {
                             some_touching = true;
                             match colission {
                                 Direction::Up => {
-                                    if !monitor.collides_at(&Direction::Down, node) {
+                                    if !monitor.collides_at(&Direction::Down, neighbor) {
                                         monitor.y += shift_amount;
                                     }
                                 }
                                 Direction::Down => {
-                                    if !monitor.collides_at(&Direction::Up, node) {
+                                    if !monitor.collides_at(&Direction::Up, neighbor) {
                                         monitor.y -= shift_amount;
                                     }
                                 }
                                 Direction::Left => {
-                                    if !monitor.collides_at(&Direction::Right, node) {
+                                    if !monitor.collides_at(&Direction::Right, neighbor) {
                                         monitor.x += shift_amount;
                                     }
                                 }
                                 Direction::Right => {
-                                    if !monitor.collides_at(&Direction::Left, node) {
+                                    if !monitor.collides_at(&Direction::Left, neighbor) {
                                         monitor.x -= shift_amount;
                                     }
                                 }
@@ -274,7 +272,7 @@ impl Worker {
         */
         let (mut max_x, mut max_y, mut max_negative_x, mut max_negative_y) = (0, 0, 0, 0);
         let (mut origin_x, mut origin_y) = (0, 0);
-        for monitor in &self.monitors {
+        for (_, monitor) in &self.monitors {
             // convert the negative values to positive ones
             let (abs_x, abs_y) = (monitor.x.abs() as u32, monitor.y.abs() as u32);
             // compare to max vals depending if positive or negative
@@ -373,23 +371,23 @@ impl Worker {
         let output: Arc<Mutex<HashMap<String, DynamicImage>>> =
             Arc::new(Mutex::new(HashMap::with_capacity(self.monitors.len())));
         self.monitors.par_iter().for_each(|monitor| {
-            let adjusted_x = u32::try_from(origin_x as i32 + monitor.x);
-            let adjusted_y = u32::try_from(origin_y as i32 + monitor.y);
+            let adjusted_x = u32::try_from(origin_x as i32 + monitor.1.x);
+            let adjusted_y = u32::try_from(origin_y as i32 + monitor.1.y);
             if let Ok(x) = adjusted_x {
                 if let Ok(y) = adjusted_y {
                     // crop to size
                     output.lock().unwrap().insert(
-                        monitor.name.clone(),
+                        monitor.0.clone(),
                         input_image
                             .crop_imm(
                                 x + resize_offset_x,
                                 y + resize_offset_y,
-                                monitor.width,
-                                monitor.height,
+                                monitor.1.width,
+                                monitor.1.height,
                             )
                             .resize_to_fill(
-                                monitor.initial_width,
-                                monitor.initial_height,
+                                monitor.1.initial_width,
+                                monitor.1.initial_height,
                                 FilterType::Lanczos3,
                             ),
                     );
@@ -414,8 +412,8 @@ impl Worker {
             .monitors
             .par_iter()
             .map(|monitor| {
-                if let Some(&diagonal_inches) = config.monitors.get(&monitor.name) {
-                    monitor.ppi(diagonal_inches)
+                if let Some(&diagonal_inches) = config.monitors.get(monitor.0) {
+                    monitor.1.ppi(diagonal_inches)
                 } else {
                     0
                 }
@@ -424,9 +422,9 @@ impl Worker {
 
         if let Some(reference_ppi) = ppi_min {
             self.monitors.iter_mut().for_each(|monitor| {
-                if let Some(&diagonal_inches) = config.monitors.get(&monitor.name) {
-                    let factor = reference_ppi as f32 / monitor.ppi(diagonal_inches) as f32;
-                    monitor.scale(factor);
+                if let Some(&diagonal_inches) = config.monitors.get(monitor.0) {
+                    let factor = reference_ppi as f32 / monitor.1.ppi(diagonal_inches) as f32;
+                    monitor.1.scale(factor);
                 }
             });
         }
@@ -523,10 +521,10 @@ impl Worker {
 
         // assemble current runtime paths
         let mut runtime_paths: Vec<String> = Vec::new();
-        for monitor in &self.monitors {
+        for (name, _) in &self.monitors {
             runtime_paths.push(format!(
                 "{}/rwps_{}_{}.png",
-                &self.workdir, monitor.name, &self.hash
+                &self.workdir, name, &self.hash
             ));
         }
         if let Some(locker) = &config.locker {

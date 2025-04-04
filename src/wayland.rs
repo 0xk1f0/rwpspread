@@ -8,6 +8,7 @@ use smithay_client_toolkit::{
     registry::{ProvidesRegistryState, RegistryState},
     registry_handlers,
 };
+use std::collections::HashMap;
 use std::fmt;
 
 struct ListOutputs {
@@ -193,54 +194,60 @@ impl Wayland {
         })
     }
 
-    pub fn get_monitors(&mut self) -> Result<Vec<Monitor>, String> {
+    pub fn get_monitors(&mut self) -> Result<HashMap<String, Monitor>, String> {
         // Initialize data
         self.eq
             .roundtrip(&mut self.lo)
             .map_err(|_| "wayland: roundtrip failed")?;
 
-        // new result vector
-        let mut result: Vec<Monitor> = Vec::new();
-
         // Now our outputs have been initialized with data,
         // we may access what outputs exist and information about
         // said outputs using the output delegate.
+        let mut result: HashMap<String, Monitor> =
+            HashMap::with_capacity(self.lo.output_state.outputs().count());
         for output in self.lo.output_state.outputs() {
             // get info
             match self.lo.output_state.info(&output) {
                 Some(monitor_info) => {
                     // check for things we need and push
-                    result.push(Monitor {
-                        name: monitor_info
+                    result.insert(
+                        monitor_info
                             .name
                             .as_ref()
                             .ok_or("wayland: compositor reports no monitor name")?
                             .to_string(),
-                        initial_width: monitor_info
-                            .logical_size
-                            .ok_or("wayland: compositor reports no monitor width")?
-                            .0 as u32,
-                        initial_height: monitor_info
-                            .logical_size
-                            .ok_or("wayland: compositor reports no monitor height")?
-                            .1 as u32,
-                        width: monitor_info
-                            .logical_size
-                            .ok_or("wayland: compositor reports no monitor width")?
-                            .0 as u32,
-                        height: monitor_info
-                            .logical_size
-                            .ok_or("wayland: compositor reports no monitor height")?
-                            .1 as u32,
-                        x: monitor_info
-                            .logical_position
-                            .ok_or("wayland: compositor reports no monitor x")?
-                            .0,
-                        y: monitor_info
-                            .logical_position
-                            .ok_or("wayland: compositor reports no monitor y")?
-                            .1,
-                    });
+                        Monitor {
+                            name: monitor_info
+                                .name
+                                .as_ref()
+                                .ok_or("wayland: compositor reports no monitor name")?
+                                .to_string(),
+                            initial_width: monitor_info
+                                .logical_size
+                                .ok_or("wayland: compositor reports no monitor width")?
+                                .0 as u32,
+                            initial_height: monitor_info
+                                .logical_size
+                                .ok_or("wayland: compositor reports no monitor height")?
+                                .1 as u32,
+                            width: monitor_info
+                                .logical_size
+                                .ok_or("wayland: compositor reports no monitor width")?
+                                .0 as u32,
+                            height: monitor_info
+                                .logical_size
+                                .ok_or("wayland: compositor reports no monitor height")?
+                                .1 as u32,
+                            x: monitor_info
+                                .logical_position
+                                .ok_or("wayland: compositor reports no monitor x")?
+                                .0,
+                            y: monitor_info
+                                .logical_position
+                                .ok_or("wayland: compositor reports no monitor y")?
+                                .1,
+                        },
+                    );
                 }
                 _ => {
                     return Err("wayland: compositor reports no monitor info".to_string());
