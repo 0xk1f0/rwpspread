@@ -1,3 +1,4 @@
+use crate::helpers::Helpers;
 use serde::Serialize;
 use smithay_client_toolkit::reexports::client::{
     Connection, EventQueue, QueueHandle, globals::registry_queue_init, protocol::wl_output,
@@ -63,6 +64,7 @@ impl ProvidesRegistryState for ListOutputs {
     }
 }
 
+#[derive(PartialEq)]
 pub enum Direction {
     Up,
     Down,
@@ -82,8 +84,8 @@ pub struct Monitor {
 }
 
 impl Monitor {
-    // check monitor collision for specific direction
-    pub fn collides_at(&self, direction: &Direction, neighbor: &Monitor) -> bool {
+    // check monitor neighbor collision for specific direction
+    pub fn collides_with_at(&self, neighbor: &Monitor, direction: &Direction) -> bool {
         match direction {
             Direction::Up => {
                 if (self.y == neighbor.y + neighbor.height as i32)
@@ -122,8 +124,8 @@ impl Monitor {
 
         false
     }
-    // check monitor collision for all available directions
-    pub fn collides(&self, neighbor: &Monitor) -> Option<&Direction> {
+    // check monitor neighbor collision for all available directions
+    pub fn collides_with(&self, neighbor: &Monitor) -> Option<&Direction> {
         [
             Direction::Up,
             Direction::Down,
@@ -132,21 +134,47 @@ impl Monitor {
         ]
         .iter()
         .find(|&possible_direction| {
-            if self.collides_at(possible_direction, neighbor) {
+            if self.collides_with_at(neighbor, possible_direction) {
                 true
             } else {
                 false
             }
         })
     }
+    // calculate ppi based on monitor diagonal in inches
     pub fn ppi(&self, diagonal_inches: u32) -> u32 {
         let diagonal_pixels = ((self.width).pow(2) + (self.height).pow(2)).isqrt() as u64;
 
         (diagonal_pixels as f64 / (diagonal_inches as f64)).round() as u32
     }
-    pub fn scale(&mut self, scale_factor: f32) {
-        self.width = (self.width as f32 * scale_factor).round() as u32;
-        self.height = (self.height as f32 * scale_factor).round() as u32;
+    // calculate the shift amount based on the difference of the scaled and inital width
+    pub fn diff_shifts(&self) -> (i32, i32) {
+        let x_diff: i32 = self.initial_width as i32 - self.width as i32;
+        let y_diff: i32 = self.initial_height as i32 - self.height as i32;
+
+        (x_diff / 2, y_diff / 2)
+    }
+    // scale monitor size based on scale factor
+    pub fn scale(&mut self, scale_factor: f32) -> &mut Self {
+        self.width = Helpers::round_2((self.width as f32 * scale_factor).round() as u32);
+        self.height = Helpers::round_2((self.height as f32 * scale_factor).round() as u32);
+
+        self
+    }
+    // shift x and y position of monitor
+    pub fn shift(&mut self, x_amount: i32, y_amount: i32) -> &mut Self {
+        self.x += x_amount;
+        self.y += y_amount;
+
+        self
+    }
+    // center monitor based on difference shift amount
+    pub fn center(&mut self) -> &mut Self {
+        let (x_shift, y_shift) = self.diff_shifts();
+        self.x += x_shift;
+        self.y += y_shift;
+
+        self
     }
 }
 

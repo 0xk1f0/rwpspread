@@ -79,12 +79,12 @@ impl Worker {
 
         // compensate if set
         if config.ppi {
-            self.ppi_compensate(config)?;
+            self.ppi_compensate(config);
         }
 
         // compensate for bezels if set
         if let Some(pixels) = config.bezel {
-            self.bezel_compensate(pixels as i32)?;
+            self.bezel_compensate(pixels as i32);
         }
 
         // calculate hash
@@ -201,55 +201,6 @@ impl Worker {
         // post run script check
         if let Some(post_script_path) = &config.post_path {
             Helpers::run_oneshot(post_script_path)?;
-        }
-
-        Ok(())
-    }
-    // compensate for bezels in pixel amount
-    fn bezel_compensate(&mut self, shift_amount: i32) -> Result<(), String> {
-        // check for touching displays
-        let mut some_touching: bool = true;
-
-        // iterate while we have something left to adjust
-        while some_touching {
-            some_touching = false;
-            // create a copy to use as lookup
-            let lookup_monitors = self.monitors.clone();
-            self.monitors.values_mut().any(|monitor| {
-                lookup_monitors
-                    .values()
-                    .find(|&neighbor| {
-                        if let Some(colission) = monitor.collides(neighbor) {
-                            some_touching = true;
-                            match colission {
-                                Direction::Up => {
-                                    if !monitor.collides_at(&Direction::Down, neighbor) {
-                                        monitor.y += shift_amount;
-                                    }
-                                }
-                                Direction::Down => {
-                                    if !monitor.collides_at(&Direction::Up, neighbor) {
-                                        monitor.y -= shift_amount;
-                                    }
-                                }
-                                Direction::Left => {
-                                    if !monitor.collides_at(&Direction::Right, neighbor) {
-                                        monitor.x += shift_amount;
-                                    }
-                                }
-                                Direction::Right => {
-                                    if !monitor.collides_at(&Direction::Left, neighbor) {
-                                        monitor.x -= shift_amount;
-                                    }
-                                }
-                            }
-                            true
-                        } else {
-                            false
-                        }
-                    })
-                    .is_some()
-            });
         }
 
         Ok(())
@@ -406,8 +357,51 @@ impl Worker {
             Err("initial splitting error".to_string())
         }
     }
+    // compensate for bezels in pixel amount
+    fn bezel_compensate(&mut self, shift_amount: i32) {
+        // iterate while we have something left to adjust
+        let mut has_collision: bool = true;
+        while has_collision {
+            // create a copy to use as lookup
+            let lookup = self.monitors.clone();
+            has_collision = self.monitors.values_mut().any(|monitor| {
+                lookup
+                    .values()
+                    .find(|&neighbor| {
+                        if let Some(collision) = monitor.collides_with(neighbor) {
+                            match collision {
+                                Direction::Up => {
+                                    if !monitor.collides_with_at(neighbor, &Direction::Down) {
+                                        monitor.shift(0, shift_amount);
+                                    }
+                                }
+                                Direction::Down => {
+                                    if !monitor.collides_with_at(neighbor, &Direction::Up) {
+                                        monitor.shift(0, -shift_amount);
+                                    }
+                                }
+                                Direction::Left => {
+                                    if !monitor.collides_with_at(neighbor, &Direction::Right) {
+                                        monitor.shift(shift_amount, 0);
+                                    }
+                                }
+                                Direction::Right => {
+                                    if !monitor.collides_with_at(neighbor, &Direction::Left) {
+                                        monitor.shift(-shift_amount, 0);
+                                    }
+                                }
+                            }
+                            true
+                        } else {
+                            false
+                        }
+                    })
+                    .is_some()
+            });
+        }
+    }
     // compensate for different monitor ppi values
-    fn ppi_compensate(&mut self, config: &Config) -> Result<(), String> {
+    fn ppi_compensate(&mut self, config: &Config) {
         let ppi_min = self
             .monitors
             .par_iter()
@@ -421,15 +415,51 @@ impl Worker {
             .min();
 
         if let Some(reference_ppi) = ppi_min {
-            self.monitors.iter_mut().for_each(|monitor| {
-                if let Some(&diagonal_inches) = config.monitors.get(monitor.0) {
-                    let factor = reference_ppi as f32 / monitor.1.ppi(diagonal_inches) as f32;
-                    monitor.1.scale(factor);
-                }
-            });
+            config
+                .monitors
+                .iter()
+                .for_each(|(monitor_name, &diagonal_inches)| {
+                    let lookup = self.monitors.clone();
+                    if let Some(monitor) = lookup.get(monitor_name) {
+                        let factor = reference_ppi as f32 / monitor.ppi(diagonal_inches) as f32;
+                        let mut neighbors: HashMap<&String, &Direction> = HashMap::new();
+                        lookup.iter().for_each(|neighbor| {
+                            if let Some(collision) = monitor.collides_with(neighbor.1) {
+                                neighbors.insert(monitor_name, collision);
+                            }
+                        });
+                        if let Some(monitor) = self.monitors.get_mut(monitor_name) {
+                            monitor.scale(factor).center();
+                        }
+                        neighbors
+                            .iter()
+                            .for_each(|(_, &direction)| match direction {
+                                Direction::Up => {
+                                    if !neighbors.values().any(|&val| *val == Direction::Down) {
+                                        if let Some(monitor) = self.monitors.get_mut(monitor_name) {
+                                            monitor.shift(0, -monitor.diff_shifts().1.abs());
+                                        }
+                                    }
+                                }
+                                Direction::Down => {
+                                    if !neighbors.values().any(|&val| *val == Direction::Up) {
+                                        if let Some(monitor) = self.monitors.get_mut(monitor_name) {
+                                            monitor.shift(0, monitor.diff_shifts().1.abs());
+                                        }
+                                    }
+                                }
+                                Direction::Left => {
+                                    if !neighbors.values().any(|&val| *val == Direction::Right) {
+                                        if let Some(monitor) = self.monitors.get_mut(monitor_name) {
+                                            monitor.shift(-monitor.diff_shifts().0.abs(), 0);
+                                        }
+                                    }
+                                }
+                                Direction::Right => {}
+                            });
+                    }
+                });
         }
-
-        Ok(())
     }
 
     fn export_images(
