@@ -11,7 +11,7 @@
   </a>
   <h3>Multi-Monitor Wallpaper Spanning Utility</h3>
   <a href="https://wallhaven.cc/w/l8q5k2">
-    <img width=70% height=75% src="https://github.com/user-attachments/assets/785bfed5-13b6-4a6e-9a66-2ee72b7ec2d6"></img>
+    <img width=70% height=75% src="https://github.com/user-attachments/assets/836131fe-0f8e-449e-993d-9df2ebd33865"></img>
   </a>
 </div>
 
