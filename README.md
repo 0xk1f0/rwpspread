@@ -1,10 +1,19 @@
-# rwpspread
-
-[![GitHub Release](https://img.shields.io/github/v/release/0xk1f0/rwpspread?style=for-the-badge&color=blue)](https://github.com/0xk1f0/rwpspread/releases/latest) 
-[![Crates.io Release](https://img.shields.io/crates/v/rwpspread?style=for-the-badge&color=orange)](https://crates.io/crates/rwpspread)
-[![AUR](https://img.shields.io/aur/version/rwpspread?style=for-the-badge&color=1793D1)](https://aur.archlinux.org/packages/rwpspread) 
-
-Multi-Monitor Wallpaper Spanning Utility
+<div align="center" style="text-decoration: none;">
+  <h1>rwpspread</h1>
+  <a href="https://github.com/0xk1f0/rwpspread/releases/latest">
+    <img src="https://img.shields.io/github/v/release/0xk1f0/rwpspread?style=for-the-badge&color=blue" />
+  </a>
+  <a href="https://crates.io/crates/rwpspread">
+    <img src="https://img.shields.io/crates/v/rwpspread?style=for-the-badge&color=orange" />
+  </a>
+  <a href="https://aur.archlinux.org/packages/rwpspread">
+    <img src="https://img.shields.io/aur/version/rwpspread?style=for-the-badge&color=1793D1" />
+  </a>
+  <h3>Multi-Monitor Wallpaper Spanning Utility</h3>
+  <a href="https://wallhaven.cc/w/l8q5k2">
+    <img width=70% height=75% src="https://github.com/user-attachments/assets/2deaf167-ae25-446c-a90d-7af446d4778e"></img>
+  </a>
+</div>
 
 ## Features
 
