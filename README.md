@@ -9,7 +9,7 @@
   <a href="https://aur.archlinux.org/packages/rwpspread">
     <img src="https://img.shields.io/aur/version/rwpspread?style=for-the-badge&color=1793D1" />
   </a>
-  <h3>Multi-Monitor Wallpaper Spanning Utility</h3>
+  <br><br>
   <a href="https://wallhaven.cc/w/l8q5k2">
     <img width=70% height=75% src="https://github.com/user-attachments/assets/836131fe-0f8e-449e-993d-9df2ebd33865"></img>
   </a>
