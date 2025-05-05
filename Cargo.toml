@@ -34,7 +34,7 @@ crossbeam-channel = "0.5.15"
 
 [build-dependencies]
 clap = { version = "4.5.37", features = ["derive"] }
-clap_complete = "4.5.47"
+clap_complete = "4.5.48"
 clap_mangen = "0.2.26"
 serde = { version = "1.0.219", features = ["derive"] }
 
