@@ -69,9 +69,10 @@ cargo build --release
 ## Usage
 
 ```text
-Multi-Monitor Wallpaper Spanning Utility
+rwpspread 0.5.0 - Multi-Monitor Wallpaper Spanning Utility
 
-Usage: rwpspread [OPTIONS] <--image <IMAGE>|--info>
+Usage:
+  rwpspread [OPTIONS] <--image <IMAGE>|--info>
 
 Options:
   -i, --image <IMAGE>           Image file or directory path

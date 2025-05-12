@@ -76,7 +76,14 @@ pub struct InitGroup {
 
 /// Multi-Monitor Wallpaper Utility
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, help_template = "\
+{name} {version} - {about}
+
+{usage-heading}
+  {usage}
+
+{all-args}
+")]
 struct Args {
     #[clap(flatten)]
     init_group: InitGroup,
