@@ -79,6 +79,14 @@ impl Worker {
 
         // ppi compensate if set
         if config.ppi {
+            // check if all specified monitors exist
+            if !config
+                .monitors
+                .iter()
+                .all(|a| self.monitors.contains_key(a.0))
+            {
+                return Err("non-existent monitors specified!".to_string());
+            };
             self.ppi_compensate(config);
         }
 
@@ -425,6 +433,8 @@ impl Worker {
                         let mut neighbors: HashMap<&String, &Direction> = HashMap::new();
                         lookup.iter().for_each(|neighbor| {
                             if let Some(collision) = monitor.collides_with(neighbor.1) {
+                                // insert the name of the neighboring monitor and
+                                // the collision direction of the scaled monitor
                                 neighbors.insert(monitor_name, collision);
                             }
                         });
