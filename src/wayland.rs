@@ -147,12 +147,12 @@ impl Monitor {
 
         (diagonal_pixels as f64 / (diagonal_inches as f64)).round() as u32
     }
-    /// Calculate and return the shift amount based on the difference of the scaled and inital width
-    pub fn diff_shifts(&self) -> (i32, i32) {
+    /// Calculate and return the absolute shift amount based on the difference of the scaled and inital width
+    pub fn abs_shift_diff(&self) -> (i32, i32) {
         let x_diff: i32 = self.initial_width as i32 - self.width as i32;
         let y_diff: i32 = self.initial_height as i32 - self.height as i32;
 
-        (x_diff / 2, y_diff / 2)
+        ((x_diff / 2).abs(), (y_diff / 2).abs())
     }
     /// Scale and save the new monitor size based on scale factor
     pub fn scale(&mut self, scale_factor: f32) -> &mut Self {
@@ -170,7 +170,7 @@ impl Monitor {
     }
     /// Center and save new centered x and y position monitor based on shift amount
     pub fn center(&mut self) -> &mut Self {
-        let (x_shift, y_shift) = self.diff_shifts();
+        let (x_shift, y_shift) = self.abs_shift_diff();
         self.x += x_shift;
         self.y += y_shift;
 

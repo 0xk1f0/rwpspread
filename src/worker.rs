@@ -426,47 +426,57 @@ impl Worker {
             config
                 .monitors
                 .iter()
-                .for_each(|(monitor_name, &diagonal_inches)| {
+                .for_each(|(target_name, &diagonal_inches)| {
                     let lookup = self.monitors.clone();
-                    if let Some(monitor) = lookup.get(monitor_name) {
-                        let factor = reference_ppi as f32 / monitor.ppi(diagonal_inches) as f32;
+                    if let Some(target_monitor) = lookup.get(target_name) {
+                        let factor =
+                            reference_ppi as f32 / target_monitor.ppi(diagonal_inches) as f32;
                         let mut neighbors: HashMap<&String, &Direction> = HashMap::new();
                         lookup.iter().for_each(|neighbor| {
-                            if let Some(collision) = monitor.collides_with(neighbor.1) {
+                            if let Some(collision) = target_monitor.collides_with(neighbor.1) {
                                 // insert the name of the neighboring monitor and
                                 // the collision direction of the scaled monitor
-                                neighbors.insert(monitor_name, collision);
+                                neighbors.insert(neighbor.0, collision);
                             }
                         });
-                        if let Some(monitor) = self.monitors.get_mut(monitor_name) {
-                            monitor.scale(factor).center();
+                        if let Some(target_monitor) = self.monitors.get_mut(target_name) {
+                            // scale and center the target monitor
+                            // store the absolute shift difference
+                            let target_diffs =
+                                target_monitor.scale(factor).center().abs_shift_diff();
+                            neighbors.iter().for_each(
+                                |(&neighbor_name, &direction)| match direction {
+                                    Direction::Up => {
+                                        if let Some(neighbor_monitor) =
+                                            self.monitors.get_mut(neighbor_name)
+                                        {
+                                            neighbor_monitor.shift(0, target_diffs.1);
+                                        }
+                                    }
+                                    Direction::Down => {
+                                        if let Some(neighbor_monitor) =
+                                            self.monitors.get_mut(neighbor_name)
+                                        {
+                                            neighbor_monitor.shift(0, -target_diffs.1);
+                                        }
+                                    }
+                                    Direction::Left => {
+                                        if let Some(neighbor_monitor) =
+                                            self.monitors.get_mut(neighbor_name)
+                                        {
+                                            neighbor_monitor.shift(target_diffs.0, 0);
+                                        }
+                                    }
+                                    Direction::Right => {
+                                        if let Some(neighbor_monitor) =
+                                            self.monitors.get_mut(neighbor_name)
+                                        {
+                                            neighbor_monitor.shift(-target_diffs.0, 0);
+                                        }
+                                    }
+                                },
+                            );
                         }
-                        neighbors
-                            .iter()
-                            .for_each(|(_, &direction)| match direction {
-                                Direction::Up => {
-                                    if !neighbors.values().any(|&val| *val == Direction::Down) {
-                                        if let Some(monitor) = self.monitors.get_mut(monitor_name) {
-                                            monitor.shift(0, -monitor.diff_shifts().1.abs());
-                                        }
-                                    }
-                                }
-                                Direction::Down => {
-                                    if !neighbors.values().any(|&val| *val == Direction::Up) {
-                                        if let Some(monitor) = self.monitors.get_mut(monitor_name) {
-                                            monitor.shift(0, monitor.diff_shifts().1.abs());
-                                        }
-                                    }
-                                }
-                                Direction::Left => {
-                                    if !neighbors.values().any(|&val| *val == Direction::Right) {
-                                        if let Some(monitor) = self.monitors.get_mut(monitor_name) {
-                                            monitor.shift(-monitor.diff_shifts().0.abs(), 0);
-                                        }
-                                    }
-                                }
-                                Direction::Right => {}
-                            });
                     }
                 });
         }
