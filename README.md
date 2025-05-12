@@ -82,7 +82,7 @@ Options:
   -l, --locker <LOCKER>         Lockscreen implementation to generate for [possible values: swaylock, hyprlock]
       --bezel <BEZEL>           Bezel amount in pixels to compensate for
   -m, --monitors <MONITORS>...  List of monitor containing their diagonal in inches [format: "<NAME>:<INCHES>"]
-      --ppi                     Compensate for different ppi values
+      --experimental-ppi        Compensate for different monitor ppi values
   -d, --daemon                  Enable daemon mode and resplit on output changes
   -p, --palette                 Generate a color palette from input image
       --pre <PRE>               Script to execute before splitting

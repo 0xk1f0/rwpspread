@@ -105,9 +105,9 @@ struct Args {
     #[clap(short, long, value_delimiter = ' ', num_args = 1..)]
     monitors: Option<Vec<String>>,
 
-    /// Compensate for different ppi values
+    /// Compensate for different monitor ppi values
     #[arg(long, requires = "monitors")]
-    ppi: bool,
+    experimental_ppi: bool,
 
     /// Enable daemon mode and resplit on output changes
     #[arg(short, long)]
@@ -226,7 +226,7 @@ impl Config {
                 backend: args.backend,
                 locker: args.locker,
                 bezel: args.bezel,
-                ppi: args.ppi,
+                ppi: args.experimental_ppi,
                 daemon: args.daemon,
                 palette: args.palette,
                 force_resplit: args.force_resplit,
