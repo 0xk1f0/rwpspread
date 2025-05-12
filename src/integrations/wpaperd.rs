@@ -4,7 +4,7 @@ use std::io::Write;
 
 pub struct Wpaperd;
 impl Wpaperd {
-    // build new wpaperd config to file
+    /// Build and save a new wpaperd config to disk
     pub fn new(
         path: &String,
         hash: &String,
@@ -33,7 +33,7 @@ impl Wpaperd {
         // return
         Ok(())
     }
-    // check for existing config
+    /// Check and return if any existing config is found
     pub fn check_existing(path: &String, hash: &String) -> bool {
         // Open the file
         let read_file = std::fs::read_to_string(path).unwrap_or_default();

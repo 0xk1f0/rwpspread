@@ -163,6 +163,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Generate and return a new Config based on cli input
     pub fn new() -> Result<Option<Self>, String> {
         // handle args
         let mut args = Args::parse();

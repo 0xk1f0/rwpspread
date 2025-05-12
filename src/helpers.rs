@@ -14,7 +14,7 @@ impl Helpers {
         }
     }
 
-    // check if a process pid exists
+    /// Check and return if a program pid given its name exists
     pub fn pid_exists(program: &str) -> Result<bool, String> {
         match process::Command::new("pidof")
             .arg(program)
@@ -28,7 +28,7 @@ impl Helpers {
         }
     }
 
-    // force restart a program
+    /// Force restart a program given its name
     pub fn force_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
         if Self::pid_exists(program)? {
             process::Command::new("pkill")
@@ -48,7 +48,7 @@ impl Helpers {
         Ok(())
     }
 
-    // soft restart a program
+    /// Soft restart a program given its name
     pub fn soft_restart(program: &str, arguments: Vec<&str>) -> Result<(), String> {
         if !Self::pid_exists(program)? {
             process::Command::new(program)
@@ -62,7 +62,7 @@ impl Helpers {
         Ok(())
     }
 
-    // check if a program is available
+    /// Check if a program is available in $PATH given its name
     pub fn is_installed(program: &str) -> bool {
         if let Some(path) = env::var_os("PATH") {
             for path in env::split_paths(&path) {
@@ -76,7 +76,7 @@ impl Helpers {
         false
     }
 
-    // round to nearest integer that is divisable by two
+    /// Round to nearest integer that is divisable by two
     pub fn round_2(n: u32) -> u32 {
         if n % 2 == 0 { n } else { n - 1 }
     }

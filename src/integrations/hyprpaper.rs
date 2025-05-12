@@ -7,6 +7,7 @@ use std::time::Duration;
 
 pub struct Hyprpaper;
 impl Hyprpaper {
+    /// Generate and push appropriate socket commands to hyprpaper given new input wallpapers
     pub fn push(wallpapers: &HashMap<String, String>) -> Result<(), String> {
         // find socket base with fallback
         let socket_base: String;

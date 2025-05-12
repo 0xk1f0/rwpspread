@@ -84,7 +84,7 @@ pub struct Monitor {
 }
 
 impl Monitor {
-    // check monitor neighbor collision for specific direction
+    /// Check for monitor neighbor collision in specific direction
     pub fn collides_with_at(&self, neighbor: &Monitor, direction: &Direction) -> bool {
         match direction {
             Direction::Up => {
@@ -124,7 +124,7 @@ impl Monitor {
 
         false
     }
-    // check monitor neighbor collision for all available directions
+    /// Check for monitor neighbor collision in any direction
     pub fn collides_with(&self, neighbor: &Monitor) -> Option<&Direction> {
         [
             Direction::Up,
@@ -141,34 +141,34 @@ impl Monitor {
             }
         })
     }
-    // calculate ppi based on monitor diagonal in inches
+    /// Calculate and return ppi based on monitor diagonal in inches
     pub fn ppi(&self, diagonal_inches: u32) -> u32 {
         let diagonal_pixels = ((self.width).pow(2) + (self.height).pow(2)).isqrt() as u64;
 
         (diagonal_pixels as f64 / (diagonal_inches as f64)).round() as u32
     }
-    // calculate the shift amount based on the difference of the scaled and inital width
+    /// Calculate and return the shift amount based on the difference of the scaled and inital width
     pub fn diff_shifts(&self) -> (i32, i32) {
         let x_diff: i32 = self.initial_width as i32 - self.width as i32;
         let y_diff: i32 = self.initial_height as i32 - self.height as i32;
 
         (x_diff / 2, y_diff / 2)
     }
-    // scale monitor size based on scale factor
+    /// Scale and save the new monitor size based on scale factor
     pub fn scale(&mut self, scale_factor: f32) -> &mut Self {
         self.width = Helpers::round_2((self.width as f32 * scale_factor).round() as u32);
         self.height = Helpers::round_2((self.height as f32 * scale_factor).round() as u32);
 
         self
     }
-    // shift x and y position of monitor
+    /// Shift and save a new x and y position of monitor
     pub fn shift(&mut self, x_amount: i32, y_amount: i32) -> &mut Self {
         self.x += x_amount;
         self.y += y_amount;
 
         self
     }
-    // center monitor based on difference shift amount
+    /// Center and save new centered x and y position monitor based on shift amount
     pub fn center(&mut self) -> &mut Self {
         let (x_shift, y_shift) = self.diff_shifts();
         self.x += x_shift;
@@ -194,6 +194,7 @@ pub struct Wayland {
 }
 
 impl Wayland {
+    /// Connect and return a new wayland connection
     pub fn connect() -> Result<Self, String> {
         // Try to connect to the Wayland server.
         let conn = Connection::connect_to_env().map_err(|_| "wayland: failed to connect")?;
@@ -221,7 +222,7 @@ impl Wayland {
             eq: event_queue,
         })
     }
-
+    /// Fetch and return the monitors in the current environment
     pub fn get_monitors(&mut self) -> Result<HashMap<String, Monitor>, String> {
         // Initialize data
         self.eq
@@ -285,7 +286,7 @@ impl Wayland {
 
         Ok(result)
     }
-
+    /// Refresh and return recalculation boolean of the current wayland connection
     pub fn refresh(&mut self) -> Result<bool, String> {
         // roundtrip
         self.eq

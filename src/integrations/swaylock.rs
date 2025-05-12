@@ -3,7 +3,7 @@ use std::fs;
 
 pub struct Swaylock;
 impl Swaylock {
-    // generate new file
+    /// Build and save a new swaylock config to disk
     pub fn new(path: &String, wallpapers: &HashMap<String, String>) -> Result<(), String> {
         let mut base_string = String::new();
         for paper in wallpapers {

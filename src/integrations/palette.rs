@@ -37,6 +37,7 @@ pub struct Palette {
 }
 
 impl Palette {
+    /// Generate a new color palette based on an input images
     pub fn new(image_path: &PathBuf) -> Result<Self, String> {
         let pixels = Palette::extract_rgba_pixels(image_path)?;
         Ok(Self {
@@ -46,131 +47,7 @@ impl Palette {
             schemes: None,
         })
     }
-
-    fn extract_rgba_pixels(image_path: &PathBuf) -> Result<Vec<Rgba<u8>>, String> {
-        // Load the image
-        let img = image::open(image_path).map_err(|err| err.to_string())?;
-
-        // determine resolution and downscale divisor
-        let (width, height) = img.dimensions();
-        // @TODO: Might make this changeable by user in the future
-        let downscale_divisor: f64 = (width.max(height) as f64 / 750.0).max(1.0);
-
-        // calculate new values and round
-        let new_width = (width as f64 / downscale_divisor).round() as u32;
-        let new_height = (height as f64 / downscale_divisor).round() as u32;
-
-        // Resize the image for faster processing
-        let small_img =
-            img.resize_exact(new_width, new_height, image::imageops::FilterType::Nearest);
-
-        // Collect the RGBA values of each pixel in a vector
-        let mut pixels = Vec::with_capacity((new_width * new_height) as usize);
-        for pixel in small_img.pixels() {
-            pixels.push(pixel.2);
-        }
-
-        // return them
-        Ok(pixels)
-    }
-
-    fn gamma_correct(&self, input: u8) -> f64 {
-        // approximate gamma correction for sRGB range
-        let gamma = 2.2;
-        let linear = (input as f64 / 255.0).powf(gamma);
-        linear
-    }
-
-    fn relative_luminance(&self, input: (u8, u8, u8)) -> f64 {
-        // calculate approximate relative luminance
-        (0.2126 * self.gamma_correct(input.0))
-            + (0.7152 * self.gamma_correct(input.1))
-            + (0.0722 * self.gamma_correct(input.2))
-    }
-
-    fn upshade_for_range(
-        &self,
-        last_color: (u8, u8, u8),
-        min_luminance: f64,
-        max_luminance: f64,
-    ) -> (u8, u8, u8) {
-        let mut luminance = self.relative_luminance(last_color);
-        // step up the color until the target luminance range is met
-        // this seems quite messy but has to be saturating add because
-        // we have to iterate the other colors further until all have reached
-        // 255, which is the brightest we can go for each channel
-        let mut steps_taken: u8 = 0;
-        while luminance >= max_luminance
-            || luminance <= min_luminance
-                && !(last_color.0 == u8::MAX && last_color.1 == u8::MAX && last_color.2 == u8::MAX)
-        {
-            steps_taken += 1;
-            luminance = self.relative_luminance((
-                last_color.0.saturating_add(steps_taken),
-                last_color.1.saturating_add(steps_taken),
-                last_color.2.saturating_add(steps_taken),
-            ));
-        }
-
-        // return the modified color as a result
-        (
-            last_color.0.saturating_add(steps_taken),
-            last_color.1.saturating_add(steps_taken),
-            last_color.2.saturating_add(steps_taken),
-        )
-    }
-
-    fn to_json(self, path: &String) -> Result<(), String> {
-        // define a map for each color scheme
-        let (mut luminance_colors, mut material_dark_colors, mut material_light_colors) =
-            (Map::new(), Map::new(), Map::new());
-
-        // first extract our own luminance based colors
-        for color in &self.colors {
-            luminance_colors.insert(
-                format!("color{}", color.index),
-                Value::String((*color.color).to_string()),
-            );
-        }
-
-        // extract the color schemes from the material colors generator
-        if let Some(palletes) = self.schemes {
-            for (dark_color, light_color) in
-                palletes.dark.into_iter().zip(palletes.light.into_iter())
-            {
-                material_dark_colors.insert(
-                    dark_color.0.split("_").collect::<String>(),
-                    Value::String((dark_color.1.to_string()).to_string()),
-                );
-                material_light_colors.insert(
-                    light_color.0.split("_").collect::<String>(),
-                    Value::String((light_color.1.to_string()).to_string()),
-                );
-            }
-        }
-
-        // pipe everything into the palette format struct
-        let json_output = FileFormat {
-            wallpaper: self.path,
-            foreground: (*self.colors.last().expect("Palette Error").color).to_string(),
-            background: (*self.colors.first().expect("Palette Error").color).to_string(),
-            colors: luminance_colors,
-            material: MaterialPalettes {
-                dark: material_dark_colors,
-                light: material_light_colors,
-            },
-        };
-
-        // write to output file
-        json_to_file(
-            File::create(format!("{}/rwps_colors.json", path)).map_err(|err| err.to_string())?,
-            &json_output,
-        )
-        .map_err(|err| err.to_string())?;
-
-        Ok(())
-    }
-
+    /// Peform the main Palette generation logic
     pub fn generate(mut self, output_path: &String) -> Result<(), String> {
         // define 16 luminance sections
         let luminance_boundaries = [
@@ -245,6 +122,130 @@ impl Palette {
 
         // process and save to json
         self.to_json(output_path)?;
+
+        Ok(())
+    }
+    /// Extract RGB pixels from an input image
+    fn extract_rgba_pixels(image_path: &PathBuf) -> Result<Vec<Rgba<u8>>, String> {
+        // Load the image
+        let img = image::open(image_path).map_err(|err| err.to_string())?;
+
+        // determine resolution and downscale divisor
+        let (width, height) = img.dimensions();
+        // @TODO: Might make this changeable by user in the future
+        let downscale_divisor: f64 = (width.max(height) as f64 / 750.0).max(1.0);
+
+        // calculate new values and round
+        let new_width = (width as f64 / downscale_divisor).round() as u32;
+        let new_height = (height as f64 / downscale_divisor).round() as u32;
+
+        // Resize the image for faster processing
+        let small_img =
+            img.resize_exact(new_width, new_height, image::imageops::FilterType::Nearest);
+
+        // Collect the RGBA values of each pixel in a vector
+        let mut pixels = Vec::with_capacity((new_width * new_height) as usize);
+        for pixel in small_img.pixels() {
+            pixels.push(pixel.2);
+        }
+
+        // return them
+        Ok(pixels)
+    }
+    /// Gamma correct an input pixel value
+    fn gamma_correct(&self, input: u8) -> f64 {
+        // approximate gamma correction for sRGB range
+        let gamma = 2.2;
+        let linear = (input as f64 / 255.0).powf(gamma);
+        linear
+    }
+    /// Calculate the relative luminance of an input RGB value
+    fn relative_luminance(&self, input: (u8, u8, u8)) -> f64 {
+        // calculate approximate relative luminance
+        (0.2126 * self.gamma_correct(input.0))
+            + (0.7152 * self.gamma_correct(input.1))
+            + (0.0722 * self.gamma_correct(input.2))
+    }
+    /// Upshade an input RGB value in the range of min and max given its not equal to the last color
+    fn upshade_for_range(
+        &self,
+        last_color: (u8, u8, u8),
+        min_luminance: f64,
+        max_luminance: f64,
+    ) -> (u8, u8, u8) {
+        let mut luminance = self.relative_luminance(last_color);
+        // step up the color until the target luminance range is met
+        // this seems quite messy but has to be saturating add because
+        // we have to iterate the other colors further until all have reached
+        // 255, which is the brightest we can go for each channel
+        let mut steps_taken: u8 = 0;
+        while luminance >= max_luminance
+            || luminance <= min_luminance
+                && !(last_color.0 == u8::MAX && last_color.1 == u8::MAX && last_color.2 == u8::MAX)
+        {
+            steps_taken += 1;
+            luminance = self.relative_luminance((
+                last_color.0.saturating_add(steps_taken),
+                last_color.1.saturating_add(steps_taken),
+                last_color.2.saturating_add(steps_taken),
+            ));
+        }
+
+        // return the modified color as a result
+        (
+            last_color.0.saturating_add(steps_taken),
+            last_color.1.saturating_add(steps_taken),
+            last_color.2.saturating_add(steps_taken),
+        )
+    }
+    /// Generate and save a new JSON palette file to disk
+    fn to_json(self, path: &String) -> Result<(), String> {
+        // define a map for each color scheme
+        let (mut luminance_colors, mut material_dark_colors, mut material_light_colors) =
+            (Map::new(), Map::new(), Map::new());
+
+        // first extract our own luminance based colors
+        for color in &self.colors {
+            luminance_colors.insert(
+                format!("color{}", color.index),
+                Value::String((*color.color).to_string()),
+            );
+        }
+
+        // extract the color schemes from the material colors generator
+        if let Some(palletes) = self.schemes {
+            for (dark_color, light_color) in
+                palletes.dark.into_iter().zip(palletes.light.into_iter())
+            {
+                material_dark_colors.insert(
+                    dark_color.0.split("_").collect::<String>(),
+                    Value::String((dark_color.1.to_string()).to_string()),
+                );
+                material_light_colors.insert(
+                    light_color.0.split("_").collect::<String>(),
+                    Value::String((light_color.1.to_string()).to_string()),
+                );
+            }
+        }
+
+        // pipe everything into the palette format struct
+        let json_output = FileFormat {
+            wallpaper: self.path,
+            foreground: (*self.colors.last().expect("Palette Error").color).to_string(),
+            background: (*self.colors.first().expect("Palette Error").color).to_string(),
+            colors: luminance_colors,
+            material: MaterialPalettes {
+                dark: material_dark_colors,
+                light: material_light_colors,
+            },
+        };
+
+        // write to output file
+        json_to_file(
+            File::create(format!("{}/rwps_colors.json", path)).map_err(|err| err.to_string())?,
+            &json_output,
+        )
+        .map_err(|err| err.to_string())?;
 
         Ok(())
     }

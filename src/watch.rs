@@ -7,6 +7,7 @@ use std::thread::JoinHandle;
 
 pub struct Watcher;
 impl Watcher {
+    /// Watch for monitor events of a specific Wayland connection
     pub fn monitors(mut wayland: Wayland, tx: Sender<bool>) -> Result<JoinHandle<()>, String> {
         let thread_handle = thread::Builder::new()
             .name("rwp_monitors".to_string())
@@ -26,10 +27,11 @@ impl Watcher {
 
         return Ok(thread_handle);
     }
+    /// Watch for file system events of a specific path
     pub fn file(path: PathBuf, tx: Sender<bool>) -> Result<JoinHandle<()>, String> {
         let thread_handle = thread::Builder::new()
             .name("rwp_file".to_string())
-            .spawn(move || match Watcher::source(&path) {
+            .spawn(move || match Watcher::inotify_watch_path(&path) {
                 Ok(resplit) => {
                     if resplit {
                         if let Err(err) = tx.send(true) {
@@ -45,7 +47,8 @@ impl Watcher {
 
         return Ok(thread_handle);
     }
-    fn source(path: &PathBuf) -> Result<bool, String> {
+    /// Attach and inotify instance to a specific path
+    fn inotify_watch_path(path: &PathBuf) -> Result<bool, String> {
         let mut buffer = [0; 1024];
         let mut inotify = Inotify::init().map_err(|_| "inotify: failed to initialize")?;
         inotify

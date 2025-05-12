@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 pub struct Swaybg;
 impl Swaybg {
+    /// Generate and return a new swaybg argument
     pub fn new(wallpapers: &HashMap<String, String>) -> Result<Vec<&str>, String> {
         let mut arguments: Vec<&str> = Vec::new();
         for paper in wallpapers {

@@ -34,7 +34,7 @@ impl Worker {
             output: HashMap::new(),
         }
     }
-    // split main image into two seperate, utilizes scaling
+    /// Initialize and run a new Worker instance
     pub fn run(
         &mut self,
         config: &Config,
@@ -205,7 +205,7 @@ impl Worker {
 
         Ok(())
     }
-    // do the actual splitting
+    /// Perform the main splitting logic and return the resulting split images
     fn perform_split(
         &self,
         mut input_image: DynamicImage,
@@ -357,7 +357,7 @@ impl Worker {
             Err("initial splitting error".to_string())
         }
     }
-    // compensate for bezels in pixel amount
+    /// Compensate for bezels in pixel amount
     fn bezel_compensate(&mut self, shift_amount: i32) {
         // iterate while we have something left to adjust
         let mut has_collision: bool = true;
@@ -400,7 +400,7 @@ impl Worker {
             });
         }
     }
-    // compensate for different monitor ppi values
+    /// Compensate for different monitor ppi values
     fn ppi_compensate(&mut self, config: &Config) {
         let ppi_min = self
             .monitors
@@ -461,7 +461,7 @@ impl Worker {
                 });
         }
     }
-
+    /// Export and save the images on disk and return their paths
     fn export_images(
         &self,
         config: &Config,
@@ -486,7 +486,7 @@ impl Worker {
             })
             .collect()
     }
-
+    /// Calculate the blake3 hash of input vector
     fn calculate_blake3_hash(&self, input_items: Vec<&[u8]>) -> String {
         // create a new blake3 instance and hash all input items
         let mut hasher = blake3::Hasher::new();
@@ -495,7 +495,7 @@ impl Worker {
         }
         hasher.finalize().to_hex().as_str().to_owned()
     }
-
+    /// Select and return a path to a random image in a folder
     fn select_random_image(&self, path: &PathBuf) -> Result<PathBuf, String> {
         // iterate over valid filetypes and push to vec
         let mut paths: Vec<PathBuf> = Vec::new();
@@ -514,7 +514,7 @@ impl Worker {
             Err("Images directory empty".to_string())
         }
     }
-
+    /// Ensure a path on disk exists
     fn ensure_path(&self, path: &str) -> Result<(), String> {
         fs::create_dir_all(
             &PathBuf::from(path)
@@ -525,7 +525,7 @@ impl Worker {
 
         Ok(())
     }
-
+    /// Cleanup all cached items
     fn cleanup_cache(&self) -> Result<(), String> {
         // wildcard search for our images and delete them
         for entry in
@@ -538,7 +538,7 @@ impl Worker {
 
         Ok(())
     }
-
+    /// Check if cached items exist and match current hash
     fn check_caches(&self, config: &Config) -> Result<bool, String> {
         // find and assemble all paths with correct prefix
         let mut found_paths: Vec<String> = Vec::new();
