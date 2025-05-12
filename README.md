@@ -97,31 +97,25 @@ Options:
 ## Examples
 
 ```bash
-# it takes an input image
+# Provide an input image
 # screens are automatically read
-# if running a wlroots based compositor
 rwpspread -i /some/path/wallpaper.png
 
-# you can also specify a directory
-# as input and rwpspread will choose
-# an image from it randomly
+# You can also specify a directory
+# rwpspread will choose the image randomly
 # supported formats: jpg, jpeg, png
 rwpspread -i /some/wallpaper/dir/
 
-# to align the layout if the input image
-# is big enough, instead of resizing
-# for example, to align it top-right
-rwpspread -a tr -i /some/path/wallpaper.png
-
-# to use f.E. the wpaperd integration
-# this autogenerates the config file
-# you will need to have wpaperd installed
-rwpspread -b wpaperd -i /some/path/wallpaper.png
-
-# if you want automatic resplits when
-# connecting new monitors
+# If you want automatic resplits
+# when hotplugging monitors
 # start with daemon mode
 rwpspread -di /some/path/wallpaper.png
+
+# Use f.E. the wpaperd integration
+# this autogenerates the config file
+# and restarts wpaperd automatically
+# you will need to have wpaperd installed
+rwpspread -b wpaperd -i /some/path/wallpaper.png
 ```
 
 > [!NOTE]  
