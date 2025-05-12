@@ -1,9 +1,10 @@
+use std::collections::HashMap;
 use std::fs;
 
 pub struct Hyprlock;
 impl Hyprlock {
     // generate new hyprlock config
-    pub fn new(path: &String, wallpapers: &Vec<(String, String)>) -> Result<(), String> {
+    pub fn new(path: &String, wallpapers: &HashMap<String, String>) -> Result<(), String> {
         let mut base_string = String::new();
         for paper in wallpapers {
             // push according to hyprlang

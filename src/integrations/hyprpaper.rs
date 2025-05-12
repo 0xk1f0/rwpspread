@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::io::prelude::*;
 use std::os::unix::net::UnixStream;
@@ -6,7 +7,7 @@ use std::time::Duration;
 
 pub struct Hyprpaper;
 impl Hyprpaper {
-    pub fn push(wallpapers: &Vec<(String, String)>) -> Result<(), String> {
+    pub fn push(wallpapers: &HashMap<String, String>) -> Result<(), String> {
         // find socket base with fallback
         let socket_base: String;
         if let Ok(xdg_dir) = env::var("XDG_RUNTIME_DIR") {

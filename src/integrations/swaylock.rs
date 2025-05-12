@@ -1,9 +1,10 @@
+use std::collections::HashMap;
 use std::fs;
 
 pub struct Swaylock;
 impl Swaylock {
     // generate new file
-    pub fn new(path: &String, wallpapers: &Vec<(String, String)>) -> Result<(), String> {
+    pub fn new(path: &String, wallpapers: &HashMap<String, String>) -> Result<(), String> {
         let mut base_string = String::new();
         for paper in wallpapers {
             base_string += &format!("-i {}:{} ", paper.0, paper.1);

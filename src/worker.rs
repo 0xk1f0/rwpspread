@@ -22,7 +22,7 @@ pub struct Worker {
     hash: String,
     workdir: String,
     monitors: HashMap<String, Monitor>,
-    output: Vec<(String, String)>,
+    output: HashMap<String, String>,
 }
 
 impl Worker {
@@ -31,7 +31,7 @@ impl Worker {
             hash: String::new(),
             workdir: String::new(),
             monitors: HashMap::new(),
-            output: Vec::new(),
+            output: HashMap::new(),
         }
     }
     // split main image into two seperate, utilizes scaling
@@ -77,12 +77,12 @@ impl Worker {
         // set monitors
         self.monitors = input_monitors;
 
-        // compensate if set
+        // ppi compensate if set
         if config.ppi {
             self.ppi_compensate(config);
         }
 
-        // compensate for bezels if set
+        // bezel compensate if set
         if let Some(pixels) = config.bezel {
             self.bezel_compensate(pixels as i32);
         }
@@ -148,10 +148,10 @@ impl Worker {
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
                         for (name, _) in &self.monitors {
-                            self.output.push((
+                            self.output.insert(
                                 name.clone(),
                                 format!("{}/rwps_{}_{}.png", &self.workdir, &self.hash, name),
-                            ))
+                            );
                         }
                         let swaybg_args = Swaybg::new(&self.output)?;
                         Helpers::soft_restart("swaybg", swaybg_args)?;
@@ -165,10 +165,10 @@ impl Worker {
                     } else {
                         // hyprpaper also loads dynamically, so we need to manually assemble
                         for monitor in &self.monitors {
-                            self.output.push((
+                            self.output.insert(
                                 monitor.0.clone(),
                                 format!("{}/rwps_{}_{}.png", &self.workdir, &self.hash, monitor.0),
-                            ))
+                            );
                         }
                         Hyprpaper::push(&self.output)?;
                     }
@@ -467,7 +467,7 @@ impl Worker {
         config: &Config,
         images: Arc<Mutex<HashMap<String, DynamicImage>>>,
         output_path: &String,
-    ) -> Result<Vec<(String, String)>, String> {
+    ) -> Result<HashMap<String, String>, String> {
         images
             .try_lock()
             .map_err(|_| "could not aquire lock on split images")?

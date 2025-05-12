@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
@@ -7,7 +8,7 @@ impl Wpaperd {
     pub fn new(
         path: &String,
         hash: &String,
-        wallpapers: &Vec<(String, String)>,
+        wallpapers: &HashMap<String, String>,
     ) -> Result<(), String> {
         // create a new config file
         let mut config_file = File::create(path).map_err(|_| "wpaperd: cant open config file")?;
