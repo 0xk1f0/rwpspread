@@ -80,12 +80,12 @@ impl Worker {
         // ppi compensate if set
         if config.ppi {
             // check if all specified monitors exist
-            if !config
+            if !self
                 .monitors
                 .iter()
-                .all(|a| self.monitors.contains_key(a.0))
+                .all(|a| config.monitors.contains_key(a.0))
             {
-                return Err("non-existent monitors specified!".to_string());
+                return Err("missing monitor definitions!".to_string());
             };
             self.ppi_compensate(config);
         }
