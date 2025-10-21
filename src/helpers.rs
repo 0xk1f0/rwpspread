@@ -75,9 +75,4 @@ impl Helpers {
 
         false
     }
-
-    /// Round to nearest integer that is divisable by two
-    pub fn round_2(n: u32) -> u32 {
-        if n % 2 == 0 { n } else { n - 1 }
-    }
 }

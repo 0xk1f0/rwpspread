@@ -4,7 +4,8 @@ use crate::integrations::{
     hyprlock::Hyprlock, hyprpaper::Hyprpaper, palette::Palette, swaybg::Swaybg, swaylock::Swaylock,
     wpaperd::Wpaperd,
 };
-use crate::wayland::{Direction, Monitor};
+use crate::layout::{MonitorXY, normalize_to_positive, resolve_layout};
+use crate::wayland::Monitor;
 use bincode::{config, serde};
 use glob::glob;
 use image::{DynamicImage, GenericImageView, imageops::FilterType};
@@ -77,24 +78,6 @@ impl Worker {
         // set monitors
         self.monitors = input_monitors;
 
-        // ppi compensate if set
-        if config.ppi {
-            // check if all specified monitors exist
-            if !self
-                .monitors
-                .iter()
-                .all(|a| config.monitors.contains_key(a.0))
-            {
-                return Err("missing monitor definitions!".to_string());
-            };
-            self.ppi_compensate(config);
-        }
-
-        // bezel compensate if set
-        if let Some(pixels) = config.bezel {
-            self.bezel_compensate(pixels as i32);
-        }
-
         // calculate hash
         self.hash = self.calculate_blake3_hash(vec![
             serde::encode_to_vec(&config, config::standard())
@@ -114,7 +97,7 @@ impl Worker {
             self.cleanup_cache()?;
 
             // we need to resplit
-            let raw = self.perform_split(img, config)?;
+            let raw = self.perform_split_new(img, config)?;
 
             // save to path
             self.output = self.export_images(config, raw, &self.workdir)?;
@@ -214,65 +197,43 @@ impl Worker {
         Ok(())
     }
     /// Perform the main splitting logic and return the resulting split images
-    fn perform_split(
+    fn perform_split_new(
         &self,
         mut input_image: DynamicImage,
         config: &Config,
     ) -> Result<Arc<Mutex<HashMap<String, DynamicImage>>>, String> {
-        /*
-            Calculate Overall Size
-            We can say that max width will be the biggest monitor
-            with the greatest x-offset, max height will be defined in the same
-            way except using y-offset.
-            For Negative offsets, this will be the same except that we keep track
-            of them in two seperate max variables.
-            We also check how far negatively offset the biggest screen is so we can
-            take it as the new origin.
-        */
-        let (mut max_x, mut max_y, mut max_negative_x, mut max_negative_y) = (0, 0, 0, 0);
-        let (mut origin_x, mut origin_y) = (0, 0);
-        for (_, monitor) in &self.monitors {
-            // convert the negative values to positive ones
-            let (abs_x, abs_y) = (monitor.x.abs() as u32, monitor.y.abs() as u32);
-            // compare to max vals depending if positive or negative
-            // also keep track of max negative offset
-            // should offset be smaller than mon size, add back to positive
-            if monitor.x.is_negative() {
-                max_negative_x = cmp::max(abs_x, max_negative_x);
-                origin_x = cmp::max(abs_x, origin_x);
-                if abs_x < monitor.width {
-                    max_x = cmp::max(monitor.width - abs_x, max_x);
-                }
-            } else {
-                max_x = cmp::max(abs_x + monitor.width, max_x);
-            }
-            if monitor.y.is_negative() {
-                max_negative_y = cmp::max(abs_y, max_negative_y);
-                origin_y = cmp::max(abs_y, origin_y);
-                if abs_y < monitor.height {
-                    max_y = cmp::max(monitor.height - abs_y, max_y);
-                }
-            } else {
-                max_y = cmp::max(abs_y + monitor.height, max_y);
-            }
+        let mut xy_monitors: Vec<MonitorXY> = Vec::new();
+
+        for monitor in &self.monitors {
+            xy_monitors.push(MonitorXY::from_monitor(monitor.1));
         }
 
-        /*
-            Check how we resize
-            Either at users choice or if image is too small
-            Should input be big enough, we can consider centering
-        */
+        let bezel_amount;
+        if let Some(amount) = config.bezel {
+            bezel_amount = amount;
+        } else {
+            bezel_amount = 0;
+        }
+
+        resolve_layout(&mut xy_monitors, bezel_amount, 100);
+
+        normalize_to_positive(&mut xy_monitors);
+
+        let (mut max_x, mut max_y) = (0, 0);
+
+        for monitor in &xy_monitors {
+            max_x = cmp::max(monitor.x1 + monitor.width as i32, max_x);
+            max_y = cmp::max(monitor.y1 + monitor.height as i32, max_y);
+        }
+
         let (mut resize_offset_x, mut resize_offset_y) = (0, 0);
         if config.align.is_none()
-            || input_image.dimensions().0 < max_x + max_negative_x
-            || input_image.dimensions().1 < max_y + max_negative_y
+            || input_image.dimensions().0 < max_x as u32
+            || input_image.dimensions().1 < max_y as u32
         {
             // scale image to fit calculated size
-            input_image = input_image.resize_to_fill(
-                max_x + max_negative_x,
-                max_y + max_negative_y,
-                FilterType::Lanczos3,
-            );
+            input_image =
+                input_image.resize_to_fill(max_x as u32, max_y as u32, FilterType::Lanczos3);
         } else {
             // we align the monitor layout since we have some room to work with
             if let Some(alignment) = &config.align {
@@ -283,75 +244,59 @@ impl Worker {
                     }
                     Alignment::Bl => {
                         resize_offset_x = 0;
-                        resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
+                        resize_offset_y = input_image.dimensions().1 - max_y as u32;
                     }
                     Alignment::Tr => {
-                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
+                        resize_offset_x = input_image.dimensions().0 - max_x as u32;
                         resize_offset_y = 0;
                     }
                     Alignment::Br => {
-                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
-                        resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
+                        resize_offset_x = input_image.dimensions().0 - max_x as u32;
+                        resize_offset_y = input_image.dimensions().1 - max_y as u32;
                     }
                     Alignment::Tc => {
-                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x) / 2;
+                        resize_offset_x = input_image.dimensions().0 - max_x as u32 / 2;
                         resize_offset_y = 0;
                     }
                     Alignment::Bc => {
-                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x) / 2;
-                        resize_offset_y = input_image.dimensions().1 - (max_y + max_negative_y);
+                        resize_offset_x = input_image.dimensions().0 - max_x as u32 / 2;
+                        resize_offset_y = input_image.dimensions().1 - max_y as u32;
                     }
                     Alignment::Rc => {
-                        resize_offset_x = input_image.dimensions().0 - (max_x + max_negative_x);
-                        resize_offset_y =
-                            (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
+                        resize_offset_x = input_image.dimensions().0 - max_x as u32;
+                        resize_offset_y = (input_image.dimensions().1 - max_y as u32) / 2;
                     }
                     Alignment::Lc => {
                         resize_offset_x = 0;
-                        resize_offset_y =
-                            (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
+                        resize_offset_y = (input_image.dimensions().1 - max_y as u32) / 2;
                     }
                     Alignment::Ct => {
-                        resize_offset_x =
-                            (input_image.dimensions().0 - (max_x + max_negative_x)) / 2;
-                        resize_offset_y =
-                            (input_image.dimensions().1 - (max_y + max_negative_y)) / 2;
+                        resize_offset_x = (input_image.dimensions().0 - max_x as u32) / 2;
+                        resize_offset_y = (input_image.dimensions().1 - max_y as u32) / 2;
                     }
                 }
             }
         }
 
-        /*
-            Crop image for screens
-            and push them to the result vector, taking into
-            account negative offsets
-            Doing it in parallel using rayon for speedup
-        */
+        let mut output_monitors: HashMap<String, MonitorXY> = HashMap::new();
+        for (modified, original) in xy_monitors.iter_mut().zip(self.monitors.clone()) {
+            output_monitors.insert(original.0, *modified);
+        }
+
         let output: Arc<Mutex<HashMap<String, DynamicImage>>> =
             Arc::new(Mutex::new(HashMap::with_capacity(self.monitors.len())));
-        self.monitors.par_iter().for_each(|monitor| {
-            let adjusted_x = u32::try_from(origin_x as i32 + monitor.1.x);
-            let adjusted_y = u32::try_from(origin_y as i32 + monitor.1.y);
-            if let Ok(x) = adjusted_x {
-                if let Ok(y) = adjusted_y {
-                    // crop to size
-                    output.lock().unwrap().insert(
-                        monitor.0.clone(),
-                        input_image
-                            .crop_imm(
-                                x + resize_offset_x,
-                                y + resize_offset_y,
-                                monitor.1.width,
-                                monitor.1.height,
-                            )
-                            .resize_to_fill(
-                                monitor.1.initial_width,
-                                monitor.1.initial_height,
-                                FilterType::Lanczos3,
-                            ),
-                    );
-                }
-            }
+        output_monitors.par_iter().for_each(|monitor| {
+            output.lock().unwrap().insert(
+                monitor.0.clone(),
+                input_image
+                    .crop_imm(
+                        monitor.1.x1 as u32 + resize_offset_x,
+                        monitor.1.y1 as u32 + resize_offset_y,
+                        monitor.1.width,
+                        monitor.1.height,
+                    )
+                    .resize_to_fill(monitor.1.width, monitor.1.height, FilterType::Lanczos3),
+            );
         });
 
         if output
@@ -363,122 +308,6 @@ impl Worker {
             Ok(output)
         } else {
             Err("initial splitting error".to_string())
-        }
-    }
-    /// Compensate for bezels in pixel amount
-    fn bezel_compensate(&mut self, shift_amount: i32) {
-        // iterate while we have something left to adjust
-        let mut has_collision: bool = true;
-        while has_collision {
-            // create a copy to use as lookup
-            let lookup = self.monitors.clone();
-            has_collision = self.monitors.values_mut().any(|monitor| {
-                lookup
-                    .values()
-                    .find(|&neighbor| {
-                        if let Some(collision) = monitor.collides_with(neighbor) {
-                            match collision {
-                                Direction::Up => {
-                                    if !monitor.collides_with_at(neighbor, &Direction::Down) {
-                                        monitor.shift(0, shift_amount);
-                                    }
-                                }
-                                Direction::Down => {
-                                    if !monitor.collides_with_at(neighbor, &Direction::Up) {
-                                        monitor.shift(0, -shift_amount);
-                                    }
-                                }
-                                Direction::Left => {
-                                    if !monitor.collides_with_at(neighbor, &Direction::Right) {
-                                        monitor.shift(shift_amount, 0);
-                                    }
-                                }
-                                Direction::Right => {
-                                    if !monitor.collides_with_at(neighbor, &Direction::Left) {
-                                        monitor.shift(-shift_amount, 0);
-                                    }
-                                }
-                            }
-                            true
-                        } else {
-                            false
-                        }
-                    })
-                    .is_some()
-            });
-        }
-    }
-    /// Compensate for different monitor ppi values
-    fn ppi_compensate(&mut self, config: &Config) {
-        let ppi_min = self
-            .monitors
-            .par_iter()
-            .map(|monitor| {
-                if let Some(&diagonal_inches) = config.monitors.get(monitor.0) {
-                    monitor.1.ppi(diagonal_inches)
-                } else {
-                    0
-                }
-            })
-            .min();
-
-        if let Some(reference_ppi) = ppi_min {
-            config
-                .monitors
-                .iter()
-                .for_each(|(target_name, &diagonal_inches)| {
-                    let lookup = self.monitors.clone();
-                    if let Some(target_monitor) = lookup.get(target_name) {
-                        let factor =
-                            reference_ppi as f32 / target_monitor.ppi(diagonal_inches) as f32;
-                        let mut neighbors: HashMap<&String, &Direction> = HashMap::new();
-                        lookup.iter().for_each(|neighbor| {
-                            if let Some(collision) = target_monitor.collides_with(neighbor.1) {
-                                // insert the name of the neighboring monitor and
-                                // the collision direction of the scaled monitor
-                                neighbors.insert(neighbor.0, collision);
-                            }
-                        });
-                        if let Some(target_monitor) = self.monitors.get_mut(target_name) {
-                            // scale and center the target monitor
-                            // store the absolute shift difference
-                            let target_diffs =
-                                target_monitor.scale(factor).center().abs_shift_diff();
-                            neighbors.iter().for_each(
-                                |(&neighbor_name, &direction)| match direction {
-                                    Direction::Up => {
-                                        if let Some(neighbor_monitor) =
-                                            self.monitors.get_mut(neighbor_name)
-                                        {
-                                            neighbor_monitor.shift(0, target_diffs.1);
-                                        }
-                                    }
-                                    Direction::Down => {
-                                        if let Some(neighbor_monitor) =
-                                            self.monitors.get_mut(neighbor_name)
-                                        {
-                                            neighbor_monitor.shift(0, -target_diffs.1);
-                                        }
-                                    }
-                                    Direction::Left => {
-                                        if let Some(neighbor_monitor) =
-                                            self.monitors.get_mut(neighbor_name)
-                                        {
-                                            neighbor_monitor.shift(target_diffs.0, 0);
-                                        }
-                                    }
-                                    Direction::Right => {
-                                        if let Some(neighbor_monitor) =
-                                            self.monitors.get_mut(neighbor_name)
-                                        {
-                                            neighbor_monitor.shift(-target_diffs.0, 0);
-                                        }
-                                    }
-                                },
-                            );
-                        }
-                    }
-                });
         }
     }
     /// Export and save the images on disk and return their paths

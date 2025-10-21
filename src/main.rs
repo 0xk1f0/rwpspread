@@ -1,6 +1,7 @@
 mod cli;
 mod helpers;
 mod integrations;
+mod layout;
 mod watch;
 mod wayland;
 mod worker;

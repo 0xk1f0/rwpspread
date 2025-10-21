@@ -1,4 +1,3 @@
-use crate::helpers::Helpers;
 use serde::Serialize;
 use smithay_client_toolkit::reexports::client::{
     Connection, EventQueue, QueueHandle, globals::registry_queue_init, protocol::wl_output,
@@ -64,14 +63,6 @@ impl ProvidesRegistryState for ListOutputs {
     }
 }
 
-#[derive(PartialEq)]
-pub enum Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
 #[derive(Serialize, Clone)]
 pub struct Monitor {
     pub name: String,
@@ -81,101 +72,6 @@ pub struct Monitor {
     pub initial_height: u32,
     pub x: i32,
     pub y: i32,
-}
-
-impl Monitor {
-    /// Check for monitor neighbor collision in specific direction
-    pub fn collides_with_at(&self, neighbor: &Monitor, direction: &Direction) -> bool {
-        match direction {
-            Direction::Up => {
-                if (self.y == neighbor.y + neighbor.height as i32)
-                    && (self.x >= neighbor.x && self.x <= neighbor.x + neighbor.width as i32
-                        || self.x + self.width as i32 >= neighbor.x
-                            && self.x <= neighbor.x + neighbor.width as i32)
-                {
-                    return true;
-                }
-            }
-            Direction::Down => {
-                if (self.y + self.height as i32 == neighbor.y)
-                    && ((self.x >= neighbor.x || self.x + self.width as i32 >= neighbor.x)
-                        && self.x <= neighbor.x + neighbor.width as i32)
-                {
-                    return true;
-                }
-            }
-            Direction::Left => {
-                if (self.x == neighbor.x + neighbor.width as i32)
-                    && ((self.y >= neighbor.y || self.y + self.height as i32 >= neighbor.y)
-                        && self.y <= neighbor.y + neighbor.height as i32)
-                {
-                    return true;
-                }
-            }
-            Direction::Right => {
-                if (self.x + self.width as i32 == neighbor.x)
-                    && ((self.y >= neighbor.y || self.y + self.height as i32 >= neighbor.y)
-                        && self.y <= neighbor.y + neighbor.height as i32)
-                {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-    /// Check for monitor neighbor collision in any direction
-    pub fn collides_with(&self, neighbor: &Monitor) -> Option<&Direction> {
-        [
-            Direction::Up,
-            Direction::Down,
-            Direction::Left,
-            Direction::Right,
-        ]
-        .iter()
-        .find(|&possible_direction| {
-            if self.collides_with_at(neighbor, possible_direction) {
-                true
-            } else {
-                false
-            }
-        })
-    }
-    /// Calculate and return ppi based on monitor diagonal in inches
-    pub fn ppi(&self, diagonal_inches: u32) -> u32 {
-        let diagonal_pixels = ((self.width).pow(2) + (self.height).pow(2)).isqrt() as u64;
-
-        (diagonal_pixels as f64 / (diagonal_inches as f64)).round() as u32
-    }
-    /// Calculate and return the absolute shift amount based on the difference of the scaled and inital width
-    pub fn abs_shift_diff(&self) -> (i32, i32) {
-        let x_diff: i32 = self.initial_width as i32 - self.width as i32;
-        let y_diff: i32 = self.initial_height as i32 - self.height as i32;
-
-        ((x_diff / 2).abs(), (y_diff / 2).abs())
-    }
-    /// Scale and save the new monitor size based on scale factor
-    pub fn scale(&mut self, scale_factor: f32) -> &mut Self {
-        self.width = Helpers::round_2((self.width as f32 * scale_factor).round() as u32);
-        self.height = Helpers::round_2((self.height as f32 * scale_factor).round() as u32);
-
-        self
-    }
-    /// Shift and save a new x and y position of monitor
-    pub fn shift(&mut self, x_amount: i32, y_amount: i32) -> &mut Self {
-        self.x += x_amount;
-        self.y += y_amount;
-
-        self
-    }
-    /// Center and save new centered x and y position monitor based on shift amount
-    pub fn center(&mut self) -> &mut Self {
-        let (x_shift, y_shift) = self.abs_shift_diff();
-        self.x += x_shift;
-        self.y += y_shift;
-
-        self
-    }
 }
 
 impl fmt::Display for Monitor {
