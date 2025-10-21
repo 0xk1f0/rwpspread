@@ -72,9 +72,14 @@ pub fn resolve_layout(monitors: &mut [MonitorXY], padding: u32, max_iterations: 
             for j in (i + 1)..monitors.len() {
                 let (mut a, mut b) = (monitors[i].canonical(), monitors[j].canonical());
 
-                // Check for overlap or touching (<= padding tolerance)
-                let x_overlap = a.x2 > b.x1 && a.x1 < b.x2;
-                let y_overlap = a.y2 > b.y1 && a.y1 < b.y2;
+                let (x_overlap, y_overlap);
+                if padding > 0 {
+                    x_overlap = a.x2 >= b.x1 && a.x1 <= b.x2;
+                    y_overlap = a.y2 >= b.y1 && a.y1 <= b.y2;
+                } else {
+                    x_overlap = a.x2 > b.x1 && a.x1 < b.x2;
+                    y_overlap = a.y2 > b.y1 && a.y1 < b.y2;
+                }
 
                 if x_overlap && y_overlap {
                     // Compute overlap depth
