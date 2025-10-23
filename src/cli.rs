@@ -149,7 +149,7 @@ pub struct Config {
     pub backend: Option<Backend>,
     pub locker: Option<Locker>,
     pub bezel: Option<u32>,
-    pub monitors: HashMap<String, u32>,
+    pub diagonals: HashMap<String, u32>,
     pub ppi: bool,
     pub daemon: bool,
     pub palette: bool,
@@ -228,7 +228,7 @@ impl Config {
             Ok(Some(Self {
                 input_path: input_paths.1,
                 raw_input_path: input_paths.0,
-                monitors: diagonals,
+                diagonals: diagonals,
                 output_path: args.output,
                 align: args.align,
                 backend: args.backend,

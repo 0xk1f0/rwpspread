@@ -1,5 +1,6 @@
 use crate::helpers::Helpers;
 use crate::wayland::Monitor;
+use std::collections::HashMap;
 use std::i32;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -98,7 +99,7 @@ impl Layout {
         }
 
         Self {
-            monitors: layout_monitors,
+            monitors: layout_monitors
         }
     }
     /// Normalize a set of monitors so that all coordinates are positive
@@ -114,12 +115,12 @@ impl Layout {
         }
     }
     /// Calculate maximum ppi value from layout's monitors
-    fn calculate_max_ppi(&self, diagonals: &Vec<u32>) -> u32 {
+    fn calculate_max_ppi(&self, diagonals: &HashMap<String, u32>) -> u32 {
         if let Some(ppi_max) = &self
             .monitors
             .iter()
             .zip(diagonals)
-            .map(|(monitor, &diagonal)| monitor.ppi(diagonal))
+            .map(|(monitor, (_, &diagonal))| monitor.ppi(diagonal))
             .max()
         {
             return ppi_max.to_owned();
@@ -128,10 +129,10 @@ impl Layout {
         }
     }
     /// Compensate for different ppi values of monitors by scaling them dynamically
-    pub fn compensate_ppi(&mut self, diagonals: Vec<u32>) {
+    pub fn compensate_ppi(&mut self, diagonals: &HashMap<String, u32>) {
         let max_ppi = self.calculate_max_ppi(&diagonals);
 
-        for (r, d) in self.monitors.iter_mut().zip(diagonals) {
+        for (r, (_, &d)) in self.monitors.iter_mut().zip(diagonals) {
             r.ppi_scale(d, max_ppi);
         }
     }

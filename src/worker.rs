@@ -73,7 +73,7 @@ impl Worker {
         if config.ppi {
             if !monitors
                 .iter()
-                .all(|a| config.monitors.contains_key(&a.name))
+                .all(|a| config.diagonals.contains_key(&a.name))
             {
                 return Err("missing monitor definitions!".to_string());
             };
@@ -212,15 +212,13 @@ impl Worker {
         let mut layout = Layout::from_monitors(monitors);
 
         if config.ppi {
-            let mut diagonals: Vec<u32> = Vec::with_capacity(config.monitors.len());
-            for monitor in &config.monitors {
-                diagonals.push(monitor.1.to_owned())
-            }
-            layout.compensate_ppi(diagonals);
+            // compensate ppi if set
+            layout.compensate_ppi(&config.diagonals);
         }
 
         let bezel_amount;
         if let Some(amount) = config.bezel {
+            // use bezel value is set
             bezel_amount = amount;
         } else {
             bezel_amount = 0;
