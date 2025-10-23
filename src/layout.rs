@@ -3,7 +3,7 @@ use crate::wayland::Monitor;
 use std::i32;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct MonitorXY {
+pub struct LayoutMonitor {
     pub x1: i32,
     pub y1: i32,
     pub x2: i32,
@@ -14,7 +14,7 @@ pub struct MonitorXY {
     pub height: u32,
 }
 
-impl MonitorXY {
+impl LayoutMonitor {
     /// Convert from Monitor to self
     pub fn from_monitor(monitor: &Monitor) -> Self {
         let x1 = monitor.x.min(monitor.x + monitor.width as i32);
@@ -78,90 +78,111 @@ impl MonitorXY {
         (diagonal_pixels as f64 / (diagonal_inches as f64)).round() as u32
     }
     /// Calculate and return ppi based on monitor diagonal in inches
-    pub fn ppi_scale(&mut self, diagonal_inches: u32, reference_ppi: u32) -> &mut Self {
-        let factor = reference_ppi as f32 / self.ppi(diagonal_inches) as f32;
+    pub fn ppi_scale(&mut self, diagonal_inches: u32, max_ppi: u32) -> &mut Self {
+        let factor = max_ppi as f32 / self.ppi(diagonal_inches) as f32;
 
         self.scale(factor)
     }
 }
 
-/// Compensate for different ppi values of monitors by scaling them dynamically
-pub fn compensate_ppi(monitors: &mut [MonitorXY], diagonals: Vec<u32>, reference_ppi: u32) {
-    if monitors.is_empty() {
-        return;
-    }
-
-    for (r, d) in monitors.iter_mut().zip(diagonals) {
-        r.ppi_scale(d, reference_ppi);
-    }
+pub struct Layout {
+    pub monitors: Vec<LayoutMonitor>,
 }
+impl Layout {
+    /// Create a new layoput from input monitors
+    pub fn from_monitors(monitors: &[Monitor]) -> Self {
+        let mut layout_monitors: Vec<LayoutMonitor> = Vec::with_capacity(monitors.len());
 
-/// Normalize a set of monitors so that all coordinates are positive
-pub fn normalize_to_positive(monitors: &mut [MonitorXY]) {
-    if monitors.is_empty() {
-        return;
+        for monitor in monitors {
+            layout_monitors.push(LayoutMonitor::from_monitor(monitor));
+        }
+
+        Self {
+            monitors: layout_monitors,
+        }
     }
+    /// Normalize a set of monitors so that all coordinates are positive
+    fn normalize_to_positive(&mut self) {
+        let min_x = self.monitors.iter().map(|r| r.x1).fold(i32::MAX, i32::min);
+        let min_y = self.monitors.iter().map(|r| r.y1).fold(i32::MAX, i32::min);
 
-    let min_x = monitors.iter().map(|r| r.x1).fold(i32::MAX, i32::min);
-    let min_y = monitors.iter().map(|r| r.y1).fold(i32::MAX, i32::min);
+        let dx = if min_x < 0 { -min_x } else { 0 };
+        let dy = if min_y < 0 { -min_y } else { 0 };
 
-    let dx = if min_x < 0 { -min_x } else { 0 };
-    let dy = if min_y < 0 { -min_y } else { 0 };
-
-    for r in monitors.iter_mut() {
-        r.translate(dx, dy);
+        for r in self.monitors.iter_mut() {
+            r.translate(dx, dy);
+        }
     }
-}
-
-/// Resolves touching and overlapping monitors
-pub fn resolve_layout(monitors: &mut [MonitorXY], padding: u32, max_iterations: usize) {
-    if monitors.is_empty() {
-        return;
+    /// Calculate maximum ppi value from layout's monitors
+    fn calculate_max_ppi(&self, diagonals: &Vec<u32>) -> u32 {
+        if let Some(ppi_max) = &self
+            .monitors
+            .iter()
+            .zip(diagonals)
+            .map(|(monitor, &diagonal)| monitor.ppi(diagonal))
+            .max()
+        {
+            return ppi_max.to_owned();
+        } else {
+            return 0;
+        }
     }
+    /// Compensate for different ppi values of monitors by scaling them dynamically
+    pub fn compensate_ppi(&mut self, diagonals: Vec<u32>) {
+        let max_ppi = self.calculate_max_ppi(&diagonals);
 
-    for _ in 0..max_iterations {
-        let mut changed = false;
+        for (r, d) in self.monitors.iter_mut().zip(diagonals) {
+            r.ppi_scale(d, max_ppi);
+        }
+    }
+    /// Resolves touching and overlapping monitors
+    pub fn resolve_layout(&mut self, padding: u32, max_iterations: usize) {
+        for _ in 0..max_iterations {
+            let mut changed = false;
 
-        for i in 0..monitors.len() {
-            for j in (i + 1)..monitors.len() {
-                let (mut a, mut b) = (monitors[i], monitors[j]);
+            for i in 0..self.monitors.len() {
+                for j in (i + 1)..self.monitors.len() {
+                    let (mut a, mut b) = (self.monitors[i], self.monitors[j]);
 
-                let (x_overlap, y_overlap);
-                if padding > 0 {
-                    x_overlap = a.x2 >= b.x1 && a.x1 <= b.x2;
-                    y_overlap = a.y2 >= b.y1 && a.y1 <= b.y2;
-                } else {
-                    x_overlap = a.x2 > b.x1 && a.x1 < b.x2;
-                    y_overlap = a.y2 > b.y1 && a.y1 < b.y2;
-                }
-
-                if x_overlap && y_overlap {
-                    // Compute overlap depth
-                    let overlap_x = (a.x2.min(b.x2) - a.x1.max(b.x1)).max(0);
-                    let overlap_y = (a.y2.min(b.y2) - a.y1.max(b.y1)).max(0);
-
-                    // Determine smallest axis of overlap
-                    if overlap_x < overlap_y {
-                        let dir = if a.x1 < b.x1 { -1 } else { 1 };
-                        let move_dist = (overlap_x + padding as i32) / 2;
-                        a.translate(dir * move_dist, 0);
-                        b.translate(-dir * move_dist, 0);
+                    let (x_overlap, y_overlap);
+                    if padding > 0 {
+                        x_overlap = a.x2 >= b.x1 && a.x1 <= b.x2;
+                        y_overlap = a.y2 >= b.y1 && a.y1 <= b.y2;
                     } else {
-                        let dir = if a.y1 < b.y1 { -1 } else { 1 };
-                        let move_dist = (overlap_y + padding as i32) / 2;
-                        a.translate(0, dir * move_dist);
-                        b.translate(0, -dir * move_dist);
+                        x_overlap = a.x2 > b.x1 && a.x1 < b.x2;
+                        y_overlap = a.y2 > b.y1 && a.y1 < b.y2;
                     }
 
-                    monitors[i] = a;
-                    monitors[j] = b;
-                    changed = true;
+                    if x_overlap && y_overlap {
+                        // Compute overlap depth
+                        let overlap_x = (a.x2.min(b.x2) - a.x1.max(b.x1)).max(0);
+                        let overlap_y = (a.y2.min(b.y2) - a.y1.max(b.y1)).max(0);
+
+                        // Determine smallest axis of overlap
+                        if overlap_x < overlap_y {
+                            let dir = if a.x1 < b.x1 { -1 } else { 1 };
+                            let move_dist = (overlap_x + padding as i32) / 2;
+                            a.translate(dir * move_dist, 0);
+                            b.translate(-dir * move_dist, 0);
+                        } else {
+                            let dir = if a.y1 < b.y1 { -1 } else { 1 };
+                            let move_dist = (overlap_y + padding as i32) / 2;
+                            a.translate(0, dir * move_dist);
+                            b.translate(0, -dir * move_dist);
+                        }
+
+                        self.monitors[i] = a;
+                        self.monitors[j] = b;
+                        changed = true;
+                    }
                 }
+            }
+
+            if !changed {
+                break;
             }
         }
 
-        if !changed {
-            break;
-        }
+        self.normalize_to_positive();
     }
 }

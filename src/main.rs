@@ -85,10 +85,10 @@ fn run() -> Result<String, String> {
         // since no runtime config was found, return info
         let mut result = String::new();
         let monitors = Wayland::connect()?.get_monitors()?;
-        for (x, (name, mon)) in monitors.iter().enumerate() {
+        for (x, mon) in monitors.iter().enumerate() {
             result.push_str(&format!(
                 "\x1B[1m\x1B[4m{}:\x1B[0m \x1B[3m{}x{}\x1B[0m at \x1B[3m{}:{}\x1B[0m",
-                name, mon.width, mon.height, mon.x, mon.y
+                mon.name, mon.width, mon.height, mon.x, mon.y
             ));
             if x + 1 != monitors.len() {
                 result.push_str("\n");

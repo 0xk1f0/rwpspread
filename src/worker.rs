@@ -4,7 +4,7 @@ use crate::integrations::{
     hyprlock::Hyprlock, hyprpaper::Hyprpaper, palette::Palette, swaybg::Swaybg, swaylock::Swaylock,
     wpaperd::Wpaperd,
 };
-use crate::layout::{MonitorXY, compensate_ppi, normalize_to_positive, resolve_layout};
+use crate::layout::{Layout, LayoutMonitor};
 use crate::wayland::Monitor;
 use bincode::{config, serde};
 use glob::glob;
@@ -22,7 +22,6 @@ use std::sync::{Arc, Mutex};
 pub struct Worker {
     hash: String,
     workdir: String,
-    monitors: HashMap<String, Monitor>,
     output: HashMap<String, String>,
 }
 
@@ -31,16 +30,11 @@ impl Worker {
         Self {
             hash: String::new(),
             workdir: String::new(),
-            monitors: HashMap::new(),
             output: HashMap::new(),
         }
     }
     /// Initialize and run a new Worker instance
-    pub fn run(
-        &mut self,
-        config: &Config,
-        input_monitors: HashMap<String, Monitor>,
-    ) -> Result<(), String> {
+    pub fn run(&mut self, config: &Config, monitors: Vec<Monitor>) -> Result<(), String> {
         // pre run script check
         if let Some(pre_script_path) = &config.pre_path {
             Helpers::run_oneshot(pre_script_path)?;
@@ -75,15 +69,11 @@ impl Worker {
             self.workdir = env::var("PWD").map_err(|_| "failed read $PWD")?;
         }
 
-        // set monitors
-        self.monitors = input_monitors;
-
         // ppi compensate if set
         if config.ppi {
-            if !self
-                .monitors
+            if !monitors
                 .iter()
-                .all(|a| config.monitors.contains_key(a.0))
+                .all(|a| config.monitors.contains_key(&a.name))
             {
                 return Err("missing monitor definitions!".to_string());
             };
@@ -94,13 +84,15 @@ impl Worker {
             serde::encode_to_vec(&config, config::standard())
                 .map_err(|_| "serialization error".to_string())?
                 .as_slice(),
-            serde::encode_to_vec(&self.monitors, config::standard())
+            serde::encode_to_vec(&monitors, config::standard())
                 .map_err(|_| "serialization error".to_string())?
                 .as_slice(),
         ]);
 
         // check caches first
-        let caches_present: bool = self.check_caches(&config).map_err(|err| err.to_string())?;
+        let caches_present: bool = self
+            .check_caches(&config, &monitors)
+            .map_err(|err| err.to_string())?;
 
         // do we need to resplit
         if config.force_resplit || !caches_present {
@@ -108,7 +100,7 @@ impl Worker {
             self.cleanup_cache()?;
 
             // we need to resplit
-            let raw = self.perform_split(img, config)?;
+            let raw = self.perform_split(&monitors, img, config)?;
 
             // save to path
             self.output = self.export_images(config, raw, &self.workdir)?;
@@ -149,10 +141,10 @@ impl Worker {
                         Helpers::force_restart("swaybg", swaybg_args)?;
                     } else {
                         // since swaybg has no config file, we need to assemble the names manually
-                        for (name, _) in &self.monitors {
+                        for mon in monitors {
                             self.output.insert(
-                                name.clone(),
-                                format!("{}/rwps_{}_{}.png", &self.workdir, &self.hash, name),
+                                mon.name.to_owned(),
+                                format!("{}/rwps_{}_{}.png", &self.workdir, &self.hash, mon.name),
                             );
                         }
                         let swaybg_args = Swaybg::new(&self.output)?;
@@ -166,10 +158,13 @@ impl Worker {
                         Hyprpaper::push(&self.output)?;
                     } else {
                         // hyprpaper also loads dynamically, so we need to manually assemble
-                        for monitor in &self.monitors {
+                        for monitor in monitors {
                             self.output.insert(
-                                monitor.0.clone(),
-                                format!("{}/rwps_{}_{}.png", &self.workdir, &self.hash, monitor.0),
+                                monitor.name.to_owned(),
+                                format!(
+                                    "{}/rwps_{}_{}.png",
+                                    &self.workdir, &self.hash, monitor.name
+                                ),
                             );
                         }
                         Hyprpaper::push(&self.output)?;
@@ -210,34 +205,18 @@ impl Worker {
     /// Perform the main splitting logic and return the resulting split images
     fn perform_split(
         &self,
+        monitors: &[Monitor],
         mut input_image: DynamicImage,
         config: &Config,
     ) -> Result<Arc<Mutex<HashMap<String, DynamicImage>>>, String> {
-        let mut xy_monitors: Vec<MonitorXY> = Vec::with_capacity(self.monitors.len());
-
-        for monitor in &self.monitors {
-            xy_monitors.push(MonitorXY::from_monitor(monitor.1));
-        }
+        let mut layout = Layout::from_monitors(monitors);
 
         if config.ppi {
-            if let Some(ppi_max) = &xy_monitors
-                .iter_mut()
-                .zip(&self.monitors)
-                .map(|(monitor, original)| {
-                    if let Some(&diagonal_inches) = config.monitors.get(original.0) {
-                        monitor.ppi(diagonal_inches)
-                    } else {
-                        0
-                    }
-                })
-                .max()
-            {
-                let mut diagonals: Vec<u32> = Vec::with_capacity(config.monitors.len());
-                for monitor in &config.monitors {
-                    diagonals.push(monitor.1.to_owned())
-                }
-                compensate_ppi(&mut xy_monitors, diagonals, ppi_max.to_owned());
+            let mut diagonals: Vec<u32> = Vec::with_capacity(config.monitors.len());
+            for monitor in &config.monitors {
+                diagonals.push(monitor.1.to_owned())
             }
+            layout.compensate_ppi(diagonals);
         }
 
         let bezel_amount;
@@ -247,17 +226,17 @@ impl Worker {
             bezel_amount = 0;
         }
 
-        resolve_layout(&mut xy_monitors, bezel_amount, 100);
+        // resolve layout
+        layout.resolve_layout(bezel_amount, 100);
 
-        normalize_to_positive(&mut xy_monitors);
-
+        // find max needed image size
         let (mut max_x, mut max_y) = (0, 0);
-
-        for monitor in &xy_monitors {
+        for monitor in &layout.monitors {
             max_x = cmp::max(monitor.x1 + monitor.width as i32, max_x);
             max_y = cmp::max(monitor.y1 + monitor.height as i32, max_y);
         }
 
+        // check if we can align the layout to a bigger input image
         let (mut resize_offset_x, mut resize_offset_y) = (0, 0);
         if config.align.is_none()
             || input_image.dimensions().0 < max_x as u32
@@ -310,16 +289,16 @@ impl Worker {
             }
         }
 
-        let mut output_monitors: HashMap<String, MonitorXY> = HashMap::new();
-        for (modified, original) in xy_monitors.iter_mut().zip(self.monitors.clone()) {
-            output_monitors.insert(original.0, *modified);
+        let mut output_monitors: HashMap<String, LayoutMonitor> = HashMap::new();
+        for (modified, original) in layout.monitors.iter().zip(monitors) {
+            output_monitors.insert(original.name.to_owned(), *modified);
         }
 
         let output: Arc<Mutex<HashMap<String, DynamicImage>>> =
-            Arc::new(Mutex::new(HashMap::with_capacity(self.monitors.len())));
+            Arc::new(Mutex::new(HashMap::with_capacity(monitors.len())));
         output_monitors.par_iter().for_each(|monitor| {
             output.lock().unwrap().insert(
-                monitor.0.clone(),
+                monitor.0.to_owned(),
                 input_image
                     .crop_imm(
                         monitor.1.x1 as u32 + resize_offset_x,
@@ -335,7 +314,7 @@ impl Worker {
             .try_lock()
             .map_err(|_| "could not aquire lock on split images")?
             .len()
-            == self.monitors.len()
+            == monitors.len()
         {
             Ok(output)
         } else {
@@ -420,7 +399,7 @@ impl Worker {
         Ok(())
     }
     /// Check if cached items exist and match current hash
-    fn check_caches(&self, config: &Config) -> Result<bool, String> {
+    fn check_caches(&self, config: &Config, monitors: &Vec<Monitor>) -> Result<bool, String> {
         // find and assemble all paths with correct prefix
         let mut found_paths: Vec<String> = Vec::new();
         for path in glob(&format!("{}/rwps_*", &self.workdir))
@@ -432,10 +411,10 @@ impl Worker {
 
         // assemble current runtime paths
         let mut runtime_paths: Vec<String> = Vec::new();
-        for (name, _) in &self.monitors {
+        for mon in monitors {
             runtime_paths.push(format!(
                 "{}/rwps_{}_{}.png",
-                &self.workdir, name, &self.hash
+                &self.workdir, mon.name, &self.hash
             ));
         }
         if let Some(locker) = &config.locker {
