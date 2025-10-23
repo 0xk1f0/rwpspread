@@ -4,7 +4,7 @@ use crate::integrations::{
     hyprlock::Hyprlock, hyprpaper::Hyprpaper, palette::Palette, swaybg::Swaybg, swaylock::Swaylock,
     wpaperd::Wpaperd,
 };
-use crate::layout::{MonitorXY, normalize_to_positive, resolve_layout};
+use crate::layout::{MonitorXY, compensate_ppi, normalize_to_positive, resolve_layout};
 use crate::wayland::Monitor;
 use bincode::{config, serde};
 use glob::glob;
@@ -78,6 +78,17 @@ impl Worker {
         // set monitors
         self.monitors = input_monitors;
 
+        // ppi compensate if set
+        if config.ppi {
+            if !self
+                .monitors
+                .iter()
+                .all(|a| config.monitors.contains_key(a.0))
+            {
+                return Err("missing monitor definitions!".to_string());
+            };
+        }
+
         // calculate hash
         self.hash = self.calculate_blake3_hash(vec![
             serde::encode_to_vec(&config, config::standard())
@@ -97,7 +108,7 @@ impl Worker {
             self.cleanup_cache()?;
 
             // we need to resplit
-            let raw = self.perform_split_new(img, config)?;
+            let raw = self.perform_split(img, config)?;
 
             // save to path
             self.output = self.export_images(config, raw, &self.workdir)?;
@@ -197,15 +208,36 @@ impl Worker {
         Ok(())
     }
     /// Perform the main splitting logic and return the resulting split images
-    fn perform_split_new(
+    fn perform_split(
         &self,
         mut input_image: DynamicImage,
         config: &Config,
     ) -> Result<Arc<Mutex<HashMap<String, DynamicImage>>>, String> {
-        let mut xy_monitors: Vec<MonitorXY> = Vec::new();
+        let mut xy_monitors: Vec<MonitorXY> = Vec::with_capacity(self.monitors.len());
 
         for monitor in &self.monitors {
             xy_monitors.push(MonitorXY::from_monitor(monitor.1));
+        }
+
+        if config.ppi {
+            if let Some(ppi_max) = &xy_monitors
+                .iter_mut()
+                .zip(&self.monitors)
+                .map(|(monitor, original)| {
+                    if let Some(&diagonal_inches) = config.monitors.get(original.0) {
+                        monitor.ppi(diagonal_inches)
+                    } else {
+                        0
+                    }
+                })
+                .max()
+            {
+                let mut diagonals: Vec<u32> = Vec::with_capacity(config.monitors.len());
+                for monitor in &config.monitors {
+                    diagonals.push(monitor.1.to_owned())
+                }
+                compensate_ppi(&mut xy_monitors, diagonals, ppi_max.to_owned());
+            }
         }
 
         let bezel_amount;

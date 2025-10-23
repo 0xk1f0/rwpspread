@@ -1,3 +1,4 @@
+use crate::helpers::Helpers;
 use crate::wayland::Monitor;
 use std::i32;
 
@@ -7,6 +8,8 @@ pub struct MonitorXY {
     pub y1: i32,
     pub x2: i32,
     pub y2: i32,
+    pub initial_width: u32,
+    pub initial_height: u32,
     pub width: u32,
     pub height: u32,
 }
@@ -23,19 +26,11 @@ impl MonitorXY {
             y1,
             x2,
             y2,
+            initial_width: monitor.width,
+            initial_height: monitor.height,
             width: monitor.width,
             height: monitor.height,
         }
-    }
-    /// Canonicalize monitor coordinates
-    pub fn canonical(mut self) -> Self {
-        if self.x1 > self.x2 {
-            std::mem::swap(&mut self.x1, &mut self.x2);
-        }
-        if self.y1 > self.y2 {
-            std::mem::swap(&mut self.y1, &mut self.y2);
-        }
-        self
     }
     /// Apply translation
     fn translate(&mut self, dx: i32, dy: i32) {
@@ -43,6 +38,61 @@ impl MonitorXY {
         self.x2 += dx;
         self.y1 += dy;
         self.y2 += dy;
+    }
+    /// Calculate and return the absolute shift amount based on the difference of the scaled and inital width
+    fn abs_shift_diff(&self) -> (i32, i32) {
+        let x_diff: i32 = self.initial_width as i32 - self.width as i32;
+        let y_diff: i32 = self.initial_height as i32 - self.height as i32;
+
+        ((x_diff / 2).abs(), (y_diff / 2).abs())
+    }
+    /// Scale and save the new monitor size based on scale factor
+    fn scale(&mut self, scale_factor: f32) -> &mut Self {
+        self.width = Helpers::round_2((self.width as f32 * scale_factor).round() as u32);
+        self.height = Helpers::round_2((self.height as f32 * scale_factor).round() as u32);
+
+        let (x_shift, y_shift) = self.abs_shift_diff();
+
+        if self.initial_width < self.width {
+            self.x1 -= x_shift;
+            self.x2 += x_shift;
+        } else {
+            self.x1 += x_shift;
+            self.x2 -= x_shift;
+        }
+
+        if self.initial_height < self.height {
+            self.y1 -= y_shift;
+            self.y2 += y_shift;
+        } else {
+            self.y1 += y_shift;
+            self.y2 -= y_shift;
+        }
+
+        self
+    }
+    /// Calculate and return ppi based on monitor diagonal in inches
+    pub fn ppi(&self, diagonal_inches: u32) -> u32 {
+        let diagonal_pixels = ((self.width).pow(2) + (self.height).pow(2)).isqrt() as u64;
+
+        (diagonal_pixels as f64 / (diagonal_inches as f64)).round() as u32
+    }
+    /// Calculate and return ppi based on monitor diagonal in inches
+    pub fn ppi_scale(&mut self, diagonal_inches: u32, reference_ppi: u32) -> &mut Self {
+        let factor = reference_ppi as f32 / self.ppi(diagonal_inches) as f32;
+
+        self.scale(factor)
+    }
+}
+
+/// Compensate for different ppi values of monitors by scaling them dynamically
+pub fn compensate_ppi(monitors: &mut [MonitorXY], diagonals: Vec<u32>, reference_ppi: u32) {
+    if monitors.is_empty() {
+        return;
+    }
+
+    for (r, d) in monitors.iter_mut().zip(diagonals) {
+        r.ppi_scale(d, reference_ppi);
     }
 }
 
@@ -65,12 +115,16 @@ pub fn normalize_to_positive(monitors: &mut [MonitorXY]) {
 
 /// Resolves touching and overlapping monitors
 pub fn resolve_layout(monitors: &mut [MonitorXY], padding: u32, max_iterations: usize) {
+    if monitors.is_empty() {
+        return;
+    }
+
     for _ in 0..max_iterations {
         let mut changed = false;
 
         for i in 0..monitors.len() {
             for j in (i + 1)..monitors.len() {
-                let (mut a, mut b) = (monitors[i].canonical(), monitors[j].canonical());
+                let (mut a, mut b) = (monitors[i], monitors[j]);
 
                 let (x_overlap, y_overlap);
                 if padding > 0 {

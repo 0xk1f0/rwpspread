@@ -114,7 +114,7 @@ struct Args {
 
     /// Compensate for different monitor ppi values
     #[arg(long, requires = "monitors")]
-    experimental_ppi: bool,
+    ppi: bool,
 
     /// Enable daemon mode and resplit on output changes
     #[arg(short, long)]
@@ -234,7 +234,7 @@ impl Config {
                 backend: args.backend,
                 locker: args.locker,
                 bezel: args.bezel,
-                ppi: args.experimental_ppi,
+                ppi: args.ppi,
                 daemon: args.daemon,
                 palette: args.palette,
                 force_resplit: args.force_resplit,
