@@ -20,7 +20,7 @@
 - Wallpaper spanning across all monitors
 - Monitor hotplugging detection
 - Color palette generation
-- Monitor bezel compensation
+- Monitor ppi and bezel compensation
 - Support for various wallpaper setters
   - [`wpaperd`](https://github.com/danyspin97/wpaperd)
   - [`swaybg`](https://github.com/swaywm/swaybg)
@@ -152,6 +152,28 @@ source=/home/$USER/.cache/rwpspread/rwps_hyprlock.conf
 ```
 
 This allows you to configure additional `hyprlock` stuff after the import statement.
+
+## Monitor ppi compensation
+
+Many users employ setups with different monitor resolutions and sizes. For example they might have a hig-resolution main monitor that is capable of 3840x2160 4K resolution, while their secondary monitor is only 1920x1080 Full-HD resolution.
+A 27' 4K monitor has a higher pixel density than a 27' Full-HD monitor, which is a problem for wallpaper splitters, because the image on the Full-HD monitor will look weirdly stretched out next to the higher resolution display. This is where ppi compensation comes into play.
+
+```bash
+rwpspread --ppi --monitors "DP-1:32 DP-2:27" -i /some/path/wallpaper.png
+```
+
+The above command tells `rwpspread` that you have a 32' monitor on DisplayPort 1 and a 27' monitor on DisplayPort 2. When combining this additional information with the resolution of the displays, a pixels-per-inch value can be calculated. Based on this value, `rwpspread` will scale split images for lower-resolution monitors and realign them accordingly, to compensate for their lower pixel density.
+The end result should be a more nicely aligned gap between different resolution displays.
+
+## Monitor bezel compensation
+
+While ppi compensation takes the heavy-lifting off dealing with different resolution displays, bezel compensation can aid you in scenarios where you might have more distance between your monitors than you might want. In that case, splits may not fluid transitions from monitor to monitor, because the actual displays are not directly next to each other.
+
+```bash
+rwpspread --bezel 40 -i /some/path/wallpaper.png
+```
+
+Bezel compensation applies a fixed offset in pixels between touching edges of monitors, to make transition and splits look more fluid than without. You can also use it in combination with ppi compensation to get a perfect setup.
 
 ## Custom Scripts
 

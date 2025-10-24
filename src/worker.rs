@@ -214,6 +214,15 @@ impl Worker {
         if config.ppi {
             // compensate ppi if set
             layout.compensate_ppi(&config.diagonals);
+        } else {
+            // notify the user when ppi compensation might be worth a try
+            if layout.ppi_advice {
+                println!(
+                    "{}: \x1B[93m{}\x1B[39m",
+                    "rwpspread",
+                    "detected monitors with different resolutions, try `--ppi` compensation!"
+                );
+            }
         }
 
         let bezel_amount;

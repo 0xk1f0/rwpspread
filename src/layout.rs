@@ -88,9 +88,10 @@ impl LayoutMonitor {
 
 pub struct Layout {
     pub monitors: Vec<LayoutMonitor>,
+    pub ppi_advice: bool,
 }
 impl Layout {
-    /// Create a new layoput from input monitors
+    /// Create a new layout from input monitors
     pub fn from_monitors(monitors: &[Monitor]) -> Self {
         let mut layout_monitors: Vec<LayoutMonitor> = Vec::with_capacity(monitors.len());
 
@@ -98,8 +99,22 @@ impl Layout {
             layout_monitors.push(LayoutMonitor::from_monitor(monitor));
         }
 
+        let all_same_resolution = layout_monitors
+            .iter()
+            .map(|this| {
+                let result = layout_monitors.iter().all(|monitor| {
+                    (monitor.initial_width == this.initial_width
+                        && monitor.initial_height == this.initial_height)
+                        || (monitor.initial_height == this.initial_width
+                            && monitor.initial_width == this.initial_height)
+                });
+                result
+            })
+            .all(|result| result == true);
+
         Self {
-            monitors: layout_monitors
+            monitors: layout_monitors,
+            ppi_advice: !all_same_resolution,
         }
     }
     /// Normalize a set of monitors so that all coordinates are positive
