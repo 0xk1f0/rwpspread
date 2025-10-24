@@ -66,10 +66,17 @@ jobs:
           sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
           rustup target add aarch64-unknown-linux-gnu
           cargo build --target=aarch64-unknown-linux-gnu --release --verbose
+      - name: Build musl static linked
+        run: |
+          sudo apt update && sudo apt install -y musl-tools build-essential
+          rustup target add aarch64-unknown-linux-musl
+          cargo build --target=aarch64-unknown-linux-musl --release --verbose
       - name: Move and generate checksums
         run: |
           mv target/aarch64-unknown-linux-gnu/release/rwpspread ./rwpspread-aarch64-unknown-linux-gnu
+          mv target/aarch64-unknown-linux-musl/release/rwpspread ./rwpspread-aarch64-unknown-linux-musl
           sha512sum ./rwpspread-aarch64-unknown-linux-gnu > ./rwpspread-aarch64-unknown-linux-gnu.sha512sum
+          sha512sum ./rwpspread-aarch64-unknown-linux-musl > ./rwpspread-aarch64-unknown-linux-musl.sha512sum
       - name: Upload release files
         uses: actions/upload-artifact@v4
         with:
@@ -77,3 +84,5 @@ jobs:
           path: |
             rwpspread-aarch64-unknown-linux-gnu
             rwpspread-aarch64-unknown-linux-gnu.sha512sum
+            rwpspread-aarch64-unknown-linux-musl
+            rwpspread-aarch64-unknown-linux-musl.sha512sum
