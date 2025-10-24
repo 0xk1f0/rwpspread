@@ -25,29 +25,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Prepare for build
+      - name: Prepare environment
         run: |
-          sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
-          rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-gnu
-          mkdir ./release_output/
-      - name: Build x86_gnu
+          sudo apt update && sudo apt install -y build-essential gcc-aarch64-linux-gnu
+          rustup target add aarch64-unknown-linux-gnu aarch64-unknown-linux-musl x86_64-unknown-linux-gnu x86_64-unknown-linux-musl
+      - name: Build x86 GNU static linked
         env:
           RUSTFLAGS: -C target-feature=+crt-static
         run: cargo build --target=x86_64-unknown-linux-gnu --release --verbose
-      - name: Build x86_musl
-        run: cargo build --target=x86_64-unknown-linux-musl --release --verbose
-      - name: Build aarch64_gnu
+      - name: Build x86 musl static linked
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: |
+          cargo build --target=x86_64-unknown-linux-musl --release --verbose
+      - name: Build arm64 GNU static linked
         env:
           RUSTFLAGS: -C target-feature=+crt-static -C linker=aarch64-linux-gnu-gcc
-        run: cargo build --target=aarch64-unknown-linux-gnu --release --verbose
+        run: |
+          cargo build --target=aarch64-unknown-linux-gnu --release --verbose
+      - name: Build arm64 musl static linked
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+          CC: aarch64-linux-gnu-gcc
+        run: |
+          cargo build --target=aarch64-unknown-linux-musl --release --verbose
       - name: Move and generate checksums
         run: |
           mv target/x86_64-unknown-linux-gnu/release/rwpspread ./release_output/rwpspread-x86_64-unknown-linux-gnu
           mv target/x86_64-unknown-linux-musl/release/rwpspread ./release_output/rwpspread-x86_64-unknown-linux-musl
           mv target/aarch64-unknown-linux-gnu/release/rwpspread ./release_output/rwpspread-aarch64-unknown-linux-gnu
+          mv target/aarch64-unknown-linux-musl/release/rwpspread ./release_output/rwpspread-aarch64-unknown-linux-musl
           sha512sum ./release_output/rwpspread-x86_64-unknown-linux-gnu > ./release_output/rwpspread-x86_64-unknown-linux-gnu.sha512sum
           sha512sum ./release_output/rwpspread-x86_64-unknown-linux-musl > ./release_output/rwpspread-x86_64-unknown-linux-musl.sha512sum
           sha512sum ./release_output/rwpspread-aarch64-unknown-linux-gnu > ./release_output/rwpspread-aarch64-unknown-linux-gnu.sha512sum
+          sha512sum ./release_output/rwpspread-aarch64-unknown-linux-musl > ./release_output/rwpspread-aarch64-unknown-linux-musl.sha512sum
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
