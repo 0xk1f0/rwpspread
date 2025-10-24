@@ -63,12 +63,13 @@ jobs:
         env:
           RUSTFLAGS: -C target-feature=+crt-static -C linker=aarch64-linux-gnu-gcc
         run: |
-          sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
+          sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu musl musl-tools build-essential
           rustup target add aarch64-unknown-linux-gnu
           cargo build --target=aarch64-unknown-linux-gnu --release --verbose
       - name: Build musl static linked
+        env:
+          RUSTFLAGS: -C linker=aarch64-linux-gnu-musl
         run: |
-          sudo apt update && sudo apt install -y musl-tools build-essential
           rustup target add aarch64-unknown-linux-musl
           cargo build --target=aarch64-unknown-linux-musl --release --verbose
       - name: Move and generate checksums
