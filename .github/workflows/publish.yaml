@@ -52,6 +52,7 @@ jobs:
           cargo build --target=aarch64-unknown-linux-musl --release --verbose
       - name: Move and generate checksums
         run: |
+          mkdir ./release_output/
           mv target/x86_64-unknown-linux-gnu/release/rwpspread ./release_output/rwpspread-x86_64-unknown-linux-gnu
           mv target/x86_64-unknown-linux-musl/release/rwpspread ./release_output/rwpspread-x86_64-unknown-linux-musl
           mv target/aarch64-unknown-linux-gnu/release/rwpspread ./release_output/rwpspread-aarch64-unknown-linux-gnu
