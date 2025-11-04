@@ -60,12 +60,22 @@ impl Worker {
         if let Some(output_path) = &config.output_path {
             self.workdir = output_path.to_owned();
         } else if config.daemon || config.backend.is_some() {
-            self.workdir = format!(
-                "{}/.cache/rwpspread",
-                env::var("HOME").map_err(|_| "failed read $HOME")?
-            );
+            match env::var("XDG_CACHE_HOME") {
+                Ok(cache_home) => {
+                    self.workdir = format!("{}/rwpspread", cache_home);
+                }
+                Err(_) => {
+                    self.workdir = format!(
+                        "{}/.cache/rwpspread",
+                        env::var("HOME").map_err(
+                            |_| "no suitable cache location: failed read $XDG_CACHE_HOME and $HOME"
+                        )?
+                    );
+                }
+            }
             self.ensure_path(&self.workdir)?;
         } else {
+            // current workdir should always be available
             self.workdir = env::var("PWD").map_err(|_| "failed read $PWD")?;
         }
 
@@ -383,11 +393,16 @@ impl Worker {
     }
     /// Ensure a path on disk exists
     fn ensure_path(&self, path: &str) -> Result<(), String> {
-        fs::create_dir_all(
-            &PathBuf::from(path)
-                .parent()
-                .ok_or("failed to determine path parent")?,
-        )
+        let wanted_path = PathBuf::from(path);
+        if wanted_path.extension().is_some() {
+            fs::create_dir_all(
+                wanted_path
+                    .parent()
+                    .ok_or("failed to determine path parent")?,
+            )
+        } else {
+            fs::create_dir_all(wanted_path)
+        }
         .map_err(|_| "failed to create directory path")?;
 
         Ok(())

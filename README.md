@@ -204,13 +204,11 @@ If used just to split images, output images are saved to the current working dir
 rwpspread -i /some/path/wallpaper.png
 ```
 
-When used with the backend or daemon option, output images are stored in `/home/$USER/.cache/rwpspread/` with the `rwps_` prefix.
+When used with the backend or daemon option, output images are stored in `$XDG_CACHE_HOME/rwpspread/` or alternatively `$HOME/.cache/rwpspread/` with the `rwps_` prefix.
 
 ```bash
-# output files in /home/$USER/.cache/rwpspread/
+# output files in $XDG_CACHE_HOME/rwpspread/ or $HOME/.cache/rwpspread/
 rwpspread -b swaybg -i /some/path/wallpaper.png
-# output files in /home/$USER/.cache/rwpspread/
-rwpspread -di /some/path/wallpaper.png
 ```
 
 To get all files simply do:
