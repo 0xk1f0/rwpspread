@@ -51,6 +51,19 @@ pkgs.rwpspread
 take `rwpspread` from this repos flake directly.
 ```
 
+[![Void Linux](https://img.shields.io/badge/nix-via%20voidpackages-grey?style=for-the-badge&logo=Nixos&color=295340)](https://voidlinux.org/packages/?q=rwpspread)
+
+Pending PR [#57654](https://github.com/void-linux/void-packages/pull/57654)
+
+```bash
+# try it out
+nix run nixpkgs#rwpspread
+# or add to any user/system package list as
+pkgs.rwpspread
+# master
+take `rwpspread` from this repos flake directly.
+```
+
 [![Crates.io](https://img.shields.io/badge/crates.io-via_cargo-grey?style=for-the-badge&logo=rust&color=FFC933)](https://crates.io/crates/rwpspread)
 
 ```bash
