@@ -24,7 +24,7 @@
 - Support for various wallpaper setters
   - [`wpaperd`](https://github.com/danyspin97/wpaperd)
   - [`swaybg`](https://github.com/swaywm/swaybg)
-  - [`hyprpaper`](https://github.com/hyprwm/hyprpaper)
+  - [`hyprpaper`](https://github.com/hyprwm/hyprpaper) (requires v0.8.0+)
 - Configuration generation for lockers
   - [`swaylock`](https://github.com/swaywm/swaylock)
   - [`hyprlock`](https://github.com/hyprwm/hyprlock)
