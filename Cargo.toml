@@ -31,6 +31,7 @@ smithay-client-toolkit = { version = "0.20.0", default-features = false, feature
 ] }
 inotify = { version = "0.11.0", default-features = false }
 crossbeam-channel = "0.5.15"
+hyprwire-rs = "0.1.0"
 
 [build-dependencies]
 clap = { version = "4.5.60", features = ["derive"] }

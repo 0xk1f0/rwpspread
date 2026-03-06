@@ -1,9 +1,11 @@
+use hyprwire_rs::client::HyprWireClient;
+use hyprwire_rs::wire;
 use std::collections::HashMap;
 use std::env;
-use std::io::prelude::*;
-use std::os::unix::net::UnixStream;
 use std::thread;
 use std::time::Duration;
+
+const SUPPORTED_VERSION: u32 = 1;
 
 pub struct Hyprpaper;
 impl Hyprpaper {
@@ -29,56 +31,88 @@ impl Hyprpaper {
 
         // block till we can connect or met retry limit
         for _ in 0..40 {
-            match UnixStream::connect(&target_socket) {
-                Ok(mut socket) => {
-                    // unload all first and check for success
-                    let mut buffer = [0; 1024];
-                    socket
-                        .write_all(b"unload all")
-                        .map_err(|err| format!("hyprpaper: {}", err))?;
-                    socket
-                        .read(&mut buffer)
-                        .map_err(|err| format!("hyprpaper: {}", err))?;
-                    if !String::from_utf8_lossy(&buffer)
-                        .to_string()
-                        .to_lowercase()
-                        .contains("ok")
-                    {
-                        return Err("hyprpaper: unload failed".to_string());
+            match HyprWireClient::connect(&target_socket) {
+                Ok(mut client) => {
+                    // perform the handshake
+                    let protocols = client.perform_handshake(SUPPORTED_VERSION)?;
+
+                    // bind to first available protocol
+                    let object_id: u32;
+                    if let Some(protocol) = protocols.first() {
+                        object_id = client.bind_protocol(&protocol.spec)?;
+                    } else {
+                        return Err("no protocol to bind to".to_string());
                     }
 
-                    // execute call for every monitor wallpaper
+                    // apply for every wallpaper
                     for paper in wallpapers {
-                        // preload wallpaper and check for success
-                        socket
-                            .write_all(format!("preload {}", paper.1).as_bytes())
-                            .map_err(|err| format!("hyprpaper: {}", err))?;
-                        socket
-                            .read(&mut buffer)
-                            .map_err(|err| format!("hyprpaper: {}", err))?;
-                        if !String::from_utf8_lossy(&buffer)
-                            .to_string()
-                            .to_lowercase()
-                            .contains("ok")
-                        {
-                            return Err("hyprpaper: preload failed".to_string());
-                        }
+                        // request the new object
+                        client.send_message(
+                            wire::Code::HW_GENERIC_PROTOCOL_MESSAGE,
+                            &[
+                                wire::Value::Object(object_id),
+                                wire::Value::Uint(0),
+                                wire::Value::Seq(client.get_sequence()),
+                            ],
+                        )?;
 
-                        // set wallpaper and check for success
-                        socket
-                            .write_all(format!("wallpaper {},{}", paper.0, paper.1).as_bytes())
-                            .map_err(|err| format!("hyprpaper: {}", err))?;
-                        socket
-                            .read(&mut buffer)
-                            .map_err(|err| format!("hyprpaper: {}", err))?;
-                        if !String::from_utf8_lossy(&buffer)
-                            .to_string()
-                            .to_lowercase()
-                            .contains("ok")
-                        {
-                            return Err("hyprpaper: set failed".to_string());
+                        // process new object handle
+                        let response = client.read_message()?;
+                        if response.code != wire::Code::HW_NEW_OBJECT {
+                            return Err(
+                                "expected new object response after object request".to_string()
+                            );
                         }
+                        let Some(wire::Value::Uint(hp_object_id)) = response.args.get(0) else {
+                            return Err(
+                                "expected new object for hyprpaper wallpaper object".to_string()
+                            );
+                        };
+
+                        // set wallpaper path
+                        client.send_message(
+                            wire::Code::HW_GENERIC_PROTOCOL_MESSAGE,
+                            &[
+                                wire::Value::Object(*hp_object_id),
+                                wire::Value::Uint(0),
+                                wire::Value::Varchar(paper.1.to_string()),
+                                wire::Value::Seq(client.get_sequence()),
+                            ],
+                        )?;
+                        // set monitor
+                        client.send_message(
+                            wire::Code::HW_GENERIC_PROTOCOL_MESSAGE,
+                            &[
+                                wire::Value::Object(*hp_object_id),
+                                wire::Value::Uint(2),
+                                wire::Value::Varchar(paper.0.to_string()),
+                                wire::Value::Seq(client.get_sequence()),
+                            ],
+                        )?;
+                        // set fit mode
+                        client.send_message(
+                            wire::Code::HW_GENERIC_PROTOCOL_MESSAGE,
+                            &[
+                                wire::Value::Object(*hp_object_id),
+                                wire::Value::Uint(1),
+                                wire::Value::Uint(1),
+                                wire::Value::Seq(client.get_sequence()),
+                            ],
+                        )?;
+                        // apply
+                        client.send_message(
+                            wire::Code::HW_GENERIC_PROTOCOL_MESSAGE,
+                            &[
+                                wire::Value::Object(*hp_object_id),
+                                wire::Value::Uint(3),
+                                wire::Value::Seq(client.get_sequence()),
+                            ],
+                        )?;
+                        _ = client.read_message()?;
                     }
+
+                    // try to disconnect properly, but dont panic if we cant
+                    client.disconnect().unwrap_or(());
 
                     return Ok(());
                 }

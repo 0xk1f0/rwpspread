@@ -669,6 +669,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
 
 [[package]]
+name = "hyprwire-rs"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9713c2f42c4b6e6fae0276f50e0e042829c33ac5192147805cf413002e9fc5fc"
+
+[[package]]
 name = "id-arena"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1290,6 +1296,7 @@ dependencies = [
  "clap_mangen",
  "crossbeam-channel",
  "glob",
+ "hyprwire-rs",
  "image",
  "inotify",
  "material-colors",
