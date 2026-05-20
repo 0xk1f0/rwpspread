@@ -5,25 +5,26 @@ on:
   release:
     types: [ "published" ]
 
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
 jobs:
-  publish-cratesio:
+  publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
       - name: Publish crates.io Package
         run: cargo publish --token ${CRATES_AUTH_TOKEN} 
         env:
           CRATES_AUTH_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-  build-all-for-release:
+  build-release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - name: Prepare environment
         run: |
