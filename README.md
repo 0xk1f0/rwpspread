@@ -51,10 +51,6 @@ pkgs.rwpspread
 take `rwpspread` from this repos flake directly.
 ```
 
-[![Void Linux](https://img.shields.io/badge/void_linux-via%20void_packages-grey?style=for-the-badge&logo=voidlinux&color=295340)](https://voidlinux.org/packages/?q=rwpspread)
-
-Pending PR [#57654](https://github.com/void-linux/void-packages/pull/57654)
-
 [![Crates.io](https://img.shields.io/badge/crates.io-via_cargo-grey?style=for-the-badge&logo=rust&color=FFC933)](https://crates.io/crates/rwpspread)
 
 ```bash
